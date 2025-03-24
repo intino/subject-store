@@ -78,7 +78,7 @@ public class SubjectTable implements Iterable<SubjectTable.Row> {
 
 	private void build(Numerical column) {
 		Signal signal = store.numericalQuery(column.name()).signal(from(), to());
-		build(column.normalize(signal).segments(duration()), column);
+		build(signal.segments(duration()), column);
 	}
 
 	private void build(Categorical column) {
@@ -134,6 +134,35 @@ public class SubjectTable implements Iterable<SubjectTable.Row> {
 	@Override
 	public Iterator<Row> iterator() {
 		return Arrays.asList(rows).iterator();
+	}
+
+	public SubjectTable normalize(int column) {
+		normalize(column, rangeOf(column));
+		return this;
+	}
+
+	private void normalize(int column, double range) {
+		for (Row row : rows) {
+			Object object = row.values.get(column);
+			if (object instanceof Number number) {
+				double value = number.doubleValue();
+				row.values.set(column, value / range);
+			}
+		}
+	}
+
+	private double rangeOf(int i) {
+		double min = Double.POSITIVE_INFINITY;
+		double max = Double.NEGATIVE_INFINITY;
+		for (Row row : rows) {
+			Object object = row.values.get(i);
+			if (object instanceof Number number) {
+				double value = number.doubleValue();
+				min = Math.min(min, value);
+				max = Math.max(max, value);
+			}
+		}
+		return max - min;
 	}
 
 	public static class Row {

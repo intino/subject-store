@@ -2,7 +2,6 @@ package io.intino.alexandria.model;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 
 import static java.time.DayOfWeek.MONDAY;
 import static java.time.ZoneOffset.UTC;

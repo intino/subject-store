@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import static io.intino.alexandria.model.Instants.thisHour;
 import static io.intino.alexandria.model.Instants.today;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.HOURS;
@@ -120,7 +119,11 @@ public class Signal_ {
 	}
 
 	private static Point<Long> point(int i) {
-		return new Point<>(feed(i), thisHour(i), value(i));
+		return new Point<>(feed(i), hour(i), value(i));
+	}
+
+	private static Instant hour(int i) {
+		return today().plus(i, HOURS);
 	}
 
 	private static int feed(int i) {

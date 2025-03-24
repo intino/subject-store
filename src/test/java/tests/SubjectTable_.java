@@ -12,8 +12,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 
-import static io.intino.alexandria.model.table.Column.Numerical.Normalization.MinMax;
-import static io.intino.alexandria.model.table.operators.CategoricalOperator.Mode;
+import static io.intino.alexandria.model.table.operators.CategoricalFunction.Mode;
 import static io.intino.alexandria.model.table.operators.NumericalFunction.*;
 import static io.intino.alexandria.model.table.operators.TemporalFunction.*;
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -23,11 +22,11 @@ public class SubjectTable_ {
 	private final static Instant from = Instant.parse("2025-01-01T00:00:00Z");
 	private final static Instant to = Instant.parse("2025-02-01T00:00:00Z");
 	private final static String expected = """
-		1	1	0.0	0						3
-		8	1	22.0	44	19	25	19	25		3
-		15	1	0.0	0						3
-		22	1	0.0	0						3
-		29	1	14.0	14	14	14	14	14		3
+		1	1	0.0	0.0				3
+		8	1	1.0	24.0	20	28		3
+		15	1	0.0	0.0				3
+		22	1	0.0	0.0				3
+		29	1	0.75	18.0	18	18		3
 		""";
 
 	@Test
@@ -38,14 +37,13 @@ public class SubjectTable_ {
 				.add(new Column.Temporal(DayOfMonth))
 				.add(new Column.Temporal(MonthOfYear))
 				.add(new Column.Numerical("temperature", Average))
-				.add(new Column.Numerical("temperature", Sum))
-				.add(new Column.Numerical("temperature", Min))
-				.add(new Column.Numerical("temperature", Max))
+				.add(new Column.Numerical("temperature", Average))
 				.add(new Column.Numerical("temperature", First))
 				.add(new Column.Numerical("temperature", Last))
 				.add(new Column.Categorical("cloudy", Mode))
 				.add(new Column.Temporal(DayOfWeek));
-			SubjectTable table = new SubjectTable(store, format);
+			SubjectTable table = new SubjectTable(store, format)
+					.normalize(2);
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			table.export(os);
 			assertThat(os.toString()).isEqualTo(expected.trim());
@@ -54,14 +52,14 @@ public class SubjectTable_ {
 
 	private void feed(SubjectStore store) {
 		store.feed(from.plus(10, DAYS), "test")
-				.add("temperature", 19)
+				.add("temperature", 20)
 				.execute();
 		store.feed(from.plus(12, DAYS), "test")
-				.add("temperature", 25)
+				.add("temperature", 28)
 				.add("sky", "cloudy")
 				.execute();
 		store.feed(from.plus(28, DAYS), "test")
-				.add("temperature", 14)
+				.add("temperature", 18)
 				.add("sky", "rain")
 				.execute();
 	}
