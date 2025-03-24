@@ -2,7 +2,7 @@
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
     <data-source source="LOCAL" name="port:CHN" uuid="ce3fee37-2901-4e87-bafa-8abe734ccfcc">
-      <driver-ref>4a98f995-5443-482b-9cbc-97c03a4bfc32</driver-ref>
+      <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/port:CHN.gss</jdbc-url>
