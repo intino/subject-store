@@ -222,19 +222,19 @@ public class SqliteRegistry implements Registry {
 
 	private ResultSet selectLongValue(int tag, int feed) throws SQLException {
 		PreparedStatement statement = statementProvider.get("select-long-value");
-		statement.setLong(1, tag);
-		statement.setLong(2, feed);
+		statement.setInt(1, tag);
+		statement.setInt(2, feed);
 		return statement.executeQuery();
 	}
 
 	private ResultSet selectTextValue(int tag, int feed) throws SQLException {
 		PreparedStatement statement = statementProvider.get("select-text-value");
-		statement.setLong(1, tag);
-		statement.setLong(2, feed);
+		statement.setInt(1, tag);
+		statement.setInt(2, feed);
 		return statement.executeQuery();
 	}
 
-	ResultSet selectLongValues(int tag, int from, int to) throws SQLException {
+	private ResultSet selectLongValues(int tag, int from, int to) throws SQLException {
 		PreparedStatement statement = statementProvider.get("select-long-values");
 		statement.setInt(1, tag);
 		statement.setInt(2, from);
