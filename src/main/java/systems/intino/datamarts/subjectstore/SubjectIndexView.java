@@ -1,9 +1,9 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.index.model.Statement;
-import systems.intino.datamarts.subjectstore.index.model.Subject;
-import systems.intino.datamarts.subjectstore.index.model.Subjects;
-import systems.intino.datamarts.subjectstore.index.model.Terms;
+import systems.intino.datamarts.subjectstore.model.Statement;
+import systems.intino.datamarts.subjectstore.model.Subject;
+import systems.intino.datamarts.subjectstore.model.Subjects;
+import systems.intino.datamarts.subjectstore.model.Terms;
 import systems.intino.datamarts.subjectstore.index.view.Column;
 
 import java.util.*;

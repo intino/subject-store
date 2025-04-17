@@ -2,12 +2,14 @@ package tests.index;
 
 
 import org.junit.Test;
+import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectIndex;
 import systems.intino.datamarts.subjectstore.SubjectIndexView;
-import systems.intino.datamarts.subjectstore.index.io.Statements;
-import systems.intino.datamarts.subjectstore.index.io.statements.TabularStatements;
-import systems.intino.datamarts.subjectstore.index.model.Subject;
-import systems.intino.datamarts.subjectstore.index.model.Subjects;
+import systems.intino.datamarts.subjectstore.SubjectQuery;
+import systems.intino.datamarts.subjectstore.io.Statements;
+import systems.intino.datamarts.subjectstore.io.statements.TabularStatements;
+import systems.intino.datamarts.subjectstore.model.Subject;
+import systems.intino.datamarts.subjectstore.model.Subjects;
 import systems.intino.datamarts.subjectstore.index.view.Column;
 import systems.intino.datamarts.subjectstore.index.view.Summary;
 
@@ -23,49 +25,47 @@ public class SubjectIndexView_ {
 
 	@Test
 	public void should_create_views_including_summary() throws IOException {
-		try (SubjectIndex index = new SubjectIndex().restore(inputStream("subjects.txt"))) {
-			SubjectIndexView models = SubjectIndexView.of(index)
-					.type("model")
-					.add("status")
-					.add("name")
-					.build();
-			SubjectIndexView experiments = SubjectIndexView.of(index)
-					.type("experiment")
-					.add("status")
-					.build();
+		SubjectIndex index = new SubjectIndex(Storages.inMemory()).restore(inputStream("subjects.txt"));
+		SubjectIndexView models = SubjectIndexView.of(index)
+				.type("model")
+				.add("status")
+				.add("name")
+				.build();
+		SubjectIndexView experiments = SubjectIndexView.of(index)
+				.type("experiment")
+				.add("status")
+				.build();
 
-			assertThat(models.size()).isEqualTo(25);
-			assertThat(models.column("status").summary().categories()).containsExactly("active");
-			assertThat(models.column("name").summary().categories().size()).isEqualTo(25);
-			assertThat(experiments.size()).isEqualTo(100);
-			assertThat(experiments.column("status").summary().categories()).containsExactly("running", "queued", "error", "done");
-			assertThat(experiments.column("status").summary().frequency("running")).isEqualTo(25);
-		}
+		assertThat(models.size()).isEqualTo(25);
+		assertThat(models.column("status").summary().categories()).containsExactly("active");
+		assertThat(models.column("name").summary().categories().size()).isEqualTo(25);
+		assertThat(experiments.size()).isEqualTo(100);
+		assertThat(experiments.column("status").summary().categories()).containsExactly("running", "queued", "error", "done");
+		assertThat(experiments.column("status").summary().frequency("running")).isEqualTo(25);
 	}
 
 	@Test
-	public void should_calculate_summary_frequencies_consistently() throws IOException {
-		try (SubjectIndex index = new SubjectIndex().consume(statements())) {
-			assertThat(index.subjects().roots().size()).isEqualTo(435);
-			SubjectIndexView view = SubjectIndexView.of(index)
-					.type("port")
-					.add("country")
-					.add("cabotage-region")
-					.add("draft")
-					.add("cost-per-full")
-					.add("cost-per-full-transfer")
-					.build();
-			for (Column column : view) {
-				Summary summary = column.summary();
-				SubjectIndex.SubjectQuery query = index.subjects("port");
-				List<Subject> all = new ArrayList<>(query.all().items());
-				for (String category : summary.categories()) {
-					Subjects x = query.with(column.name(), category).all();
-					all.removeAll(x.items());
-					assertThat(summary.frequency(category)).isEqualTo(x.size());
-				}
-				assertThat(all.size()).isNotEqualTo(0);
+	public void should_calculate_summary_frequencies_consistently() {
+		SubjectIndex index = new SubjectIndex(Storages.inMemory()).consume(statements());
+		assertThat(index.subjects().roots().size()).isEqualTo(435);
+		SubjectIndexView view = SubjectIndexView.of(index)
+				.type("port")
+				.add("country")
+				.add("cabotage-region")
+				.add("draft")
+				.add("cost-per-full")
+				.add("cost-per-full-transfer")
+				.build();
+		for (Column column : view) {
+			Summary summary = column.summary();
+			SubjectQuery query = index.subjects("port");
+			List<Subject> all = new ArrayList<>(query.all().items());
+			for (String category : summary.categories()) {
+				Subjects x = query.with(column.name(), category).all();
+				all.removeAll(x.items());
+				assertThat(summary.frequency(category)).isEqualTo(x.size());
 			}
+			assertThat(all.size()).isNotEqualTo(0);
 		}
 	}
 

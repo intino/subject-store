@@ -1,6 +1,6 @@
 package systems.intino.datamarts.subjectstore.history.view.fields;
 
-import systems.intino.datamarts.subjectstore.history.model.Sequence;
+import systems.intino.datamarts.subjectstore.model.Sequence;
 
 import java.util.HashMap;
 import java.util.Map;

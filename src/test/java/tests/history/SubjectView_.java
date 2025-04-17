@@ -1,6 +1,7 @@
 package tests.history;
 
 import org.junit.Test;
+import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectHistoryView;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.MinMaxNormalizationFilter;
@@ -31,32 +32,33 @@ public class SubjectView_ {
 
 	@Test
 	public void should_export_to_tabular_report_with_format_as_object() throws IOException {
-		try (SubjectHistory history = new SubjectHistory("map", File.createTempFile("xyz", ":patient.oss"))) {
-			feed(history);
-			Format format = new Format(from, to, Duration.ofDays(7));
-			format.add(new Column("Year","ts.year"));
-			format.add(new Column("Month","ts.month-of-year"));
-			format.add(new Column("Day","sin(ts.day-of-month)+cos(ts.month-of-year)"));
+		File file = File.createTempFile("xyz", ":patient.oss");
+		SubjectHistory history = new SubjectHistory("map", Storages.in(file));
+		feed(history);
+		Format format = new Format(from, to, Duration.ofDays(7));
+		format.add(new Column("Year","ts.year"));
+		format.add(new Column("Month","ts.month-of-year"));
+		format.add(new Column("Day","sin(ts.day-of-month)+cos(ts.month-of-year)"));
 
-			format.add(new Column("TotalTemp","temperature.sum"));
-			format.add(new Column("AvgTemp","temperature.average"));
-			format.add(new Column("NormTemp","TotalTemp").add(new MinMaxNormalizationFilter()));
-			format.add(new Column("Trend","AvgTemp").add(new RollingAverageFilter(3)));
+		format.add(new Column("TotalTemp","temperature.sum"));
+		format.add(new Column("AvgTemp","temperature.average"));
+		format.add(new Column("NormTemp","TotalTemp").add(new MinMaxNormalizationFilter()));
+		format.add(new Column("Trend","AvgTemp").add(new RollingAverageFilter(3)));
 
-			format.add(new Column("LastTemp","temperature.last"));
-			format.add(new Column("SkyMode","sky.mode"));
-			format.add(new Column("SkyCount","sky.count"));
-			format.add(new Column("NewTemp","NormTemp * 100"));
-			SubjectHistoryView view = new SubjectHistoryView(history, format);
-			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			view.exportTo(os);
-			assertThat(os.toString()).isEqualTo(expected);
-		}
+		format.add(new Column("LastTemp","temperature.last"));
+		format.add(new Column("SkyMode","sky.mode"));
+		format.add(new Column("SkyCount","sky.count"));
+		format.add(new Column("NewTemp","NormTemp * 100"));
+		SubjectHistoryView view = new SubjectHistoryView(history, format);
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		view.exportTo(os);
+		assertThat(os.toString()).isEqualTo(expected);
 	}
 
 	@Test
 	public void should_export_to_tabular_report_with_format_as_string() throws IOException {
-		try (SubjectHistory history = new SubjectHistory("map", File.createTempFile("xyz", ":patient.oss"))) {
+		File file = File.createTempFile("xyz", ":patient.oss");
+		SubjectHistory history = new SubjectHistory("map", Storages.in(file));
 			feed(history);
 			String format = """
 			rows:
@@ -104,7 +106,7 @@ public class SubjectView_ {
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			view.exportTo(os);
 			assertThat(os.toString()).isEqualTo(expected);
-		}
+
 	}
 
 	private void feed(SubjectHistory history) {

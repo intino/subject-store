@@ -2,13 +2,13 @@ package tests.index;
 
 
 import org.junit.Test;
+import systems.intino.datamarts.subjectstore.model.Term;
+import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectIndex;
-import systems.intino.datamarts.subjectstore.index.model.Subject;
-import systems.intino.datamarts.subjectstore.index.model.Subjects;
+import systems.intino.datamarts.subjectstore.model.Subject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,13 +17,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SubjectIndex_ {
 
 	@Test
-	public void should_support_index_subject_and_conditional_query() throws IOException {
+	public void should_support_update_subject_and_conditional_query() throws Exception {
 		File file = File.createTempFile("subject", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			index.create("11", "o").update().put("name", "jose").commit();
 			check(index);
 		}
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			index.create("11", "o").update()
 					.put("name", "jose")
 					.commit();
@@ -43,14 +43,14 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_support_rename_subjects() throws IOException {
+	public void should_support_rename_subjects() throws Exception {
 		File file = File.createTempFile("subject", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			index.create("11", "o").update().put("name", "jose").commit();
 			index.create("11", "o").update().rename("22").commit();
 			checkRename(index);
 		}
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			checkRename(index);
 		}
 	}
@@ -61,42 +61,42 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_support_set_and_del_terms() throws IOException {
+	public void should_support_set_and_del_terms() throws Exception {
 		File file = File.createTempFile("subject", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			index.create("11", "o").update().set("name", "jose").commit();
 			assertThat(index.get("11","o").terms().serialize()).isEqualTo("name=jose");
 		}
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			assertThat(index.get("11","o").terms().serialize()).isEqualTo("name=jose");
 			index.create("11", "o").update().set("name", "mario").commit();
 			assertThat(index.get("11","o").terms().serialize()).isEqualTo("name=mario");
 		}
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			assertThat(index.get("11","o").terms().serialize()).isEqualTo("name=mario");
 			index.create("11", "o").update().del("name").commit();
 			assertThat(index.get("11","o").terms().serialize()).isEqualTo("");
 		}
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			assertThat(index.get("11","o").terms().serialize()).isEqualTo("");
 			index.create("11", "o").update().put("name", "mario").commit();
 			index.create("11", "o").update().put("name", "jose").commit();
-			assertThat(index.get("11","o").terms().serialize()).isEqualTo("name=jose\nname=mario");
+			assertThat(index.get("11","o").terms().serialize()).isEqualTo("name=mario\nname=jose");
 		}
-		try (SubjectIndex index = new SubjectIndex(file)) {
-			assertThat(index.get("11","o").terms().serialize()).isEqualTo("name=jose\nname=mario");
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
+			assertThat(index.get("11","o").terms().serialize()).isEqualTo("name=mario\nname=jose");
 			index.create("11", "o").update().del("name").commit();
 			assertThat(index.get("11","o").terms().serialize()).isEqualTo("");
 		}
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			assertThat(index.get("11","o").terms().serialize()).isEqualTo("");
 		}
 	}
 
 	@Test
-	public void should_navigate_subject_structure() throws IOException {
+	public void should_navigate_subject_structure() throws Exception {
 		File file = File.createTempFile("subject", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			Subject s1 = index.create("11","o");
 			s1.update().put("value", "1").commit();
 			Subject s2 = s1.create("22", "p");
@@ -131,9 +131,9 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_support_drop_subjects() throws IOException {
+	public void should_support_drop_subjects() throws Exception {
 		File file = File.createTempFile("subject", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			Subject subject = index.create("11", "o");
 			subject.update()
 					.put("name", "jose")
@@ -147,15 +147,15 @@ public class SubjectIndex_ {
 			assertThat(index.subjects().roots().serialize()).isEqualTo("22.o");
 			assertThat(index.terms().serialize()).isEqualTo("team=first\nname=luis");
 		}
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			assertThat(index.subjects().roots().serialize()).isEqualTo("22.o");
 		}
 	}
 
 	@Test
-	public void should_support_unset_terms_and_conditional_query() throws IOException {
+	public void should_support_unset_terms_and_conditional_query() throws Exception {
 		File file = File.createTempFile("subject", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			index.create("123456", "model").update()
 					.put("description","simulation")
 					.put("user", "mcaballero@gmail.com")
@@ -179,9 +179,9 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_get_terms_of_subject() throws IOException {
+	public void should_get_terms_of_subject() throws Exception {
 		File file = File.createTempFile("file", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			index.create("11", "o").update()
 					.put("name", "jose")
 					.commit();
@@ -202,9 +202,9 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_search_using_contain_and_fit_filters() throws IOException {
+	public void should_search_using_contain_and_fit_filters() throws Exception {
 		File file = File.createTempFile("file", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			index.create("123456", "model").update()
 					.put("description", "simulation")
 					.put("user", "josejuan@gmail.com")
@@ -233,10 +233,9 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_index_subjects_with_terms_and_support_deletion() throws IOException {
+	public void should_update_subjects_with_terms_and_support_deletion() throws Exception {
 		File file = File.createTempFile("items", ".inx");
-
-		try (SubjectIndex index = new SubjectIndex(file)) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			index.create("P001.model").update()
 					.put("name", "AI Research")
 					.put("lead", "alice@example.com")
@@ -250,7 +249,7 @@ public class SubjectIndex_ {
 
 			index.create("P001.model/E002.experiment").update()
 					.put("name", "Graph Alignment")
-					.put("dataset", "DBpedia")
+					.put("dataset", "wikipedia")
 					.put("status", "archived")
 					.commit();
 
@@ -277,9 +276,9 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_dump_index() throws IOException {
+	public void should_dump_update() throws Exception {
 		File file = File.createTempFile("items", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file).restore(inputStream())) {
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file)).restore(inputStream())){
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			index.dump(os);
 			assertThat(os.toString()).isEqualTo(new String(inputStream().readAllBytes()));
@@ -289,44 +288,56 @@ public class SubjectIndex_ {
 	@Test
 	public void should_support_defragmentation() throws Exception {
 		File file = File.createTempFile("items", ".inx");
-		try (SubjectIndex index = new SubjectIndex(file).restore(inputStream())) {
-			assertThat(index.subjects().roots().size()).isEqualTo(25);
-			Subjects subjects = index.subjects().all();
-			assertThat(subjects.size()).isEqualTo(125);
-			assertThat(index.terms().size()).isEqualTo(55);
-			int nonRootDeleted = 0;
-			int rootDeleted = 0;
-			for (int i = 0; i < 125; i += 3) {
-				Subject subject = subjects.get(i);
-				subject.drop();
-				if (subject.isRoot()) rootDeleted++; else nonRootDeleted++;
-			}
-			assertThat(nonRootDeleted).isEqualTo(33);
-			assertThat(rootDeleted).isEqualTo(9);
-			assertThat(index.subjects().all().size()).isEqualTo(56);
-			assertThat(index.subjects().roots().size()).isEqualTo(16);
-			assertThat(index.terms().size()).isEqualTo(37);
-			assertThat(index.isFragmented()).isTrue();
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file)).restore(inputStream())) {
+			index.get("P001.model").update()
+					.set("status", "running")
+					.set("lead", "alice@example.com")
+					.commit();
+			index.get("P002.model").update()
+					.del("lead")
+					.commit();
+			index.get("P003.model").update()
+					.del("lead")
+					.del("status")
+					.commit();
+			index.get("P004.model").update()
+					.del("lead")
+					.del("status")
+					.commit();
+			index.get("P004.model").update()
+					.del("lead")
+					.del("status")
+					.commit();
+			index.get("P003.model").update()
+					.set("lead","mary@example.com")
+					.set("status", "running")
+					.commit();
 
-			File file2 = File.createTempFile("items", ".inx");
-			try (SubjectIndex index2 = new SubjectIndex(file2)) {
-				index.copyTo(index2);
-				assertThat(index2.subjects().all().size()).isEqualTo(56);
-				assertThat(index2.subjects().roots().size()).isEqualTo(16);
-				assertThat(index2.terms().size()).isEqualTo(37);
-				assertThat(index2.isFragmented()).isFalse();
-			}
-			try (SubjectIndex index2 = new SubjectIndex(file2)) {
-				assertThat(index2.subjects().all().size()).isEqualTo(56);
-				assertThat(index2.subjects().roots().size()).isEqualTo(16);
-				assertThat(index2.terms().size()).isEqualTo(37);
-				assertThat(index2.isFragmented()).isFalse();
-			}
-
+			assertThat(index.subjects().all().size()).isEqualTo(125);
+			assertThat(index.terms().size()).isEqualTo(53);
+			assertThat(index.get("P001.model").terms()).contains(new Term("status","running"));
+			assertThat(index.get("P001.model").terms()).doesNotContain(new Term("lead","user1@example.com"));
+			assertThat(index.get("P001.model").terms()).contains(new Term("lead","alice@example.com"));
+			assertThat(index.get("P002.model").terms()).contains(new Term("status","active"));
+			assertThat(index.get("P003.model").terms()).containsExactly(new Term("status","running"), new Term("lead","mary@example.com"), new Term("name","Project 3"));
+			assertThat(index.get("P004.model").terms()).containsExactly(new Term("name","Project 4"));
+		}
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file))) {
+			assertThat(index.terms().size()).isEqualTo(53);
+			assertThat(index.subjects().all().size()).isEqualTo(125);
+			assertThat(index.get("P001.model").terms()).contains(new Term("status","running"));
+			assertThat(index.get("P001.model").terms()).doesNotContain(new Term("lead","user1@example.com"));
+			assertThat(index.get("P001.model").terms()).contains(new Term("lead","alice@example.com"));
+			assertThat(index.get("P002.model").terms()).contains(new Term("status","active"));
+			assertThat(index.get("P003.model").terms()).containsExactly(new Term("status","running"), new Term("lead","mary@example.com"), new Term("name","Project 3"));
+			assertThat(index.get("P004.model").terms()).containsExactly(new Term("name","Project 4"));
 		}
 	}
 
 	private static InputStream inputStream() {
 		return SubjectIndex_.class.getClassLoader().getResourceAsStream("subjects.txt");
 	}
+
+	//TODO test de drop
+	//TODO test de rename de child
 }

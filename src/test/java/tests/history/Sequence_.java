@@ -1,8 +1,8 @@
 package tests.history;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.history.model.Point;
-import systems.intino.datamarts.subjectstore.history.model.Sequence;
+import systems.intino.datamarts.subjectstore.model.Sequence;
+import systems.intino.datamarts.subjectstore.model.Series;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -92,14 +92,14 @@ public class Sequence_ {
 
 
 	@SuppressWarnings("SameParameterValue")
-	private List<Point<String>> points(int from, int to) {
+	private List<Series.Point<String>> points(int from, int to) {
 		return IntStream.range(from * 24, to * 24)
 				.mapToObj(this::point)
 				.collect(toList());
 	}
 
-	private Point<String> point(int i) {
-		return new Point<>(feed(i), hour(i), value(i));
+	private Series.Point<String> point(int i) {
+		return new Series.Point<>(feed(i), hour(i), value(i));
 	}
 
 	private static int feed(int i) {

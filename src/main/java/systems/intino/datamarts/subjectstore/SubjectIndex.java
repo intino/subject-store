@@ -1,14 +1,15 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.index.io.IndexRegistry;
-import systems.intino.datamarts.subjectstore.index.io.Statements;
-import systems.intino.datamarts.subjectstore.index.io.statements.DumpStatements;
-import systems.intino.datamarts.subjectstore.index.io.registries.SqlIndexRegistry;
-import systems.intino.datamarts.subjectstore.index.model.*;
-import systems.intino.datamarts.subjectstore.index.model.Subject.Transaction;
+import systems.intino.datamarts.subjectstore.io.IndexRegistry;
+import systems.intino.datamarts.subjectstore.io.Statements;
+import systems.intino.datamarts.subjectstore.io.registries.SqlStorage;
+import systems.intino.datamarts.subjectstore.io.statements.DumpStatements;
+import systems.intino.datamarts.subjectstore.io.registries.SqlIndexRegistry;
+import systems.intino.datamarts.subjectstore.model.*;
+import systems.intino.datamarts.subjectstore.model.Subject.Context;
+import systems.intino.datamarts.subjectstore.model.Subject.Updating;
 
 import java.io.*;
-import java.sql.Connection;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -17,27 +18,21 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static systems.intino.datamarts.subjectstore.index.model.Subject.Any;
+import static systems.intino.datamarts.subjectstore.model.Subject.Any;
 
-public class SubjectIndex implements Closeable {
-	private final Connection connection;
-	private final IndexRegistry indexRegistry;
+public class SubjectIndex implements AutoCloseable {
+	private final String storage;
+	private final IndexRegistry registry;
 	private final Lookup<Subject> subjects;
 	private final Lookup<Term> terms;
+	private final Context context;
 
-	public SubjectIndex(File file) {
-		this(SqliteConnection.from(file));
-	}
-
-	public SubjectIndex() {
-		this(SqliteConnection.inMemory());
-	}
-
-	public SubjectIndex(Connection connection) {
-		this.connection = connection;
-		this.indexRegistry = new SqlIndexRegistry(connection);
-		this.subjects = new Lookup<>(indexRegistry.subjects(), Subject::of, this::insert);
-		this.terms = new Lookup<>(indexRegistry.terms(), Term::of, this::insert);
+	public SubjectIndex(String storage) {
+		this.storage = storage;
+		this.registry = new SqlIndexRegistry(storage);
+		this.subjects = new Lookup<>(registry.subjects(), Subject::of, this::insert);
+		this.terms = new Lookup<>(registry.terms(), Term::of, this::insert);
+		this.context = context();
 	}
 
 	public Subject get(String name, String type) {
@@ -111,82 +106,188 @@ public class SubjectIndex implements Closeable {
 
 	private Subject create(Subject subject) {
 		int id = subjects.add(subject);
-		indexRegistry.commit();
+		registry.commit();
 		return get(id);
 	}
 
-	private Transaction update(Subject subject) {
-		return new Transaction() {
+	private void rename(Subject subject, String name) {
+		registry.setSubject(subjects.id(subject), name);
+	}
+
+	private Updating update(Subject subject) {
+		return new Updating() {
 			private final int id = subjects.id(subject);
-			private final List<Integer> currentTerms = indexRegistry.termsOf(id);
+			private final List<Integer> currentTerms = registry.termsOf(id);
+			private final List<Integer> exclusiveTerms = registry.exclusiveTermsOf(id);
 
 			@Override
-			public Transaction rename(String identifier) {
-				if (identifier == null || identifier.isEmpty()) return this;
-				return replace(subject.rename(identifier));
+			public Updating rename(String name) {
+				if (name == null || name.isEmpty()) return this;
+				return replace(subject.rename(name));
 			}
 
 			@Override
-			public Transaction set(Term term) {
-				del(term.tag());
+			public Updating set(Term term) {
+				int[] candidateTerms = termsWith(term.tag());
+				return candidateTerms.length == 1 ?
+						attach(term, candidateTerms[0]) :
+						reset(term, candidateTerms);
+			}
+
+			private Updating attach(Term term, int id) {
+				return exclusiveTerms.contains(id) ?
+						setTerm(term, id) :
+						fixTerm(term, id);
+			}
+
+			private Updating setTerm(Term term, int id) {
+				registry.setTerm(id, term.toString());
+				terms.set(id, term);
+				return this;
+			}
+
+			private Updating fixTerm(Term term, int id) {
+				registry.unlink(this.id, id);
+				return put(term);
+			}
+
+			private Updating reset(Term term, int[] candidateTerms) {
+				del(candidateTerms);
 				put(term);
 				return this;
 			}
 
-			public Transaction put(Term term) {
-				indexRegistry.link(id, terms.add(term));
+			public Updating put(Term term) {
+				registry.link(id, terms.add(term));
 				return this;
 			}
 
 			@Override
-			public Transaction del(Term term) {
-				indexRegistry.unlink(id, terms.add(term));
-				return this;
+			public Updating del(String tag) {
+				int[] candidateTerms = termsWith(tag);
+				return del(candidateTerms);
 			}
 
 			@Override
-			public Transaction del(String tag) {
-				toTerms(currentTerms).filter(t -> t.is(tag)).forEach(this::del);
+			public Updating del(Term term) {
+				return del(id(term));
+			}
+
+			private int[] termsWith(String tag) {
+				return currentTerms.stream()
+						.filter(t -> term(t).is(tag))
+						.mapToInt(t->t)
+						.toArray();
+			}
+
+			private Updating del(int[] terms) {
+				for (int term : terms) del(term);
 				return this;
 			}
 
-			private Transaction replace(Subject subject) {
+			private Updating del(int id) {
+				if (id < 0) return this;
+				registry.unlink(this.id, id);
+				if (exclusiveTerms.contains(id)) {
+					exclusiveTerms.remove((Integer) id);
+					terms.set(id, null);
+					registry.deleteTerm(id);
+				}
+				currentTerms.remove((Integer) id);
+				return this;
+			}
+
+			private Updating replace(Subject subject) {
 				if (subjects.contains(subject)) return this;
 				subjects.set(id, subject);
-				indexRegistry.rename(id, subject.toString());
+				registry.setSubject(id, subject.toString());
 				return this;
+			}
+
+			private int id(Term term) {
+				return terms.id(term);
+			}
+
+			private Term term(int term) {
+				return terms.get(term);
 			}
 
 			@Override
 			public void commit() {
-				indexRegistry.commit();
+				registry.commit();
 			}
 		};
 	}
 
 	private void drop(Subject subject) {
-		if (subject.isNull() || !subjects.contains(subject)) return;
-		subject.children().forEach(this::drop);
-		int id = subjects.id(subject);
-		terms.remove(indexRegistry.exclusiveTermsOf(id));
-		indexRegistry.drop(id);
-		subjects.remove(subject);
+		if (isNotValid(subject)) return;
+		dropChildrenOf(subject);
+		dropHistoryOf(subject);
+		dropIndexOf(subject);
 	}
 
-	private SubjectFilter subjectFilter(Set<String> types) {
-		return new SubjectFilter() {
+	private boolean isNotValid(Subject subject) {
+		return subject.isNull() || !subjects.contains(subject);
+	}
+
+	private void dropChildrenOf(Subject subject) {
+		subject.children().forEach(this::drop);
+	}
+
+	private void dropIndexOf(Subject subject) {
+		int id = subjects.id(subject);
+		terms.remove(registry.exclusiveTermsOf(id));
+		subjects.remove(subject);
+		registry.deleteSubject(id);
+	}
+
+	private void dropHistoryOf(Subject subject) {
+		//TODO check if exists
+		try (SubjectHistory history = subject.history()) {
+			history.drop();
+		}
+	}
+
+	private static final SubjectQuery.SubjectFilter EmptyQuery = emptyQuery();
+	private static SubjectQuery.SubjectFilter emptyQuery() {
+		return new SubjectQuery.SubjectFilter() {
+
+			@Override
+			public SubjectQuery.SubjectFilter with(Term term) {
+				return this;
+			}
+
+			@Override
+			public SubjectQuery.SubjectFilter without(Term term) {
+				return this;
+			}
+
+			@Override
+			public Subjects roots() {
+				return new Subjects(List.of());
+			}
+
+			@Override
+			public Subjects all() {
+				return roots();
+			}
+		};
+	}
+
+	private SubjectQuery.SubjectFilter subjectFilter(Set<String> types) {
+		return new SubjectQuery.SubjectFilter() {
 			private final List<Integer> candidates = subjectsWith(types);
 			private final List<Integer> condition = new ArrayList<>();
 
 			@Override
-			public SubjectFilter with(Term term) {
-				if (!terms.contains(term)) return SubjectFilter.Empty;
+			public SubjectQuery.SubjectFilter with(Term term) {
+				if (!terms.contains(term)) return EmptyQuery;
 				condition.add(terms.id(term));
 				return this;
 			}
 
 			@Override
-			public SubjectFilter without(Term term) {
+			public SubjectQuery.SubjectFilter without(Term term) {
 				if (terms.contains(term))
 					condition.add(-terms.id(term));
 				return this;
@@ -203,15 +304,15 @@ public class SubjectIndex implements Closeable {
 			}
 
 			private Subjects retrieve(Predicate<Subject> predicate) {
-				List<Integer> search = condition.isEmpty() ? candidates : indexRegistry.subjectsFilteredBy(candidates, condition);
+				List<Integer> search = condition.isEmpty() ? candidates : registry.subjectsFilteredBy(candidates, condition);
 				List<Subject> subjects = toSubjects(search).filter(predicate).toList();
 				return new Subjects(subjects);
 			}
 		};
 	}
 
-	private AttributeFilter attributeFilter(Set<String> types, Set<String> keys) {
-		return new AttributeFilter() {
+	private SubjectQuery.AttributeFilter attributeFilter(Set<String> types, Set<String> keys) {
+		return new SubjectQuery.AttributeFilter() {
 			private final List<Integer> candidates = subjectsWith(types);
 
 			@Override
@@ -243,7 +344,7 @@ public class SubjectIndex implements Closeable {
 			}
 
 			private Subjects subjectSetWith(List<Integer> terms) {
-				List<Subject> subjects = terms.isEmpty() ? List.of() : toSubjects(indexRegistry.subjectsFilteredBy(candidates, terms)).toList();
+				List<Subject> subjects = terms.isEmpty() ? List.of() : toSubjects(registry.subjectsFilteredBy(candidates, terms)).toList();
 				return new Subjects(subjects);
 			}
 
@@ -268,11 +369,6 @@ public class SubjectIndex implements Closeable {
 		};
 	}
 
-	public static final double nullThresholdRatio = 0.20;
-	public boolean isFragmented() {
-		return subjects.nullRatio() > nullThresholdRatio || terms.nullRatio() > nullThresholdRatio;
-	}
-
 	public Statements statements() {
 		return this::stamentIterator;
 	}
@@ -285,12 +381,8 @@ public class SubjectIndex implements Closeable {
 		return this;
 	}
 
-	public void copyTo(SubjectIndex subjectIndex) {
-		subjectIndex.consume(this.statements());
-	}
-
 	public void dump(OutputStream os) {
-		indexRegistry.dump().forEach(s->write(s + '\n', os));
+		statements().forEach(s->write(s.toString() + '\n', os));
 	}
 
 	public SubjectIndex restore(InputStream is) throws IOException {
@@ -300,7 +392,7 @@ public class SubjectIndex implements Closeable {
 	}
 
 	private Iterator<Statement> stamentIterator() {
-		return indexRegistry.dump().map(Statement::new).iterator();
+		return registry.dump().map(Statement::new).iterator();
 	}
 
 	private void write(String str, OutputStream os) {
@@ -311,13 +403,8 @@ public class SubjectIndex implements Closeable {
 		}
 	}
 
-	@Override
-	public void close() throws IOException {
-		indexRegistry.close();
-	}
-
-	private Subject.Context context() {
-		return new Subject.Context() {
+	private Context context() {
+		return new Context() {
 			@Override
 			public Subjects children(Subject subject) {
 				return new Subjects(subjects.stream()
@@ -329,7 +416,11 @@ public class SubjectIndex implements Closeable {
 			@Override
 			public Terms terms(Subject subject) {
 				int id = subjects.id(subject);
-				return new Terms(id < 0 ? List.of() : toTerms(indexRegistry.termsOf(id)).toList());
+				return new Terms(id < 0 ? List.of() : toTerms(registry.termsOf(id)));
+			}
+
+			private List<Term> toTerms(List<Integer> terms) {
+				return terms.stream().map(SubjectIndex.this.terms::get).toList();
 			}
 
 			@Override
@@ -338,12 +429,12 @@ public class SubjectIndex implements Closeable {
 			}
 
 			@Override
-			public void rename(String name) {
-				//TODO
+			public void rename(Subject subject, String name) {
+				SubjectIndex.this.rename(subject, name);
 			}
 
 			@Override
-			public Transaction update(Subject subject) {
+			public Updating update(Subject subject) {
 				return SubjectIndex.this.update(subject);
 			}
 
@@ -354,7 +445,7 @@ public class SubjectIndex implements Closeable {
 
 			@Override
 			public SubjectHistory history(Subject subject) {
-					return new SubjectHistory(subject.identifier(), connection);
+				return new SubjectHistory(subject.identifier(), SqlStorage.shared(storage));
 			}
 		};
 	}
@@ -381,15 +472,21 @@ public class SubjectIndex implements Closeable {
 	}
 
 	private Subject wrap(Subject subject) {
-		return new Subject(subject, context());
+		return new Subject(subject, context);
 	}
 
 	private int insert(Subject subject) {
-		return indexRegistry.insertSubject(subject.identifier());
+		int index = subjects.indexOfNull();
+		if (index <= 0) return registry.insertSubject(subject.identifier());
+		registry.setTerm(index, subject.identifier());
+		return index;
 	}
 
 	private int insert(Term term) {
-		return indexRegistry.insertTerm(term.toString());
+		int index = terms.indexOfNull();
+		if (index <= 0) return registry.insertTerm(term.toString());
+		registry.setTerm(index, term.toString());
+		return index;
 	}
 
 	private Stream<Subject> toSubjects(List<Integer> subjects) {
@@ -398,24 +495,25 @@ public class SubjectIndex implements Closeable {
 				.map(this::wrap);
 	}
 
-	private Stream<Term> toTerms(List<Integer> terms) {
-		return terms.stream().map(this.terms::get);
-	}
-
 	public Batch batch() {
 		return new Batch() {
 			@Override
 			public void put(Subject subject, Term term) {
 				int subjectId = subjects.add(subject);
 				int termId = terms.add(term);
-				indexRegistry.link(subjectId, termId);
+				registry.link(subjectId, termId);
 			}
 
 			@Override
 			public void commit() {
-				indexRegistry.commit();
+				registry.commit();
 			}
 		};
+	}
+
+	@Override
+	public void close() throws Exception {
+		registry.close();
 	}
 
 	public interface Batch {
@@ -431,35 +529,6 @@ public class SubjectIndex implements Closeable {
 		}
 
 		void commit();
-	}
-
-	public interface SubjectQuery {
-		Subjects all();
-		Subjects roots();
-		SubjectFilter with(String tag, String value);
-		SubjectFilter without(String tag, String value);
-		AttributeFilter where(String... keys);
-	}
-
-	public interface SubjectFilter {
-		Subjects all();
-		Subjects roots();
-
-		SubjectFilter Empty = emptyQuery();
-		SubjectFilter with(Term term);
-		SubjectFilter without(Term term);
-
-		default SubjectFilter with(String tag, String value) {
-			return with(new Term(tag, value));
-		}
-		default SubjectFilter without(String tag, String value) {
-			return without(new Term(tag, value));
-		}
-	}
-
-	public interface AttributeFilter {
-		Subjects contains(String value);
-		Subjects matches(String value);
 	}
 
 	private static class Lookup<T> {
@@ -494,9 +563,11 @@ public class SubjectIndex implements Closeable {
 		public int add(T t) {
 			if (contains(t)) return map.get(t);
 			int id = idStore.apply(t);
-			list.add(t);
+			if (id - 1 == list.size())
+				list.add(t);
+			else
+				list.set(id - 1, t);
 			map.put(t, id);
-			assert id == list.size();
 			return id;
 		}
 
@@ -535,30 +606,11 @@ public class SubjectIndex implements Closeable {
 		private long nullItems() {
 			return list.stream().filter(Objects::isNull).count();
 		}
+
+		public int indexOfNull() {
+			return list.indexOf(null) + 1;
+		}
 	}
 
-	private static SubjectFilter emptyQuery() {
-		return new SubjectFilter() {
 
-			@Override
-			public SubjectFilter with(Term term) {
-				return this;
-			}
-
-			@Override
-			public SubjectFilter without(Term term) {
-				return this;
-			}
-
-			@Override
-			public Subjects roots() {
-				return new Subjects(List.of());
-			}
-
-			@Override
-			public Subjects all() {
-				return roots();
-			}
-		};
-	}
 }

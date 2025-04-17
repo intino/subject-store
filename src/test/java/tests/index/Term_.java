@@ -2,7 +2,7 @@ package tests.index;
 
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.index.model.Term;
+import systems.intino.datamarts.subjectstore.model.Term;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

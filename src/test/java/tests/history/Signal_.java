@@ -1,8 +1,8 @@
 package tests.history;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.history.model.Point;
-import systems.intino.datamarts.subjectstore.history.model.Signal;
+import systems.intino.datamarts.subjectstore.model.Series;
+import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -128,14 +128,14 @@ public class Signal_ {
 		assertThat(segments[3].duration()).isEqualTo(Duration.ofDays(30));
 	}
 
-	private List<Point<Double>> points(int from, int to) {
+	private List<Series.Point<Double>> points(int from, int to) {
 		return IntStream.range(from * 24, to * 24)
 				.mapToObj(Signal_::point)
 				.collect(toList());
 	}
 
-	private static Point<Double> point(int i) {
-		return new Point<>(feed(i), hour(i), value(i));
+	private static Series.Point<Double> point(int i) {
+		return new Series.Point<>(feed(i), hour(i), value(i));
 	}
 
 	private static Instant hour(int i) {

@@ -1,16 +1,14 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.history.io.Feeds;
-import systems.intino.datamarts.subjectstore.history.io.feeds.RegistryFeeds;
-import systems.intino.datamarts.subjectstore.history.io.HistoryRegistry.Row;
-import systems.intino.datamarts.subjectstore.history.io.feeds.DumpFeeds;
-import systems.intino.datamarts.subjectstore.history.model.*;
-import systems.intino.datamarts.subjectstore.history.io.HistoryRegistry;
-import systems.intino.datamarts.subjectstore.history.io.registries.SqlHistoryRegistry;
+import systems.intino.datamarts.subjectstore.io.Feeds;
+import systems.intino.datamarts.subjectstore.io.feeds.RegistryFeeds;
+import systems.intino.datamarts.subjectstore.io.HistoryRegistry.Row;
+import systems.intino.datamarts.subjectstore.io.feeds.DumpFeeds;
+import systems.intino.datamarts.subjectstore.io.HistoryRegistry;
+import systems.intino.datamarts.subjectstore.io.registries.SqlHistoryRegistry;
+import systems.intino.datamarts.subjectstore.model.*;
 
 import java.io.*;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
@@ -19,39 +17,17 @@ import static java.util.Comparator.comparingInt;
 import static systems.intino.datamarts.subjectstore.TimeReference.BigBang;
 import static systems.intino.datamarts.subjectstore.TimeReference.Legacy;
 
-public class SubjectHistory implements Closeable {
+public class SubjectHistory implements AutoCloseable {
 	private final String subject;
-	private final HistoryRegistry historyRegistry;
+	private final HistoryRegistry registry;
 	private final TagSet tagSet;
 	private final Timeline timeline;
-	private final Connection connection;
-	private final boolean closeable;
 
-	public SubjectHistory(String subject, File file) {
+	public SubjectHistory(String subject, String storage) {
 		this.subject = subject;
-		this.connection = SqliteConnection.from(file);
-		this.historyRegistry = new SqlHistoryRegistry(subject, connection);
-		this.tagSet = new TagSet(historyRegistry.tags());
-		this.timeline = new Timeline(historyRegistry.instants());
-		this.closeable = true;
-	}
-
-	public SubjectHistory(String subject) {
-		this.subject = subject;
-		this.connection = SqliteConnection.inMemory();
-		this.historyRegistry = new SqlHistoryRegistry(subject, connection);
-		this.tagSet = new TagSet(historyRegistry.tags());
-		this.timeline = new Timeline(historyRegistry.instants());
-		this.closeable = true;
-	}
-
-	public SubjectHistory(String subject, Connection connection) {
-		this.subject = subject;
-		this.connection = connection;
-		this.historyRegistry = new SqlHistoryRegistry(subject, connection);
-		this.tagSet = new TagSet(historyRegistry.tags());
-		this.timeline = new Timeline(historyRegistry.instants());
-		this.closeable = false;
+		this.registry = new SqlHistoryRegistry(subject, storage);
+		this.tagSet = new TagSet(registry.tags());
+		this.timeline = new Timeline(registry.instants());
 	}
 
 	public String subject() {
@@ -76,7 +52,7 @@ public class SubjectHistory implements Closeable {
 	}
 
 	public int size() {
-		return historyRegistry.size();
+		return registry.size();
 	}
 
 	public Instant first() {
@@ -84,7 +60,7 @@ public class SubjectHistory implements Closeable {
 	}
 
 	public Instant last() {
-		return historyRegistry.isEmpty() ? null : timeline.getLast();
+		return registry.isEmpty() ? null : timeline.getLast();
 	}
 
 	public boolean legacyExists() {
@@ -112,71 +88,91 @@ public class SubjectHistory implements Closeable {
 	}
 
 	public String ss(int feed) {
-		return historyRegistry.ss(feed);
+		return registry.ss(feed);
 	}
 
-	public Double currentNumber(String tag) {
-		Point<Double> current = numericalQuery(tag).get();
+	public Current current() {
+		return new Current() {
+			@Override
+			public Double number(String tag) {
+				return currentNumber(tag);
+			}
+
+			@Override
+			public String text(String tag) {
+				return currentText(tag);
+			}
+		};
+	}
+
+	public Query query() {
+		return new Query() {
+			@Override
+			public NumericalQuery number(String tag) {
+				return new NumericalQuery(tag);
+			}
+
+			@Override
+			public CategoricalQuery text(String tag) {
+				return new CategoricalQuery(tag);
+			}
+		};
+	}
+
+	private Double currentNumber(String tag) {
+		Series.Point<Double> current = query().number(tag).get();
 		return current != null ? current.value() : null;
 	}
 
-	public String currentText(String tag) {
-		Point<String> current = categoricalQuery(tag).get();
+	private String currentText(String tag) {
+		Series.Point<String> current = query().text(tag).get();
 		return current != null ? current.value() : null;
 	}
 
-	public NumericalQuery numericalQuery(String tag) {
-		return new NumericalQuery(tag);
-	}
-
-	public CategoricalQuery categoricalQuery(String tag) {
-		return new CategoricalQuery(tag);
-	}
-
-	private Point<Double> readNumber(String tag) {
+	private Series.Point<Double> readNumber(String tag) {
 		int feed = tagSet.lastUpdatingFeedOf(tag);
 		if (feed == -1) return null;
-		return new Point<>(
+		return new Series.Point<>(
 				feed,
 				timeline.get(feed),
-				historyRegistry.getNumber(tagSet.get(tag), feed)
+				registry.getNumber(tagSet.get(tag), feed)
 		);
 	}
 
-	private List<Point<Double>> readNumbers(String tag, Instant from, Instant to) {
-		return readNumbers(historyRegistry.getNumbers(tagSet.get(tag), timeline.from(from), timeline.to(to)));
+	private List<Series.Point<Double>> readNumbers(String tag, Instant from, Instant to) {
+		return readNumbers(registry.getNumbers(tagSet.get(tag), timeline.from(from), timeline.to(to)));
 	}
 
-	private List<Point<Double>> readNumbers(Stream<Row> records) {
+	private List<Series.Point<Double>> readNumbers(Stream<Row> records) {
 		return records.map(this::readNumber).toList();
 	}
 
-	private Point<Double> readNumber(Row row) {
+	private Series.Point<Double> readNumber(Row row) {
 		int feed = row.at(1).asInt();
-		return new Point<>(feed, timeline.get(feed), row.at(2).asDouble());
+		return new Series.Point<>(feed, timeline.get(feed), row.at(2).asDouble());
 	}
 
-	private Point<String> readText(String tag) {
+	private Series.Point<String> readText(String tag) {
 		int feed = tagSet.lastUpdatingFeedOf(tag);
 		if (feed == -1) return null;
-		return new Point<>(
+		return new Series.Point<>(
 				feed,
 				timeline.get(feed),
-				historyRegistry.getText(tagSet.get(tag), feed)
+				registry.getText(tagSet.get(tag), feed)
 		);
 	}
 
-	private List<Point<String>> readTexts(String tag, Instant from, Instant to) {
-		return readTexts(historyRegistry.getTexts(tagSet.get(tag), timeline.from(from), timeline.to(to)));
+	private List<Series.Point<String>> readTexts(String tag, Instant from, Instant to) {
+		return readTexts(registry.getTexts(tagSet.get(tag), timeline.from(from), timeline.to(to)));
 	}
 
-	private List<Point<String>> readTexts(Stream<Row> records) {
+	private List<Series.Point<String>> readTexts(Stream<Row> records) {
 		return records.map(this::readText).toList();
 	}
 
-	private Point<String> readText(Row row) {
+	private Series.Point<String> readText(Row row) {
 		int feed = row.at(1).asInt();
-		return new Point<>(feed, timeline.get(feed), row.at(2).asString());
+		return new Series.Point<>(feed, timeline.get(feed), row.at(2).asString());
 	}
 
 	public void dump(OutputStream os) throws IOException {
@@ -189,13 +185,14 @@ public class SubjectHistory implements Closeable {
 
 	public Iterable<Feed> feeds() {
 		Map<Integer, String> dictionary = tagSet.dictionary();
-		return new RegistryFeeds(historyRegistry.dump(), dictionary::get);
+		return new RegistryFeeds(registry.dump(), dictionary::get);
 	}
 
-	public void restore(InputStream is) throws IOException {
+	public SubjectHistory restore(InputStream is) throws IOException {
 		try (DumpFeeds feeds = new DumpFeeds(is)) {
 			consume(feeds);
-		};
+		}
+		return this;
 	}
 
 	public void consume(Feeds feeds) {
@@ -222,7 +219,16 @@ public class SubjectHistory implements Closeable {
 
 
 	public void drop() {
-		//TODO
+		registry.drop();
+	}
+
+	@Override
+	public void close()  {
+		try {
+			registry.close();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 
@@ -233,7 +239,7 @@ public class SubjectHistory implements Closeable {
 			this.tag = tag;
 		}
 
-		public Point<Double> get() {
+		public Series.Point<Double> get() {
 			return readNumber(tag);
 		}
 
@@ -263,7 +269,7 @@ public class SubjectHistory implements Closeable {
 			this.tag = tag;
 		}
 
-		public Point<String> get() {
+		public Series.Point<String> get() {
 			return readText(tag);
 		}
 
@@ -307,7 +313,7 @@ public class SubjectHistory implements Closeable {
 			public void commit() {
 				if (feed.isEmpty()) return;
 				SubjectHistory.this.put(feed);
-				historyRegistry.commit();
+				registry.commit();
 			}
 		};
 	}
@@ -318,7 +324,6 @@ public class SubjectHistory implements Closeable {
 			@Override
 			public Transaction on(Instant instant, String source) {
 				return new Transaction() {
-					private boolean ignored = false;
 					private final Feed feed = new Feed(instant, source);
 					@Override
 					public Transaction put(String tag, double value) {
@@ -334,7 +339,7 @@ public class SubjectHistory implements Closeable {
 
 					@Override
 					public void commit() {
-						if (feed.isEmpty() || ignored) return;
+						if (feed.isEmpty()) return;
 						feeds.add(feed);
 					}
 				};
@@ -343,13 +348,13 @@ public class SubjectHistory implements Closeable {
 			@Override
 			public void commit() {
 				feeds.forEach(feed -> put(feed));
-				historyRegistry.commit();
+				registry.commit();
 			}
 		};
 	}
 
 	private void put(Feed feed) {
-		int id = historyRegistry.nextFeed();
+		int id = registry.nextFeed();
 		insertInstant(id, feed.instant);
 		insertTags(feed.tags());
 		insertFacts(id, feed);
@@ -363,7 +368,7 @@ public class SubjectHistory implements Closeable {
 		for (String tag : tags) {
 			int id = tagSet.add(tag);
 			if (id < 0) continue;
-			historyRegistry.setTag(id, tag);
+			registry.setTag(id, tag);
 		}
 	}
 
@@ -380,7 +385,7 @@ public class SubjectHistory implements Closeable {
 		if (instant.equals(Legacy)) return;
 		if (lastUpdatingInstantOf(tag).isAfter(instant)) return;
 		tagSet.update(tag, id);
-		historyRegistry.setTagLastFeed(tagSet.get(tag), id);
+		registry.setTagLastFeed(tagSet.get(tag), id);
 	}
 
 	private Instant lastUpdatingInstantOf(String tag) {
@@ -388,7 +393,7 @@ public class SubjectHistory implements Closeable {
 	}
 
 	private void put(String tag, Object value) {
-		historyRegistry.put(tagSet.get(tag), value);
+		registry.put(tagSet.get(tag), value);
 	}
 
 	public interface Transaction {
@@ -405,16 +410,6 @@ public class SubjectHistory implements Closeable {
 	@Override
 	public String toString() {
 		return subject;
-	}
-
-	@Override
-	public void close() {
-		try {
-			if (closeable)
-				connection.close();
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	public static class RegistryException extends RuntimeException {
@@ -569,4 +564,13 @@ public class SubjectHistory implements Closeable {
 		}
 	}
 
+	public interface Current {
+		Double number(String tag);
+		String text(String tag);
+	}
+
+	public interface Query {
+		NumericalQuery number(String tag);
+		CategoricalQuery text(String tag);
+	}
 }
