@@ -4,7 +4,7 @@ import org.junit.Test;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectStore;
 import systems.intino.datamarts.subjectstore.TimeSpan;
-import systems.intino.datamarts.subjectstore.model.Signal;
+import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 import systems.intino.datamarts.subjectstore.model.Subject;
 
 import java.io.File;
@@ -45,14 +45,14 @@ public class Main {
 						.put("visitants", 2405)
 						.put("income", 28400)
 						.terminate();
-				Signal visitants = history.query()
+				NumericalSignal visitants = history.query()
 						.number("visitants")
 						.get(TimeSpan.LastYearWindow);
 				visitants.summary().mean();
 
 				history.query()
-						.text("visitants")
-						.get(Instant.parse("2025-01-01T00:00:00Z"), today())
+						.text("state")
+						.get(Instant.parse("2025-01-01T00:00:00Z"), today(1))
 						.summary()
 						.mode();
 			}
@@ -100,47 +100,47 @@ public class Main {
 					.set("height", 555)
 					.terminate();
 
-			assertThat(store.subjects().all().size()).isEqualTo(9);
+			assertThat(store.subjects().collect().size()).isEqualTo(9);
 			assertThat(store.subjects().roots().size()).isEqualTo(3);
-			assertThat(store.subjects("building").all().size()).isEqualTo(3);
-			assertThat(store.subjects("building").with("country", "Spain").all().size()).isEqualTo(1);
-			assertThat(store.subjects("building").with("continent", "Asia").all().size()).isEqualTo(2);
+			assertThat(store.subjects("building").collect().size()).isEqualTo(3);
+			assertThat(store.subjects("building").with("country", "Spain").collect().size()).isEqualTo(1);
+			assertThat(store.subjects("building").with("continent", "Asia").collect().size()).isEqualTo(2);
 			assertThat(store.subjects("building").roots().size()).isEqualTo(3);
-			assertThat(store.subjects("detail").all().size()).isEqualTo(6);
+			assertThat(store.subjects("detail").collect().size()).isEqualTo(6);
 			assertThat(store.subjects("detail").roots().size()).isEqualTo(0);
-			assertThat(store.subjects("patient").all().size()).isEqualTo(0);
+			assertThat(store.subjects("patient").collect().size()).isEqualTo(0);
 		}
 
 		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
-			assertThat(store.subjects().all().size()).isEqualTo(9);
+			assertThat(store.subjects().collect().size()).isEqualTo(9);
 			assertThat(store.subjects().roots().size()).isEqualTo(3);
-			assertThat(store.subjects("building").all().size()).isEqualTo(3);
-			assertThat(store.subjects("building").with("country", "Spain").all().size()).isEqualTo(1);
-			assertThat(store.subjects("building").with("continent", "Asia").all().size()).isEqualTo(2);
+			assertThat(store.subjects("building").collect().size()).isEqualTo(3);
+			assertThat(store.subjects("building").with("country", "Spain").collect().size()).isEqualTo(1);
+			assertThat(store.subjects("building").with("continent", "Asia").collect().size()).isEqualTo(2);
 			assertThat(store.subjects("building").roots().size()).isEqualTo(3);
-			assertThat(store.subjects("detail").all().size()).isEqualTo(6);
+			assertThat(store.subjects("detail").collect().size()).isEqualTo(6);
 			assertThat(store.subjects("detail").roots().size()).isEqualTo(0);
-			assertThat(store.subjects("patient").all().size()).isEqualTo(0);
+			assertThat(store.subjects("patient").collect().size()).isEqualTo(0);
 
 			store.get("taj mahal", "building").drop();
-			assertThat(store.subjects().all().size()).isEqualTo(6);
+			assertThat(store.subjects().collect().size()).isEqualTo(6);
 			assertThat(store.subjects().roots().size()).isEqualTo(2);
-			assertThat(store.subjects("building").all().size()).isEqualTo(2);
-			assertThat(store.subjects("building").with("country", "Spain").first().all().size()).isEqualTo(1);
-			assertThat(store.subjects("building").with("continent", "Asia").all().size()).isEqualTo(1);
+			assertThat(store.subjects("building").collect().size()).isEqualTo(2);
+			assertThat(store.subjects("building").with("country", "Spain").collect().size()).isEqualTo(1);
+			assertThat(store.subjects("building").with("continent", "Asia").collect().size()).isEqualTo(1);
 			assertThat(store.subjects("building").roots().size()).isEqualTo(2);
-			assertThat(store.subjects("detail").all().size()).isEqualTo(4);
+			assertThat(store.subjects("detail").collect().size()).isEqualTo(4);
 			assertThat(store.subjects("detail").roots().size()).isEqualTo(0);
 		}
 		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
-			assertThat(store.subjects().all().size()).isEqualTo(6);
+			assertThat(store.subjects().collect().size()).isEqualTo(6);
 			assertThat(store.subjects().roots().size()).isEqualTo(2);
-			assertThat(store.subjects("building").all().size()).isEqualTo(2);
-			assertThat(store.subjects("building").with("country", "Spain").all().size()).isEqualTo(1);
+			assertThat(store.subjects("building").collect().size()).isEqualTo(2);
+			assertThat(store.subjects("building").with("country", "Spain").collect().size()).isEqualTo(1);
 			assertThat(store.subjects("building").where("continent").contains("Asia").size()).isEqualTo(1);
 			assertThat(store.subjects("building").where("year").matches(v-> toNumber(v) > 1900).size()).isEqualTo(1);
 			assertThat(store.subjects("building").roots().size()).isEqualTo(2);
-			assertThat(store.subjects("detail").all().size()).isEqualTo(4);
+			assertThat(store.subjects("detail").collect().size()).isEqualTo(4);
 			assertThat(store.subjects("detail").roots().size()).isEqualTo(0);
 		}
 	}

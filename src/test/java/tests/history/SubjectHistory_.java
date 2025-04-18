@@ -3,7 +3,7 @@ package tests.history;
 import org.junit.Test;
 import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
-import systems.intino.datamarts.subjectstore.model.Series;
+import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.io.*;
 import java.time.Instant;
@@ -286,15 +286,15 @@ public class SubjectHistory_ {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private static <T> Series.Point<T> value(int feed, Instant instant, T value) {
-		return new Series.Point<>(feed, instant, value);
+	private static <T> Signal.Point<T> value(int feed, Instant instant, T value) {
+		return new Signal.Point<>(feed, instant, value);
 	}
 
 	private static void test_batch(SubjectHistory history) {
 		assertThat(history.type()).startsWith("patient");
 		assertThat(history.name()).isEqualTo("12345");
 		assertThat(history.current().number("hemoglobin")).isEqualTo(145.0);
-		Series.Point<Number> actual = history.query().number("hemoglobin").get();
+		Signal.Point<Number> actual = history.query().number("hemoglobin").get();
 		assertThat(actual.value()).isEqualTo(145.0);
 		assertThat(history.instants()).containsExactly(day.plus(-20, DAYS), day.plus(-5, DAYS), day.plus(-3, DAYS), day);
 	}

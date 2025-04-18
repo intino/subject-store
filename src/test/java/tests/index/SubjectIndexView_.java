@@ -9,7 +9,6 @@ import systems.intino.datamarts.subjectstore.SubjectQuery;
 import systems.intino.datamarts.subjectstore.io.Statements;
 import systems.intino.datamarts.subjectstore.io.statements.TabularStatements;
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.model.Subjects;
 import systems.intino.datamarts.subjectstore.index.view.Column;
 import systems.intino.datamarts.subjectstore.index.view.Summary;
 
@@ -47,7 +46,7 @@ public class SubjectIndexView_ {
 	@Test
 	public void should_calculate_summary_frequencies_consistently() {
 		SubjectIndex index = new SubjectIndex(Storages.inMemory()).consume(statements());
-		assertThat(index.subjects().roots().size()).isEqualTo(435);
+		assertThat(index.query().roots().size()).isEqualTo(435);
 		SubjectIndexView view = SubjectIndexView.of(index)
 				.type("port")
 				.add("country")
@@ -58,11 +57,11 @@ public class SubjectIndexView_ {
 				.build();
 		for (Column column : view) {
 			Summary summary = column.summary();
-			SubjectQuery query = index.subjects("port");
-			List<Subject> all = new ArrayList<>(query.all().items());
+			SubjectQuery query = index.query("port");
+			List<Subject> all = new ArrayList<>(query.collect());
 			for (String category : summary.categories()) {
-				Subjects x = query.with(column.name(), category).all();
-				all.removeAll(x.items());
+				List<Subject> x = query.with(column.name(), category).collect();
+				all.removeAll(x);
 				assertThat(summary.frequency(category)).isEqualTo(x.size());
 			}
 			assertThat(all.size()).isNotEqualTo(0);

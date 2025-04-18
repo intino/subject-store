@@ -1,9 +1,13 @@
 package systems.intino.datamarts.subjectstore.model;
 
 import systems.intino.datamarts.subjectstore.SubjectHistory;
+import systems.intino.datamarts.subjectstore.SubjectQuery;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public record Subject(String identifier, Context context) {
 	public static final String Any = "*";
@@ -59,12 +63,140 @@ public record Subject(String identifier, Context context) {
 		return new Subject(parentIdentifier(), context);
 	}
 
-	public Subjects children() {
+	public SubjectQuery children() {
 		checkIfContextExists();
-		return context.children(this);
+		return children(Any);
 	}
 
-	public Terms terms() {
+	public SubjectQuery children(String type) {
+		checkIfContextExists();
+		return query(context.children(this, type));
+	}
+
+	private SubjectQuery query(List<Subject> subjects) {
+		return new SubjectQuery() {
+
+			@Override
+			public Subject first() {
+				return subjects.getFirst();
+			}
+
+			@Override
+			public List<Subject> collect() {
+				return subjects;
+			}
+
+			@Override
+			public SubjectFilter roots() {
+				return subjectFilter(subjects).that(Subject::isRoot);
+			}
+
+			@Override
+			public SubjectFilter with(String tag, String value) {
+				return subjectFilter(subjects).that(contains(tag, value));
+			}
+
+			@Override
+			public SubjectFilter without(String tag, String value) {
+				return subjectFilter(subjects).that(notContains(tag, value));
+			}
+
+			@Override
+			public AttributeFilter where(String... keys) {
+				return attributeFilter(subjects);
+			}
+		};
+	}
+
+	private static Predicate<Subject> notContains(String tag, String value) {
+		return notContains(new Term(tag, value));
+	}
+
+	private static Predicate<Subject> notContains(Term term) {
+		return s -> !s.terms().contains(term);
+	}
+
+	private static Predicate<Subject> contains(String tag, String value) {
+		return contains(new Term(tag, value));
+	}
+
+	private static Predicate<Subject> contains(Term term) {
+		return s -> s.terms().contains(term);
+	}
+
+	private SubjectQuery.SubjectFilter subjectFilter(List<Subject> subjects) {
+		return new SubjectQuery.SubjectFilter() {
+			private final List<Predicate<Subject>> conditions = new ArrayList<>();
+
+			@Override
+			public int size() {
+				return (int) subjectStream().count();
+			}
+
+			@Override
+			public Subject first() {
+				return subjectStream().findFirst().orElse(null);
+			}
+
+			@Override
+			public List<Subject> collect() {
+				return subjectStream().toList();
+			}
+
+			@Override
+			public SubjectQuery.SubjectFilter isRoot() {
+				conditions.add(Subject::isRoot);
+				return this;
+			}
+
+			@Override
+			public SubjectQuery.SubjectFilter with(Term term) {
+				conditions.add(contains(term));
+				return this;
+			}
+
+			@Override
+			public SubjectQuery.SubjectFilter without(Term term) {
+				conditions.add(notContains(term));
+				return this;
+			}
+
+			@Override
+			public SubjectQuery.SubjectFilter that(Predicate<Subject> condition) {
+				conditions.add(condition);
+				return this;
+			}
+
+			private Predicate<Subject> conditions() {
+				return conditions.stream().reduce(x -> true, Predicate::and);
+			}
+
+			private Stream<Subject> subjectStream() {
+				return subjects.stream().filter(conditions());
+			}
+		};
+	}
+
+	private SubjectQuery.AttributeFilter attributeFilter(List<Subject> subjects) {
+		return new SubjectQuery.AttributeFilter() {
+			@Override
+			public List<Subject> contains(String value) {
+				return null;
+			}
+
+			@Override
+			public List<Subject> accepts(String value) {
+				return null;
+			}
+
+			@Override
+			public List<Subject> matches(Predicate<String> predicate) {
+				return null;
+			}
+		};
+	}
+
+	public List<Term> terms() {
 		checkIfContextExists();
 		return context.terms(this);
 	}
@@ -137,14 +269,15 @@ public record Subject(String identifier, Context context) {
 
 	public interface Context {
 		Context Null = nullContext();
-		Subjects children(Subject subject);
-		Terms terms(Subject subject);
+		List<Subject> children(Subject subject, String type);
 
+		List<Term> terms(Subject subject);
 		Subject create(Subject child);
 		void rename(Subject subject, String identifier);
-		void drop(Subject subject);
 
+		void drop(Subject subject);
 		Updating update(Subject subject);
+
 		SubjectHistory history(Subject subject);
 	}
 
@@ -177,14 +310,15 @@ public record Subject(String identifier, Context context) {
 
 	private static Context nullContext() {
 		return new Context() {
+
 			@Override
-			public Subjects children(Subject subject) {
-				return new Subjects(List.of());
+			public List<Subject> children(Subject subject, String type) {
+				return List.of();
 			}
 
 			@Override
-			public Terms terms(Subject subject) {
-				return new Terms(List.of());
+			public List<Term> terms(Subject subject) {
+				return List.of();
 			}
 
 			@Override

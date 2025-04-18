@@ -1,8 +1,8 @@
 package tests.history;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.model.Series;
 import systems.intino.datamarts.subjectstore.model.Signal;
+import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -18,11 +18,11 @@ import static org.assertj.core.data.Percentage.withPercentage;
 import static systems.intino.datamarts.subjectstore.TimeReference.today;
 
 @SuppressWarnings("NewClassNamingConvention")
-public class Signal_ {
+public class NumericalSignal_ {
 
 	@Test
 	public void should_create_empty_signal_with_correct_bounds_and_summary() {
-		Signal.Raw signal = new Signal.Raw(today(-15), today(15), List.of());
+		NumericalSignal.Raw signal = new NumericalSignal.Raw(today(-15), today(15), List.of());
 		assertThat(signal.from()).isEqualTo(today(-15));
 		assertThat(signal.to()).isEqualTo(today(15));
 		assertThat(signal.duration()).isEqualTo(Duration.of(30, DAYS));
@@ -39,14 +39,14 @@ public class Signal_ {
 
 	@Test
 	public void should_return_identical_summary_for_signals_with_same_points() {
-		Signal.Raw signal1 = new Signal.Raw(today(-15), today(15), points(-5, 5));
-		Signal.Raw signal2 = new Signal.Raw(today(-10), today(10), points(-5,5));
+		NumericalSignal.Raw signal1 = new NumericalSignal.Raw(today(-15), today(15), points(-5, 5));
+		NumericalSignal.Raw signal2 = new NumericalSignal.Raw(today(-10), today(10), points(-5,5));
 		assertThat(signal1.summary()).isEqualTo(signal2.summary());
 	}
 
 	@Test
 	public void should_calculate_summary() {
-		Signal.Raw signal = new Signal.Raw(today(0), today(35), points(0, 30));
+		NumericalSignal.Raw signal = new NumericalSignal.Raw(today(0), today(35), points(0, 30));
 		assertThat(signal.count()).isEqualTo(24*30);
 		assertThat(signal.from()).isEqualTo(today(0));
 		assertThat(signal.to()).isEqualTo(today(35));
@@ -74,8 +74,8 @@ public class Signal_ {
 
 	@Test
 	public void should_segment_into_daily_segments() {
-		Signal.Raw signal = new Signal.Raw(today(-1), today(5), points(0, 4));
-		Signal[] segments = signal.segments(Duration.ofDays(1));
+		NumericalSignal.Raw signal = new NumericalSignal.Raw(today(-1), today(5), points(0, 4));
+		NumericalSignal[] segments = signal.segments(Duration.ofDays(1));
 		assertThat(segments.length).isEqualTo(6);
 		assertThat(signal.segments(6)).isEqualTo(segments);
 		assertThat(segments[0].count()).isEqualTo(0);
@@ -119,8 +119,8 @@ public class Signal_ {
 	@Test
 	public void should_segment_signal_into_monthly_segments() {
 		Instant from = Instant.parse("2025-01-01T00:00:00Z");
-		Signal signal = new Signal.Raw(from, from.plus(365, DAYS), List.of());
-		Signal[] segments = signal.segments(Period.ofMonths(1));
+		NumericalSignal signal = new NumericalSignal.Raw(from, from.plus(365, DAYS), List.of());
+		NumericalSignal[] segments = signal.segments(Period.ofMonths(1));
 		assertThat(segments.length).isEqualTo(12);
 		assertThat(segments[0].duration()).isEqualTo(Duration.ofDays(31));
 		assertThat(segments[1].duration()).isEqualTo(Duration.ofDays(28));
@@ -128,14 +128,14 @@ public class Signal_ {
 		assertThat(segments[3].duration()).isEqualTo(Duration.ofDays(30));
 	}
 
-	private List<Series.Point<Double>> points(int from, int to) {
+	private List<Signal.Point<Double>> points(int from, int to) {
 		return IntStream.range(from * 24, to * 24)
-				.mapToObj(Signal_::point)
+				.mapToObj(NumericalSignal_::point)
 				.collect(toList());
 	}
 
-	private static Series.Point<Double> point(int i) {
-		return new Series.Point<>(feed(i), hour(i), value(i));
+	private static Signal.Point<Double> point(int i) {
+		return new Signal.Point<>(feed(i), hour(i), value(i));
 	}
 
 	private static Instant hour(int i) {

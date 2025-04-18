@@ -1,6 +1,6 @@
 package systems.intino.datamarts.subjectstore.history.view.fields;
 
-import systems.intino.datamarts.subjectstore.model.Sequence;
+import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -8,7 +8,7 @@ import java.util.function.Function;
 
 import static java.lang.Double.NaN;
 
-public interface CategoricalField extends Function<Sequence, Object> {
+public interface CategoricalField extends Function<CategoricalSignal, Object> {
 	Map<String, CategoricalField> map = create();
 
 	private static Map<String, CategoricalField> create() {

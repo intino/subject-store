@@ -5,8 +5,8 @@ import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 import systems.intino.datamarts.subjectstore.calculator.model.Vector;
 import systems.intino.datamarts.subjectstore.calculator.model.vectors.DoubleVector;
 import systems.intino.datamarts.subjectstore.calculator.model.vectors.ObjectVector;
-import systems.intino.datamarts.subjectstore.model.Sequence;
-import systems.intino.datamarts.subjectstore.model.Signal;
+import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
+import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 import systems.intino.datamarts.subjectstore.history.view.Column;
 import systems.intino.datamarts.subjectstore.history.view.Format;
 import systems.intino.datamarts.subjectstore.history.view.fields.CategoricalField;
@@ -135,22 +135,22 @@ public class SubjectHistoryView {
 	}
 
 	private DoubleVector calculate(String tag, NumericalField function) {
-		Signal signal = store.query().number(tag).get(from(), to());
-		Signal[] segments = signal.segments(duration());
+		NumericalSignal signal = store.query().number(tag).get(from(), to());
+		NumericalSignal[] segments = signal.segments(duration());
 		double[] values = Arrays.stream(segments).map(function).mapToDouble(v -> v).toArray();
 		return new DoubleVector(values);
 	}
 
 	private DoubleVector calculate(String tag, CategoricalField function) {
-		Sequence sequence = store.query().text(tag).get(from(), to());
-		Sequence[] segments = sequence.segments(duration());
+		CategoricalSignal categoricalSignal = store.query().text(tag).get(from(), to());
+		CategoricalSignal[] segments = categoricalSignal.segments(duration());
 		double[] values = Arrays.stream(segments).map(function).mapToDouble(s -> (double) s).toArray();
 		return new DoubleVector(values);
 	}
 
 	private Vector<?> get(String attribute, CategoricalField function) {
-		Sequence sequence = store.query().text(attribute).get(from(), to());
-		Sequence[] segments = sequence.segments(duration());
+		CategoricalSignal categoricalSignal = store.query().text(attribute).get(from(), to());
+		CategoricalSignal[] segments = categoricalSignal.segments(duration());
 		Object[] values = Arrays.stream(segments).map(function).toArray(Object[]::new);
 		return new ObjectVector(values);
 	}

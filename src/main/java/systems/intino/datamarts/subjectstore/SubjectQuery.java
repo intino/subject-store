@@ -1,15 +1,17 @@
 package systems.intino.datamarts.subjectstore;
 
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.model.Subjects;
 import systems.intino.datamarts.subjectstore.model.Term;
 
+import java.util.List;
 import java.util.function.Predicate;
 
 public interface SubjectQuery {
-	Subjects all();
+	Subject first();
 
-	Subjects roots();
+	List<Subject> collect();
+
+	SubjectFilter roots();
 
 	SubjectFilter with(String tag, String value);
 
@@ -18,22 +20,25 @@ public interface SubjectQuery {
 	AttributeFilter where(String... keys);
 
 	interface AttributeFilter {
-		Subjects contains(String value);
-		Subjects accepts(String value);
-		Subjects matches(Predicate<String> predicate);
-
+		List<Subject> contains(String value);
+		List<Subject> accepts(String value);
+		List<Subject> matches(Predicate<String> predicate);
 	}
 
 	interface SubjectFilter {
+		int size();
+
 		Subject first();
 
-		Subjects all();
+		List<Subject> collect();
 
-		Subjects roots();
+		SubjectFilter isRoot();
 
 		SubjectFilter with(Term term);
 
 		SubjectFilter without(Term term);
+
+		SubjectFilter that(Predicate<Subject> predicate);
 
 		default SubjectFilter with(String tag, String value) {
 			return with(new Term(tag, value));
@@ -42,5 +47,10 @@ public interface SubjectQuery {
 		default SubjectFilter without(String tag, String value) {
 			return without(new Term(tag, value));
 		}
+
+		default boolean isEmpty() {
+			return size() == 0;
+		};
+
 	}
 }

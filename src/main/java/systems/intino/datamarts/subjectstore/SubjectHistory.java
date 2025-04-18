@@ -7,6 +7,8 @@ import systems.intino.datamarts.subjectstore.io.feeds.DumpFeeds;
 import systems.intino.datamarts.subjectstore.io.HistoryRegistry;
 import systems.intino.datamarts.subjectstore.io.registries.SqlHistoryRegistry;
 import systems.intino.datamarts.subjectstore.model.*;
+import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
+import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 
 import java.io.*;
 import java.time.Instant;
@@ -120,59 +122,59 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	private Number currentNumber(String tag) {
-		Series.Point<Number> current = query().number(tag).get();
+		Signal.Point<Number> current = query().number(tag).get();
 		return current != null ? current.value() : null;
 	}
 
 	private String currentText(String tag) {
-		Series.Point<String> current = query().text(tag).get();
+		Signal.Point<String> current = query().text(tag).get();
 		return current != null ? current.value() : null;
 	}
 
-	private Series.Point<Number> readNumber(String tag) {
+	private Signal.Point<Number> readNumber(String tag) {
 		int feed = tagSet.lastUpdatingFeedOf(tag);
 		if (feed == -1) return null;
-		return new Series.Point<>(
+		return new Signal.Point<>(
 				feed,
 				timeline.get(feed),
 				registry.getNumber(tagSet.get(tag), feed)
 		);
 	}
 
-	private List<Series.Point<Double>> readNumbers(String tag, Instant from, Instant to) {
+	private List<Signal.Point<Double>> readNumbers(String tag, Instant from, Instant to) {
 		return readNumbers(registry.getNumbers(tagSet.get(tag), timeline.from(from), timeline.to(to)));
 	}
 
-	private List<Series.Point<Double>> readNumbers(Stream<Row> records) {
+	private List<Signal.Point<Double>> readNumbers(Stream<Row> records) {
 		return records.map(this::readNumber).toList();
 	}
 
-	private Series.Point<Double> readNumber(Row row) {
+	private Signal.Point<Double> readNumber(Row row) {
 		int feed = row.at(1).asInt();
-		return new Series.Point<>(feed, timeline.get(feed), row.at(2).asDouble());
+		return new Signal.Point<>(feed, timeline.get(feed), row.at(2).asDouble());
 	}
 
-	private Series.Point<String> readText(String tag) {
+	private Signal.Point<String> readText(String tag) {
 		int feed = tagSet.lastUpdatingFeedOf(tag);
 		if (feed == -1) return null;
-		return new Series.Point<>(
+		return new Signal.Point<>(
 				feed,
 				timeline.get(feed),
 				registry.getText(tagSet.get(tag), feed)
 		);
 	}
 
-	private List<Series.Point<String>> readTexts(String tag, Instant from, Instant to) {
+	private List<Signal.Point<String>> readTexts(String tag, Instant from, Instant to) {
 		return readTexts(registry.getTexts(tagSet.get(tag), timeline.from(from), timeline.to(to)));
 	}
 
-	private List<Series.Point<String>> readTexts(Stream<Row> records) {
+	private List<Signal.Point<String>> readTexts(Stream<Row> records) {
 		return records.map(this::readText).toList();
 	}
 
-	private Series.Point<String> readText(Row row) {
+	private Signal.Point<String> readText(Row row) {
 		int feed = row.at(1).asInt();
-		return new Series.Point<>(feed, timeline.get(feed), row.at(2).asString());
+		return new Signal.Point<>(feed, timeline.get(feed), row.at(2).asString());
 	}
 
 	public void dump(OutputStream os) throws IOException {
@@ -239,19 +241,19 @@ public class SubjectHistory implements AutoCloseable {
 			this.tag = tag;
 		}
 
-		public Series.Point<Number> get() {
+		public Signal.Point<Number> get() {
 			return readNumber(tag);
 		}
 
-		public Signal all() {
+		public NumericalSignal all() {
 			return get(first(), last());
 		}
 
-		public Signal get(Instant from, Instant to) {
-			return new Signal.Raw(from, to, readNumbers(tag, from, to));
+		public NumericalSignal get(Instant from, Instant to) {
+			return new NumericalSignal.Raw(from, to, readNumbers(tag, from, to));
 		}
 
-		public Signal get(TimeSpan span) {
+		public NumericalSignal get(TimeSpan span) {
 			return get(span.from(), span.to());
 		}
 
@@ -269,19 +271,19 @@ public class SubjectHistory implements AutoCloseable {
 			this.tag = tag;
 		}
 
-		public Series.Point<String> get() {
+		public Signal.Point<String> get() {
 			return readText(tag);
 		}
 
-		public Sequence all() {
+		public CategoricalSignal all() {
 			return get(first(), last());
 		}
 
-		public Sequence get(Instant from, Instant to) {
-			return new Sequence.Raw(from, to, readTexts(tag, from, to));
+		public CategoricalSignal get(Instant from, Instant to) {
+			return new CategoricalSignal.Raw(from, to, readTexts(tag, from, to));
 		}
 
-		public Sequence get(TimeSpan span) {
+		public CategoricalSignal get(TimeSpan span) {
 			return get(span.from(), span.to());
 		}
 

@@ -1,231 +1,143 @@
 package systems.intino.datamarts.subjectstore.model;
 
-import com.tdunning.math.stats.TDigest;
-import systems.intino.datamarts.subjectstore.TimeReference;
-
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.TemporalAmount;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
-public interface Signal extends Series<Double> {
-	default double[] values() { return stream().mapToDouble(Point::value).toArray(); }
-	default Signal[] segments(TemporalAmount duration) { return splitBy(from(), to(), duration); }
-	default Signal[] segments(int number) { return segments(duration().dividedBy(number)); }
-	default Summary summary() { return Summary.of(this); }
-	default SignalDistribution distribution() { return SignalDistribution.of(this); }
+public interface Signal<T> extends Iterable<Signal.Point<T>> {
+	Instant from();
+	Instant to();
+	default Duration duration() { return Duration.between(from(), to()); }
 
-	private Segment[] splitBy(Instant from, Instant to, TemporalAmount duration) {
-		return  TimeReference.iterate(from, to, duration)
-				.map(current -> new Segment(current, TimeReference.add(current, duration), this))
-				.toArray(Segment[]::new);
-	}
+	int count();
+	boolean isEmpty();
+	Stream<Point<T>> stream();
 
+	abstract class Raw<X> implements Signal<X> {
+		private final Instant from;
+		private final Instant to;
+		private final List<Point<X>> points;
 
-	final class Raw extends Series.Raw<Double> implements Signal {
-
-		public Raw(Instant from, Instant to, List<Point<Double>> points) {
-			super(from, to, points);
+		public Raw(Instant from, Instant to, List<Point<X>> points) {
+			this.from = from;
+			this.to = to;
+			this.points = points;
 		}
 
-	}
-
-	final class Segment extends Series.Segment<Double> implements Signal {
-		public Segment(Instant from, Instant to, Signal parent) {
-			super(from, to, parent);
+		@Override
+		public Instant from() {
+			return from;
 		}
 
-	}
-
-	class SignalDistribution {
-		private final TDigest tdigest;
-
-		public static SignalDistribution of(Iterable<Point<Double>> points) {
-			SignalDistribution distribution = new SignalDistribution();
-			for (Point<Double> point : points)
-				distribution.tdigest.add(point.value());
-			distribution.tdigest.compress();
-			return distribution;
+		@Override
+		public Instant to() {
+			return to;
 		}
 
-		private SignalDistribution() {
-			this.tdigest = TDigest.createAvlTreeDigest(200);
-		}
-
-		public long count() {
-			return tdigest.size();
-		}
-
-		public double min() {
-			return tdigest.getMin();
-		}
-
-		public double max() {
-			return tdigest.getMax();
-		}
-
-		public double probabilityLeftTail(double value) {
-			return tdigest.cdf(value);
-		}
-
-		public double probabilityRightTail(double value) {
-			return 1-tdigest.cdf(value);
-		}
-
-		public double quantile(double value) {
-			return tdigest.quantile(value);
-		}
-
-		public double q1() {
-			return quantile(0.25);
-		}
-
-		public double q2() {
-			return quantile(0.5);
-		}
-
-		public double median() {
-			return quantile(0.5);
-		}
-
-		public double q3() {
-			return quantile(0.75);
-		}
-
-	}
-
-	class Summary {
-		private final int count;
-		private final double sum;
-		private final double mean;
-		private final double sd;
-		private final Point<Double> first;
-		private final Point<Double> last;
-		private final Point<Double> min;
-		private final Point<Double> max;
-
-		public static Summary of(Iterable<Point<Double>> points) {
-			return new Summary(new Summary.Calculator().calculate(points));
-		}
-
-		private Summary(Calculator calculator) {
-			this.count = calculator.count;
-			this.sum = calculator.sum;
-			this.mean = calculator.mean;
-			this.sd = calculator.sd();
-			this.first = calculator.get("first");
-			this.last = calculator.get("last");
-			this.min = calculator.get("min");
-			this.max = calculator.get("max");
-		}
-
-		public Point<Double> first() {
-			return first;
-		}
-
-		public Point<Double> last() {
-			return last;
-		}
-
-		public Point<Double> min() {
-			return min;
-		}
-
-		public Point<Double> max() {
-			return max;
-		}
-
-		public double range() {
-			if (max == null || min == null) return Double.NaN;
-			return max.value() - min.value();
-		}
-
+		@Override
 		public int count() {
-			return count;
+			return points().size();
 		}
 
-		public double sum() {
-			return sum;
+		@Override
+		public boolean isEmpty() {
+			return points.isEmpty();
 		}
 
-		public double mean() {
-			return mean;
+		@Override
+		public Stream<Point<X>> stream() {
+			return points.stream();
 		}
 
-		public double sd() {
-			return sd;
+		@Override
+		public Iterator<Point<X>> iterator() {
+			return points.iterator();
+		}
+
+		public List<Point<X>> points() {
+			return points;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(from, to, points);
 		}
 
 		@Override
 		public boolean equals(Object o) {
 			if (this == o) return true;
-			if (!(o instanceof Summary summary)) return false;
-			return sum == summary.sum && count == summary.count && Double.compare(mean, summary.mean) == 0 && Double.compare(sd, summary.sd) == 0 && Objects.equals(min, summary.min) && Objects.equals(max, summary.max);
+			if (!(o instanceof Raw<?> raw)) return false;
+			return Objects.equals(from, raw.from) && Objects.equals(to, raw.to) && Objects.equals(points, raw.points);
+		}
+	}
+
+	abstract class Segment<X> implements Signal<X> {
+		private final Instant from;
+		private final Instant to;
+		protected final Signal<X> parent;
+
+		public Segment(Instant from, Instant to, Signal<X> parent) {
+			this.from = from;
+			this.to = to;
+			this.parent = parent;
+		}
+
+		public Instant from() {
+			return from;
+		}
+
+		public Instant to() {
+			return to;
+		}
+
+		public int count() {
+			return (int) stream().count();
+		}
+
+		public boolean isEmpty() {
+			return stream().findAny().isEmpty();
+		}
+
+		public Iterator<Point<X>> iterator() {
+			return stream().iterator();
+		}
+
+		public Stream<Point<X>> stream() {
+			return parent.stream().filter(this::contains);
+		}
+
+		private boolean contains(Point<X> point) {
+			return contains(point.instant());
+		}
+
+		private boolean contains(Instant instant) {
+			return !instant.isBefore(from) && instant.isBefore(to);
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(sum, count, mean, sd, min, max);
+			return Objects.hash(from, to, parent);
 		}
 
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) return true;
+			if (!(o instanceof Segment<?> segment)) return false;
+			return Objects.equals(from, segment.from) && Objects.equals(to, segment.to) && Objects.equals(parent, segment.parent);
+		}
+	}
 
-		private static class Calculator {
-			final Map<String, Point<Double>> points;
-			double sum = 0;
-			double min = Double.MAX_VALUE;
-			double max = Double.MIN_VALUE;
-			int count = 0;
-			double mean = 0;
-			double m2 = 0;
+	record Point<T>(int feed, Instant instant, T value) {
+		@Override
+		public String toString() {
+			return "[" + clean(instant) + "=" + value + ']';
+		}
 
-			public Calculator() {
-				this.points = new HashMap<>();
-			}
-
-			private Calculator calculate(Iterable<Point<Double>> points) {
-				for (Point<Double> point : points)
-					calculate(point);
-				return this;
-			}
-
-			private void calculate(Point<Double> point) {
-				double value = point.value();
-				calculate(value);
-				if (!points.containsKey("first")) points.put("first", point);
-				if (min(value)) points.put("min", point);
-				if (max(value)) points.put("max", point);
-				points.put("last", point);
-			}
-
-			private void calculate(double value) {
-				double delta = value - mean;
-				count++;
-				sum += value;
-				mean += delta / count;
-				m2 += delta * (value - mean);
-			}
-
-			private boolean max(double value) {
-				if (value <= max) return false;
-				max = value;
-				return true;
-			}
-
-			private boolean min(double value) {
-				if (value >= min) return false;
-				min = value;
-				return true;
-			}
-
-			public double sd() {
-				return count > 1 ? Math.sqrt(m2 / (count - 1)) : Double.NaN;
-			}
-
-			public Point<Double> get(String name) {
-				return points.get(name);
-			}
+		private String clean(Instant instant) {
+			return instant.toString().replaceAll("[-T:Z]","");
 		}
 	}
 }

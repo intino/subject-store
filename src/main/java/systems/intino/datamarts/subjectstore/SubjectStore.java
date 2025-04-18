@@ -34,11 +34,11 @@ public class SubjectStore implements AutoCloseable {
 	}
 
 	public SubjectQuery subjects() {
-		return index.subjects();
+		return index.query();
 	}
 
 	public SubjectQuery subjects(String... types) {
-		return index.subjects(types);
+		return index.query(types);
 	}
 
 	@Override

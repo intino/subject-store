@@ -1,8 +1,8 @@
 package tests.history;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.model.Sequence;
-import systems.intino.datamarts.subjectstore.model.Series;
+import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
+import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -18,10 +18,10 @@ import static org.assertj.core.api.Assertions.withinPercentage;
 import static systems.intino.datamarts.subjectstore.TimeReference.today;
 
 @SuppressWarnings("NewClassNamingConvention")
-public class Sequence_ {
+public class CategoricalSignal_ {
 	@Test
 	public void should_create_empty_sequence_with_correct_bounds_and_summary() {
-		Sequence.Raw sequence = new Sequence.Raw(today(-15), today(15), List.of());
+		CategoricalSignal.Raw sequence = new CategoricalSignal.Raw(today(-15), today(15), List.of());
 		assertThat(sequence.from()).isEqualTo(today(-15));
 		assertThat(sequence.to()).isEqualTo(today(15));
 		assertThat(sequence.duration()).isEqualTo(Duration.of(30, DAYS));
@@ -33,7 +33,7 @@ public class Sequence_ {
 
 	@Test
 	public void should_calculate_summary() {
-		Sequence.Raw sequence = new Sequence.Raw(today(0), today(35), points(0, 30));
+		CategoricalSignal.Raw sequence = new CategoricalSignal.Raw(today(0), today(35), points(0, 30));
 		assertThat(sequence.count()).isEqualTo(24*30);
 		assertThat(sequence.from()).isEqualTo(today(0));
 		assertThat(sequence.to()).isEqualTo(today(35));
@@ -47,15 +47,15 @@ public class Sequence_ {
 
 	@Test
 	public void should_return_identical_summary_for_sequences_with_same_points() {
-		Sequence.Raw signal1 = new Sequence.Raw(today(-15), today(15), points(-5, 5));
-		Sequence.Raw signal2 = new Sequence.Raw(today(-10), today(10), points(-5,5));
+		CategoricalSignal.Raw signal1 = new CategoricalSignal.Raw(today(-15), today(15), points(-5, 5));
+		CategoricalSignal.Raw signal2 = new CategoricalSignal.Raw(today(-10), today(10), points(-5,5));
 		assertThat(signal1.summary()).isEqualTo(signal2.summary());
 	}
 
 	@Test
 	public void should_segment_sequence_into_daily_segments() {
-		Sequence.Raw sequence = new Sequence.Raw(today(-1), today(5), points(0, 4));
-		Sequence[] segments = sequence.segments(Duration.ofDays(1));
+		CategoricalSignal.Raw sequence = new CategoricalSignal.Raw(today(-1), today(5), points(0, 4));
+		CategoricalSignal[] segments = sequence.segments(Duration.ofDays(1));
 		assertThat(segments.length).isEqualTo(6);
 		assertThat(sequence.segments(6)).isEqualTo(segments);
 		assertThat(segments[0].count()).isEqualTo(0);
@@ -80,8 +80,8 @@ public class Sequence_ {
 
 	@Test
 	public void should_segment_sequence_into_yearly_segments() {
-		Sequence.Raw sequence = new Sequence.Raw(today(0), today(3650), List.of());
-		Sequence[] segments = sequence.segments(Period.ofYears(1));
+		CategoricalSignal.Raw sequence = new CategoricalSignal.Raw(today(0), today(3650), List.of());
+		CategoricalSignal[] segments = sequence.segments(Period.ofYears(1));
 		assertThat(segments.length).isEqualTo(10);
 		assertThat(segments[0].duration()).isEqualTo(Duration.ofDays(365));
 		assertThat(segments[1].duration()).isEqualTo(Duration.ofDays(365));
@@ -92,14 +92,14 @@ public class Sequence_ {
 
 
 	@SuppressWarnings("SameParameterValue")
-	private List<Series.Point<String>> points(int from, int to) {
+	private List<Signal.Point<String>> points(int from, int to) {
 		return IntStream.range(from * 24, to * 24)
 				.mapToObj(this::point)
 				.collect(toList());
 	}
 
-	private Series.Point<String> point(int i) {
-		return new Series.Point<>(feed(i), hour(i), value(i));
+	private Signal.Point<String> point(int i) {
+		return new Signal.Point<>(feed(i), hour(i), value(i));
 	}
 
 	private static int feed(int i) {

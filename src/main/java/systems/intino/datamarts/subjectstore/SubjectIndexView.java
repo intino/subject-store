@@ -2,22 +2,21 @@ package systems.intino.datamarts.subjectstore;
 
 import systems.intino.datamarts.subjectstore.model.Statement;
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.model.Subjects;
-import systems.intino.datamarts.subjectstore.model.Terms;
 import systems.intino.datamarts.subjectstore.index.view.Column;
+import systems.intino.datamarts.subjectstore.model.Term;
 
 import java.util.*;
 import java.util.stream.Stream;
 
 public class SubjectIndexView implements Iterable<Column>  {
-	private final Subjects subjects;
+	private final List<Subject> subjects;
 	private final List<String> keys;
 
 	public static Builder of(SubjectIndex subjectIndex) {
 		return new Builder(subjectIndex);
 	}
 
-	private SubjectIndexView(Subjects subjects, List<String> keys) {
+	private SubjectIndexView(List<Subject> subjects, List<String> keys) {
 		this.subjects = subjects;
 		this.keys = keys;
 	}
@@ -79,8 +78,8 @@ public class SubjectIndexView implements Iterable<Column>  {
 				.map(t->new Statement(subject, t));
 	}
 
-	private final Map<Subject, Terms> terms = new HashMap<>();
-	private Terms termsOf(Subject subject) {
+	private final Map<Subject, List<Term>> terms = new HashMap<>();
+	private List<Term> termsOf(Subject subject) {
 		return terms.computeIfAbsent(subject, Subject::terms);
 	}
 
@@ -106,12 +105,8 @@ public class SubjectIndexView implements Iterable<Column>  {
 		}
 
 		public SubjectIndexView build() {
-			Subjects subjects = subjectIndex.subjects(setOf(types)).all();
+			List<Subject> subjects = subjectIndex.query(types).collect();
 			return new SubjectIndexView(subjects, keys);
-		}
-
-		private Set<String> setOf(List<String> types) {
-			return new HashSet<>(types);
 		}
 
 	}

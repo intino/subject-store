@@ -3,9 +3,7 @@ package tests;
 import org.junit.Test;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.model.Subjects;
 import systems.intino.datamarts.subjectstore.model.Term;
-import systems.intino.datamarts.subjectstore.model.Terms;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -51,8 +49,8 @@ public class Subject_ {
 		assertThat(child.parent()).isEqualTo(subject);
 		assertThat(grandson.parent().parent()).isEqualTo(subject);
 
-		assertThat(subject.children()).containsExactly(Subject.of("a.model/b.release"));
-		assertThat(subject.children().get(0).children().get(0)).isEqualTo(Subject.of("a.model/b.release/c.properties"));
+		assertThat(subject.children().collect()).containsExactly(Subject.of("a.model/b.release"));
+		assertThat(subject.children().first().children().first()).isEqualTo(Subject.of("a.model/b.release/c.properties"));
 	}
 
 	@Test
@@ -72,13 +70,14 @@ public class Subject_ {
 
 	private Subject.Context context() {
 		return new Subject.Context() {
+
 			@Override
-			public Subjects children(Subject subject) {
-				return new Subjects(childrenOf(subject));
+			public List<Subject> children(Subject subject, String type) {
+				return childrenOf(subject);
 			}
 
 			@Override
-			public Terms terms(Subject subject) {
+			public List<Term> terms(Subject subject) {
 				return termsOf(subject);
 			}
 
@@ -109,8 +108,8 @@ public class Subject_ {
 		};
 	}
 
-	private Terms termsOf(Subject subject) {
-		return new Terms(List.of(new Term("email", "data@gmail.com")));
+	private List<Term> termsOf(Subject subject) {
+		return List.of(new Term("email", "data@gmail.com"));
 	}
 
 	private final Map<Subject, List<Subject>> map = new HashMap<>();

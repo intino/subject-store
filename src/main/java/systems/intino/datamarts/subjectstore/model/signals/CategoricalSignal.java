@@ -1,6 +1,7 @@
-package systems.intino.datamarts.subjectstore.model;
+package systems.intino.datamarts.subjectstore.model.signals;
 
 import systems.intino.datamarts.subjectstore.TimeReference;
+import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
@@ -11,11 +12,11 @@ import java.util.Objects;
 
 import static systems.intino.datamarts.subjectstore.TimeReference.iterate;
 
-public interface Sequence extends Series<String> {
+public interface CategoricalSignal extends Signal<String> {
 	default String[] values() { return stream().map(Point::value).toArray(String[]::new); }
 	default String[] distinct() { return stream().map(Point::value).distinct().toArray(String[]::new); }
-	default Sequence[] segments(TemporalAmount duration) { return splitBy(from(), to(), duration); }
-	default Sequence[] segments(int number) { return segments(duration().dividedBy(number)); }
+	default CategoricalSignal[] segments(TemporalAmount duration) { return splitBy(from(), to(), duration); }
+	default CategoricalSignal[] segments(int number) { return segments(duration().dividedBy(number)); }
 	default Summary summary() { return Summary.of(this); }
 
 	private Segment[] splitBy(Instant from, Instant to, TemporalAmount duration) {
@@ -24,15 +25,15 @@ public interface Sequence extends Series<String> {
 				.toArray(Segment[]::new);
 	}
 
-	final class Raw extends Series.Raw<String> implements Sequence {
+	final class Raw extends Signal.Raw<String> implements CategoricalSignal {
 		public Raw(Instant from, Instant to, List<Point<String>> points) {
 			super(from, to, points);
 		}
 	}
 
-	final class Segment extends Series.Segment<String> implements Sequence {
+	final class Segment extends Signal.Segment<String> implements CategoricalSignal {
 
-		public Segment(Instant from, Instant to, Sequence parent) {
+		public Segment(Instant from, Instant to, CategoricalSignal parent) {
 			super(from, to, parent);
 		}
 

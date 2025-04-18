@@ -114,10 +114,10 @@ try (SubjectHistory history = subject.history()) {
 ```mermaid
 graph TD
   A[National Museum]
-  A1[Department of Art -- Floor 1]
-  A2[Department of History -- Floor 2]
-  A3[Department of Science -- Floor 3]
-  A4[Fossil Collection -- Room 3B]
+  A1[Department of Art]
+  A2[Department of History]
+  A3[Department of Science]
+  A4[Fossil Collection]
 
   A --> A1
   A --> A2
@@ -161,14 +161,3 @@ fossils.index()
 
 ```
 
-### Hierarchy Structure {#hierarchy-structure .unnumbered}
-
--   **National Museum** (institution)
-
-    -   **Department of Art** (department) -- Floor 1
-
-    -   **Department of History** (department) -- Floor 2
-
-    -   **Department of Science** (department) -- Floor 3
-
-        -   **Fossil Collection** (section) -- Room 3B

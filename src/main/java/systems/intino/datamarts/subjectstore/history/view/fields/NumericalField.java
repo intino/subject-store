@@ -1,6 +1,6 @@
 package systems.intino.datamarts.subjectstore.history.view.fields;
 
-import systems.intino.datamarts.subjectstore.model.Signal;
+import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -8,7 +8,7 @@ import java.util.function.Function;
 
 import static java.lang.Double.NaN;
 
-public interface NumericalField extends Function<Signal, Double> {
+public interface NumericalField extends Function<NumericalSignal, Double> {
 	Map<String, NumericalField> map = create();
 
 	private static Map<String, NumericalField> create() {
