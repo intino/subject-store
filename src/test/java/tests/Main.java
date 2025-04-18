@@ -19,6 +19,7 @@ public class Main {
 		File file = new File("buildings.iss");
 		if (file.exists()) file.delete();
 		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
+			store.has("taj-mahal", "building");
 			Subject s = store.create("taj-mahal", "building");
 			Subject taj = s.rename("taj mahal");
 			taj.index()
@@ -125,7 +126,7 @@ public class Main {
 			assertThat(store.subjects().all().size()).isEqualTo(6);
 			assertThat(store.subjects().roots().size()).isEqualTo(2);
 			assertThat(store.subjects("building").all().size()).isEqualTo(2);
-			assertThat(store.subjects("building").with("country", "Spain").all().size()).isEqualTo(1);
+			assertThat(store.subjects("building").with("country", "Spain").first().all().size()).isEqualTo(1);
 			assertThat(store.subjects("building").with("continent", "Asia").all().size()).isEqualTo(1);
 			assertThat(store.subjects("building").roots().size()).isEqualTo(2);
 			assertThat(store.subjects("detail").all().size()).isEqualTo(4);

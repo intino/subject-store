@@ -35,6 +35,14 @@ public class SubjectIndex implements AutoCloseable {
 		this.context = context();
 	}
 
+	public boolean has(String name, String type) {
+		return subjects.contains(new Subject(name, type));
+	}
+
+	public boolean has(String identifier) {
+		return subjects.contains(new Subject(identifier));
+	}
+
 	public Subject get(String name, String type) {
 		return get(new Subject(name, type));
 	}
@@ -280,6 +288,11 @@ public class SubjectIndex implements AutoCloseable {
 				if (terms.contains(term))
 					condition.add(-terms.id(term));
 				return this;
+			}
+
+			@Override
+			public Subject first() {
+				return retrieve(s->true).get(0);
 			}
 
 			@Override

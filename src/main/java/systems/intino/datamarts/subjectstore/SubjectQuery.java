@@ -1,5 +1,6 @@
 package systems.intino.datamarts.subjectstore;
 
+import systems.intino.datamarts.subjectstore.model.Subject;
 import systems.intino.datamarts.subjectstore.model.Subjects;
 import systems.intino.datamarts.subjectstore.model.Term;
 
@@ -24,6 +25,8 @@ public interface SubjectQuery {
 	}
 
 	interface SubjectFilter {
+		Subject first();
+
 		Subjects all();
 
 		Subjects roots();
@@ -39,6 +42,5 @@ public interface SubjectQuery {
 		default SubjectFilter without(String tag, String value) {
 			return without(new Term(tag, value));
 		}
-
 	}
 }

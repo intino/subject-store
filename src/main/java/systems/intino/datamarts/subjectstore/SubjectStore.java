@@ -9,6 +9,14 @@ public class SubjectStore implements AutoCloseable {
 		this.index = new SubjectIndex(storage);
 	}
 
+	public boolean has(String identifier) {
+		return index.has(identifier);
+	}
+
+	public boolean has(String name, String type) {
+		return index.has(name, type);
+	}
+
 	public Subject get(String identifier) {
 		return index.get(identifier);
 	}
@@ -41,4 +49,5 @@ public class SubjectStore implements AutoCloseable {
 			throw new RuntimeException(e);
 		}
 	}
+
 }
