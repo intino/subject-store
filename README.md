@@ -16,6 +16,8 @@ It is designed for applications that need both a flexible data model and a light
 
 ## Quick Example
 
+### Installation via Maven
+
 To use `SubjectStore` in your Java project, add the following dependency to your `pom.xml`:
 
 ```xml
@@ -26,51 +28,94 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 </dependency>
 ```
 
+### Opening a store and accessing subjects
 
-This snippet shows how to create a single subject and assign indexing attributes. The `index()` method is used to assign  static attributes intended for querying and identification, such as names, categories, or locations. 
+This snippet shows how to open a `SubjectStore`, create a new subject, check for existence, and retrieve it:
 
 ```java
 try (SubjectStore store = new SubjectStore("jdbc:sqlite:buildings.iss")) {
     Subject eiffel = store.create("eiffel tower", "building");
 
-    eiffel.index()
-        .set("name", "Eiffel Tower")
-        .set("year", 1889)
-        .put("city", "Paris")
-        .put("country", "France")
-        .put("continent", "Europe")
-        .terminate();
+    boolean exists = store.has("taj mahal", "building");
+
+    Subject eiffel = store.get("eiffel tower", "building");
 }
 ```
 
-## Retrieving Subjects
+### Managing hierarchical structures
 
-You can retrieve subjects either by their unique name and type, or through flexible queries based on their indexed attributes.
+`SubjectStore` allows subjects to be organized hierarchically by nesting child subjects under parents. The following example models a museum and its internal departments, focusing on structural identifiers.
+
+```mermaid
+graph TD
+  A[National Museum]
+  A1[Department of Art]
+  A2[Department of Science]
+  A3[Fossil Collection]
+
+  A --> A1
+  A --> A2
+  A2 --> A3
+```
 
 ```java
-boolean exists = store.has("taj mahal", "building");
-
-Subject eiffel = store.get("eiffel tower", "building");
-
-Subject eiffel = store.subjects("building")
-    .with("city", "Paris")
-    .first();
-
-List<Subject> towers = store.subjects("building")
-    .where("name").contains("tower")
-    .collect();
-
-List<Subject> modernBuildings = store.subjects("building")
-    .where("year").that(v -> toNumber(v) > 1900)
-    .collect();
+Subject museum = store.create("national-museum", "building");
+    Subject art = museum.create("art", "department");
+    Subject science = museum.create("science", "department");
+        Subject fossils = science.create("fossils", "section");
 
 ```
 
-## Tracking Historical Data
+### Accessing hierarchical subjects
 
-Each subject in `SubjectStore` can record time-stamped historical data using the `history()` method. This feature allows tracking of evolving metrics, state changes, or temporal observations without altering the subject’s current indexed attributes.
 
-Historical records are associated with both a date and a source (e.g.,`"sensor"`, `"website"`, `"manual"`), and can store arbitrary key-value pairs.
+For nested subjects, you can use hierarchical paths in the form ```parent.type/child.type/grandchild.type```.
+
+```java
+Subject department = store.get("national-museum.building/science.department");
+```
+
+Children subjects can also be accessed by navigating from their parent:
+
+```java
+Subject section = department.get("fossils", "section")
+```
+
+Additionally, you can navigate upwards in the hierarchy:
+
+```java
+Subject building = section.parent().parent();
+```
+
+### Indexing subjects
+
+You can also retrieve subjects through flexible queries based on their indexed attributes. To make subjects searchable, you can assign indexing attributes using the `index()` method. These attributes are static and optimized for querying — such as names, categories, dates, and locations.
+
+```java
+eiffel.index()
+    .set("name", "Eiffel Tower")
+    .set("year", 1889)
+    .put("city", "Paris")
+    .put("country", "France")
+    .put("continent", "Europe")
+    .terminate();
+
+Subject eiffel = store.subjects("building")
+		.with("city", "Paris")
+		.first();
+
+List<Subject> towers = store.subjects("building")
+		.where("name").contains("tower")
+		.collect();
+
+List<Subject> modernBuildings = store.subjects("building")
+		.where("year").that(v -> toNumber(v) > 1900)
+		.collect();
+```
+
+### Tracking historical data
+
+Each subject in `SubjectStore` can record time-stamped historical data using the `history()` method. This feature allows tracking of evolving metrics, state changes, or temporal observations without altering the subject’s current indexed attributes. Historical records are associated with both a date and a source (e.g.,`"sensor"`, `"website"`, `"manual"`), and can store arbitrary key-value pairs.
 
 ```java
 try (SubjectHistory history = subject.history()) {
@@ -81,6 +126,8 @@ try (SubjectHistory history = subject.history()) {
         .terminate();
 }
 ```
+
+### Analyzing subject history
 
 Historical data can later be queried as typed signals and summarized over defined time periods:
 
@@ -102,91 +149,3 @@ try (SubjectHistory history = subject.history()) {
 }
 ```
 
-## Managing Hierarchical Structures
-
-`SubjectStore` allows subjects to be organized hierarchically by nesting child subjects under parents. The following example models a museum and its internal departments, focusing on structural identifiers.
-
-```mermaid
-graph TD
-  A[National Museum]
-  A1[Department of Art]
-  A2[Department of History]
-  A3[Department of Science]
-  A4[Fossil Collection]
-
-  A --> A1
-  A --> A2
-  A --> A3
-  A3 --> A4
-```
-
-```java
-Subject museum = store.create("national-museum", "institution");
-
-museum.index()
-    .set("name", "National Museum")
-    .put("city", "Washington D.C.")
-    .put("country", "USA")
-    .put("type", "cultural")
-    .terminate();
-
-Subject art = museum.create("art", "department");
-art.index()
-    .put("name", "Department of Art")
-    .put("floor", 1)
-    .terminate();
-
-Subject science = museum.create("science", "department");
-science.index()
-    .put("name", "Department of Science")
-    .put("floor", 2)
-    .terminate();
-
-Subject fossils = science.create("fossils", "section");
-fossils.index()
-    .put("name", "Fossil Collection")
-    .put("room", "2B")
-    .terminate();
-
-```
-
-## Accessing Subjects: via Index or Hierarchical Navigation
-
-`SubjectStore` allows retrieving subjects in two primary ways:
-
-1. Direct Access
-2. Access from Another Subject
-
-### Direct Access
-
-You can retrieve a subject directly from the store using its unique name and type:
-
-```java
-Subject eiffel = store.get("eiffel tower", "building");
-```
-
-Alternatively, for nested subjects, you can use hierarchical paths in the form ```parent.type/child.type/grandchild.type```.
-
-```java
-Subject deck = store.get("burj khalifa.building/observation deck.detail");
-```
-
-
-### Access from Another Subject
-
-Subjects can also be accessed by navigating from their parent:
-
-```java
-Subject building = store.get("burj khalifa", "building");
-Subject deck = building.children("detail")
-    .with("name", "At the Top")
-    .first();
-```
-
-This pattern is useful when traversing known relationships or building recursive structures.
-
-Additionally, you can navigate upwards in the hierarchy:
-
-```java
-Subject parent = deck.parent();
-```
