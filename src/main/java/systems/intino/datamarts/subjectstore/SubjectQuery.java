@@ -3,6 +3,8 @@ package systems.intino.datamarts.subjectstore;
 import systems.intino.datamarts.subjectstore.model.Subjects;
 import systems.intino.datamarts.subjectstore.model.Term;
 
+import java.util.function.Predicate;
+
 public interface SubjectQuery {
 	Subjects all();
 
@@ -16,8 +18,9 @@ public interface SubjectQuery {
 
 	interface AttributeFilter {
 		Subjects contains(String value);
+		Subjects accepts(String value);
+		Subjects matches(Predicate<String> predicate);
 
-		Subjects matches(String value);
 	}
 
 	interface SubjectFilter {

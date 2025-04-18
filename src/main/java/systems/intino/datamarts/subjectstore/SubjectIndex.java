@@ -110,8 +110,11 @@ public class SubjectIndex implements AutoCloseable {
 		return get(id);
 	}
 
-	private void rename(Subject subject, String name) {
-		registry.setSubject(subjects.id(subject), name);
+	private void rename(Subject subject, String identifier) {
+		int id = subjects.id(subject);
+		subjects.set(id, new Subject(identifier));
+		registry.setSubject(id, identifier);
+		registry.commit();
 	}
 
 	private Updating update(Subject subject) {
@@ -121,44 +124,38 @@ public class SubjectIndex implements AutoCloseable {
 			private final List<Integer> exclusiveTerms = registry.exclusiveTermsOf(id);
 
 			@Override
-			public Updating rename(String name) {
-				if (name == null || name.isEmpty()) return this;
-				return replace(subject.rename(name));
-			}
-
-			@Override
 			public Updating set(Term term) {
 				int[] candidateTerms = termsWith(term.tag());
 				return candidateTerms.length == 1 ?
-						attach(term, candidateTerms[0]) :
-						reset(term, candidateTerms);
+						exclusiveTerms.contains(candidateTerms[0]) ?
+							modifyTerm(term, candidateTerms[0]) :
+							replaceTerm(term, candidateTerms[0]) :
+						replaceTerms(term, candidateTerms);
 			}
 
-			private Updating attach(Term term, int id) {
-				return exclusiveTerms.contains(id) ?
-						setTerm(term, id) :
-						fixTerm(term, id);
-			}
-
-			private Updating setTerm(Term term, int id) {
+			private Updating modifyTerm(Term term, int id) {
 				registry.setTerm(id, term.toString());
 				terms.set(id, term);
 				return this;
 			}
 
-			private Updating fixTerm(Term term, int id) {
+			private Updating replaceTerm(Term term, int id) {
 				registry.unlink(this.id, id);
-				return put(term);
+				return link(term);
 			}
 
-			private Updating reset(Term term, int[] candidateTerms) {
+			private Updating replaceTerms(Term term, int[] candidateTerms) {
 				del(candidateTerms);
-				put(term);
-				return this;
+				return link(term);
 			}
 
 			public Updating put(Term term) {
-				registry.link(id, terms.add(term));
+				return link(term);
+			}
+
+			private Updating link(Term term) {
+				int id = terms.add(term);
+				registry.link(this.id, id);
 				return this;
 			}
 
@@ -173,18 +170,6 @@ public class SubjectIndex implements AutoCloseable {
 				return del(id(term));
 			}
 
-			private int[] termsWith(String tag) {
-				return currentTerms.stream()
-						.filter(t -> term(t).is(tag))
-						.mapToInt(t->t)
-						.toArray();
-			}
-
-			private Updating del(int[] terms) {
-				for (int term : terms) del(term);
-				return this;
-			}
-
 			private Updating del(int id) {
 				if (id < 0) return this;
 				registry.unlink(this.id, id);
@@ -197,11 +182,16 @@ public class SubjectIndex implements AutoCloseable {
 				return this;
 			}
 
-			private Updating replace(Subject subject) {
-				if (subjects.contains(subject)) return this;
-				subjects.set(id, subject);
-				registry.setSubject(id, subject.toString());
+			private Updating del(int[] terms) {
+				for (int term : terms) del(term);
 				return this;
+			}
+
+			private int[] termsWith(String tag) {
+				return currentTerms.stream()
+						.filter(t -> term(t).is(tag))
+						.mapToInt(t->t)
+						.toArray();
 			}
 
 			private int id(Term term) {
@@ -213,7 +203,7 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			@Override
-			public void commit() {
+			public void terminate() {
 				registry.commit();
 			}
 		};
@@ -242,7 +232,6 @@ public class SubjectIndex implements AutoCloseable {
 	}
 
 	private void dropHistoryOf(Subject subject) {
-		//TODO check if exists
 		try (SubjectHistory history = subject.history()) {
 			history.drop();
 		}
@@ -338,8 +327,14 @@ public class SubjectIndex implements AutoCloseable {
 				return new ArrayList<>(join);
 			}
 			@Override
-			public Subjects matches(String value) {
-				List<Integer> terms = termsFitting(value);
+			public Subjects accepts(String value) {
+				List<Integer> terms = termsAcceptedBy(value);
+				return subjectSetWith(terms);
+			}
+
+			@Override
+			public Subjects matches(Predicate<String> predicate) {
+				List<Integer> terms = termsMatchedBy(predicate);
 				return subjectSetWith(terms);
 			}
 
@@ -348,9 +343,16 @@ public class SubjectIndex implements AutoCloseable {
 				return new Subjects(subjects);
 			}
 
-			private List<Integer> termsFitting(String value) {
+			private List<Integer> termsAcceptedBy(String value) {
 				return terms(keys)
 						.filter(t -> pattern(t.value()).matcher(value).matches())
+						.map(terms::id)
+						.toList();
+			}
+
+			private List<Integer> termsMatchedBy(Predicate<String> predicate) {
+				return terms(keys)
+						.filter(t->predicate.test(t.value()))
 						.map(terms::id)
 						.toList();
 			}
@@ -377,7 +379,7 @@ public class SubjectIndex implements AutoCloseable {
 		Batch batch = batch();
 		for (Statement statement : statements)
 			batch.put(statement);
-		batch.commit();
+		batch.terminate();
 		return this;
 	}
 
@@ -429,8 +431,8 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			@Override
-			public void rename(Subject subject, String name) {
-				SubjectIndex.this.rename(subject, name);
+			public void rename(Subject subject, String identifier) {
+				SubjectIndex.this.rename(subject, identifier);
 			}
 
 			@Override
@@ -505,7 +507,7 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			@Override
-			public void commit() {
+			public void terminate() {
 				registry.commit();
 			}
 		};
@@ -528,7 +530,7 @@ public class SubjectIndex implements AutoCloseable {
 			put(subject, new Term(tag, value));
 		}
 
-		void commit();
+		void terminate();
 	}
 
 	private static class Lookup<T> {
@@ -597,14 +599,6 @@ public class SubjectIndex implements AutoCloseable {
 
 		public boolean contains(int id) {
 			return id <= list.size();
-		}
-
-		public double nullRatio() {
-			return list.size() > 20 ? (double) nullItems() / list.size() : 0;
-		}
-
-		private long nullItems() {
-			return list.stream().filter(Objects::isNull).count();
 		}
 
 		public int indexOfNull() {

@@ -46,7 +46,7 @@ public class SubjectHistory_ {
 	public void should_ignore_feed_without_data() throws Exception {
 		File file = File.createTempFile("port", ".oss");
 		try (SubjectHistory history = new SubjectHistory("00000", Storages.in(file))) {
-			history.on(Instant.now(), "Skip").commit();
+			history.on(Instant.now(), "Skip").terminate();
 			assertThat(history.size()).isEqualTo(0);
 		}
 	}
@@ -93,7 +93,7 @@ public class SubjectHistory_ {
 					.put("Country", "China")
 					.put("Latitude", 31_219832454L)
 					.put("Longitude", 121_486998052L)
-					.commit();
+					.terminate();
 			test_stored_legacy_values(history);
 		}
 		try (SubjectHistory history = new SubjectHistory("00000", Storages.in(file))) {
@@ -143,7 +143,7 @@ public class SubjectHistory_ {
 					.put("Country", "China")
 					.put("Latitude", 31.219832454)
 					.put("Longitude", 121.486998052)
-					.commit();
+					.terminate();
 			test_stored_features(history);
 		}
 		try (SubjectHistory history = new SubjectHistory("00000", Storages.in(file))) {
@@ -217,7 +217,7 @@ public class SubjectHistory_ {
 			history.on(today(i), "AIS:movements-" + i)
 					.put("Vessels", 1900 + i * 10)
 					.put("State", categories.substring(i, i + 1))
-					.commit();
+					.terminate();
 		}
 	}
 
@@ -242,21 +242,21 @@ public class SubjectHistory_ {
 		SubjectHistory.Batch batch = history.batch();
 		batch.on(day, "HMG-2")
 				.put("hemoglobin", 145)
-				.commit();
+				.terminate();
 
 		batch.on(day.plus(-5, DAYS), "HMG-1")
 				.put("hemoglobin", 130)
-				.commit();
+				.terminate();
 
 		batch.on(day.plus(-3, DAYS), "HMG-B")
 				.put("hemoglobin", 115)
-				.commit();
+				.terminate();
 
 		batch.on(day.plus(-20, DAYS), "HMG-L")
 				.put("hemoglobin", 110)
-				.commit();
+				.terminate();
 
-		batch.commit();
+		batch.terminate();
 	}
 
 	private static void test_dump(String dump) {
@@ -294,8 +294,8 @@ public class SubjectHistory_ {
 		assertThat(history.type()).startsWith("patient");
 		assertThat(history.name()).isEqualTo("12345");
 		assertThat(history.current().number("hemoglobin")).isEqualTo(145.0);
-		Series.Point<Double> actual = history.query().number("hemoglobin").get();
-		assertThat(actual.value()).isEqualTo(145);
+		Series.Point<Number> actual = history.query().number("hemoglobin").get();
+		assertThat(actual.value()).isEqualTo(145.0);
 		assertThat(history.instants()).containsExactly(day.plus(-20, DAYS), day.plus(-5, DAYS), day.plus(-3, DAYS), day);
 	}
 

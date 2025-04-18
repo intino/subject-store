@@ -15,7 +15,7 @@ public interface Signal extends Series<Double> {
 	default Signal[] segments(TemporalAmount duration) { return splitBy(from(), to(), duration); }
 	default Signal[] segments(int number) { return segments(duration().dividedBy(number)); }
 	default Summary summary() { return Summary.of(this); }
-	default Distribution distribution() { return Distribution.of(this); }
+	default SignalDistribution distribution() { return SignalDistribution.of(this); }
 
 	private Segment[] splitBy(Instant from, Instant to, TemporalAmount duration) {
 		return  TimeReference.iterate(from, to, duration)
@@ -39,18 +39,18 @@ public interface Signal extends Series<Double> {
 
 	}
 
-	class Distribution {
+	class SignalDistribution {
 		private final TDigest tdigest;
 
-		public static Distribution of(Iterable<Point<Double>> points) {
-			Distribution distribution = new Distribution();
+		public static SignalDistribution of(Iterable<Point<Double>> points) {
+			SignalDistribution distribution = new SignalDistribution();
 			for (Point<Double> point : points)
 				distribution.tdigest.add(point.value());
 			distribution.tdigest.compress();
 			return distribution;
 		}
 
-		private Distribution() {
+		private SignalDistribution() {
 			this.tdigest = TDigest.createAvlTreeDigest(200);
 		}
 

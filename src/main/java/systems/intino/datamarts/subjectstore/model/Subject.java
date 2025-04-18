@@ -74,7 +74,7 @@ public record Subject(String identifier, Context context) {
 		return context != null ? context.create(child) : child;
 	}
 
-	public Updating update() {
+	public Updating index() {
 		checkIfContextExists();
 		return context.update(this);
 	}
@@ -84,8 +84,9 @@ public record Subject(String identifier, Context context) {
 	}
 
 	public Subject rename(String name) {
-		context.rename(this, name);
-		return new Subject(path() + name + "." + type(), context);
+		Subject subject = new Subject(path() + name + "." + type(), context);
+		context.rename(this, subject.identifier());
+		return subject;
 	}
 
 	private String path() {
@@ -140,7 +141,7 @@ public record Subject(String identifier, Context context) {
 		Terms terms(Subject subject);
 
 		Subject create(Subject child);
-		void rename(Subject subject, String name);
+		void rename(Subject subject, String identifier);
 		void drop(Subject subject);
 
 		Updating update(Subject subject);
@@ -150,20 +151,18 @@ public record Subject(String identifier, Context context) {
 	public interface Updating {
 		Updating Null = nullTransaction();
 
-		Updating rename(String name);
-
 		Updating set(Term term);
 		Updating put(Term term);
 		Updating del(Term term);
 		Updating del(String tag);
 
-		default Updating set(String tag, double value) {
+		default Updating set(String tag, Number value) {
 			return set(new Term(tag,String.valueOf(value)));
 		}
 		default Updating set(String tag, String value) {
 			return set(new Term(tag, value));
 		}
-		default Updating put(String tag, double value) {
+		default Updating put(String tag, Number value) {
 			return put(new Term(tag, String.valueOf(value)));
 		}
 		default Updating put(String tag, String value) {
@@ -173,7 +172,7 @@ public record Subject(String identifier, Context context) {
 			return del(new Term(tag, value));
 		}
 
-		void commit();
+		void terminate();
 	}
 
 	private static Context nullContext() {
@@ -216,10 +215,6 @@ public record Subject(String identifier, Context context) {
 
 	private static Updating nullTransaction() {
 		return new Updating() {
-			@Override
-			public Updating rename(String name) {
-				return this;
-			}
 
 			@Override
 			public Updating set(Term term) {
@@ -242,7 +237,7 @@ public record Subject(String identifier, Context context) {
 			}
 
 			@Override
-			public void commit() {
+			public void terminate() {
 
 			}
 		};

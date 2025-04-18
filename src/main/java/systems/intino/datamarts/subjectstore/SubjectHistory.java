@@ -94,7 +94,7 @@ public class SubjectHistory implements AutoCloseable {
 	public Current current() {
 		return new Current() {
 			@Override
-			public Double number(String tag) {
+			public Number number(String tag) {
 				return currentNumber(tag);
 			}
 
@@ -119,8 +119,8 @@ public class SubjectHistory implements AutoCloseable {
 		};
 	}
 
-	private Double currentNumber(String tag) {
-		Series.Point<Double> current = query().number(tag).get();
+	private Number currentNumber(String tag) {
+		Series.Point<Number> current = query().number(tag).get();
 		return current != null ? current.value() : null;
 	}
 
@@ -129,7 +129,7 @@ public class SubjectHistory implements AutoCloseable {
 		return current != null ? current.value() : null;
 	}
 
-	private Series.Point<Double> readNumber(String tag) {
+	private Series.Point<Number> readNumber(String tag) {
 		int feed = tagSet.lastUpdatingFeedOf(tag);
 		if (feed == -1) return null;
 		return new Series.Point<>(
@@ -201,9 +201,9 @@ public class SubjectHistory implements AutoCloseable {
 			if (!feed.get("id").equals(subject)) continue;
 			Transaction transaction = batch.on(feed.instant, feed.source);
 			consume(feed, transaction);
-			transaction.commit();
+			transaction.terminate();
 		}
-		batch.commit();
+		batch.terminate();
 	}
 
 	private void consume(Feed feed, Transaction transaction) {
@@ -239,7 +239,7 @@ public class SubjectHistory implements AutoCloseable {
 			this.tag = tag;
 		}
 
-		public Series.Point<Double> get() {
+		public Series.Point<Number> get() {
 			return readNumber(tag);
 		}
 
@@ -304,13 +304,13 @@ public class SubjectHistory implements AutoCloseable {
 			}
 
 			@Override
-			public Transaction put(String tag, double value) {
+			public Transaction put(String tag, Number value) {
 				feed.put(tag, value);
 				return this;
 			}
 
 			@Override
-			public void commit() {
+			public void terminate() {
 				if (feed.isEmpty()) return;
 				SubjectHistory.this.put(feed);
 				registry.commit();
@@ -326,7 +326,7 @@ public class SubjectHistory implements AutoCloseable {
 				return new Transaction() {
 					private final Feed feed = new Feed(instant, source);
 					@Override
-					public Transaction put(String tag, double value) {
+					public Transaction put(String tag, Number value) {
 						feed.put(tag, value);
 						return this;
 					}
@@ -338,7 +338,7 @@ public class SubjectHistory implements AutoCloseable {
 					}
 
 					@Override
-					public void commit() {
+					public void terminate() {
 						if (feed.isEmpty()) return;
 						feeds.add(feed);
 					}
@@ -346,7 +346,7 @@ public class SubjectHistory implements AutoCloseable {
 			}
 
 			@Override
-			public void commit() {
+			public void terminate() {
 				feeds.forEach(feed -> put(feed));
 				registry.commit();
 			}
@@ -397,14 +397,14 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	public interface Transaction {
-		Transaction put(String tag, double value);
+		Transaction put(String tag, Number value);
 		Transaction put(String tag, String value);
-		void commit();
+		void terminate();
 	}
 
 	public interface Batch {
 		Transaction on(Instant instant, String source);
-		void commit();
+		void terminate();
 	}
 
 	@Override
@@ -565,7 +565,7 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	public interface Current {
-		Double number(String tag);
+		Number number(String tag);
 		String text(String tag);
 	}
 

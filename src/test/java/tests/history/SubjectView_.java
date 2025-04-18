@@ -112,14 +112,14 @@ public class SubjectView_ {
 	private void feed(SubjectHistory history) {
 		history.on(from.plus(10, DAYS), "test")
 				.put("temperature", 20)
-				.commit();
+				.terminate();
 		history.on(from.plus(12, DAYS), "test")
 				.put("temperature", 28)
 				.put("sky", "cloudy")
-				.commit();
+				.terminate();
 		history.on(from.plus(28, DAYS), "test")
 				.put("temperature", 18)
 				.put("sky", "rain")
-				.commit();
+				.terminate();
 	}
 }
