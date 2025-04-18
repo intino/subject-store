@@ -16,7 +16,7 @@ It is designed for applications that need both a flexible data model and a light
 
 ## Quick Example
 
-This snippet shows how to create a single subject and assign indexing attributes.
+This snippet shows how to create a single subject and assign indexing attributes. The `index()` method is used to assign  static attributes intended for querying and identification, such as names, categories, or locations. 
 
 ```java
 try (SubjectStore store = new SubjectStore("jdbc:sqlite:buildings.iss")) {
@@ -71,14 +71,9 @@ Subjects modernBuildings = store.subjects("building")
 
 ## Tracking Historical Data
 
-Each subject in `SubjectStore` can record time-stamped historical data
-using the `.history()` API. This feature allows tracking of evolving
-metrics, state changes, or temporal observations without altering the
-subject’s current indexed attributes.
+Each subject in `SubjectStore` can record time-stamped historical data using the `history()` method. This feature allows tracking of evolving metrics, state changes, or temporal observations without altering the subject’s current indexed attributes.
 
-Historical records are associated with both a date and a source (e.g.,
-`"sensor"`, `"website"`, `"manual"`), and can store arbitrary key-value
-pairs.
+Historical records are associated with both a date and a source (e.g.,`"sensor"`, `"website"`, `"manual"`), and can store arbitrary key-value pairs.
 
 ``` java
 try (SubjectHistory history = subject.history()) {
@@ -90,8 +85,7 @@ try (SubjectHistory history = subject.history()) {
 }
 ```
 
-Historical data can later be queried as typed signals and summarized
-over defined time periods:
+Historical data can later be queried as typed signals and summarized over defined time periods:
 
 ``` java
 try (SubjectHistory history = subject.history()) {
@@ -113,3 +107,56 @@ try (SubjectHistory history = subject.history()) {
 }
 ```
 
+## Managing Hierarchical Structures
+
+`SubjectStore` allows subjects to be organized hierarchically by nesting child subjects under parents. The following example models a museum and its internal departments, focusing on structural identifiers.
+
+``` {.java language="Java" caption="Hierarchical subject structure with indexing"}
+try (SubjectStore store = new SubjectStore("museum.iss")) {
+    Subject museum = store.create("national-museum", "institution").rename("National Museum");
+
+    // Index static searchable attributes
+    museum.index()
+        .set("name", "National Museum")
+        .put("city", "Washington D.C.")
+        .put("country", "USA")
+        .put("type", "cultural")
+        .terminate();
+
+    Subject art = museum.create("art", "department");
+    art.index()
+        .put("name", "Department of Art")
+        .put("floor", "1")
+        .terminate();
+
+    Subject history = museum.create("history", "department");
+    history.index()
+        .put("name", "Department of History")
+        .put("floor", "2")
+        .terminate();
+
+    Subject science = museum.create("science", "department");
+    science.index()
+        .put("name", "Department of Science")
+        .put("floor", "3")
+        .terminate();
+
+    Subject fossils = science.create("fossils", "section");
+    fossils.index()
+        .put("name", "Fossil Collection")
+        .put("room", "3B")
+        .terminate();
+}
+```
+
+### Hierarchy Structure {#hierarchy-structure .unnumbered}
+
+-   **National Museum** (institution)
+
+    -   **Department of Art** (department) -- Floor 1
+
+    -   **Department of History** (department) -- Floor 2
+
+    -   **Department of Science** (department) -- Floor 3
+
+        -   **Fossil Collection** (section) -- Room 3B
