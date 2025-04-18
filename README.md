@@ -111,42 +111,46 @@ try (SubjectHistory history = subject.history()) {
 
 `SubjectStore` allows subjects to be organized hierarchically by nesting child subjects under parents. The following example models a museum and its internal departments, focusing on structural identifiers.
 
+National Museum
+├── Department of Art -- Floor 1  
+├── Department of History -- Floor 2  
+└── Department of Science -- Floor 3  
+    └── Fossil Collection  -- Room 3B
+
 ``` {.java language="Java" caption="Hierarchical subject structure with indexing"}
-try (SubjectStore store = new SubjectStore("museum.iss")) {
-    Subject museum = store.create("national-museum", "institution").rename("National Museum");
+Subject museum = store.create("national-museum", "institution");
 
-    // Index static searchable attributes
-    museum.index()
-        .set("name", "National Museum")
-        .put("city", "Washington D.C.")
-        .put("country", "USA")
-        .put("type", "cultural")
-        .terminate();
+museum.index()
+    .set("name", "National Museum")
+    .put("city", "Washington D.C.")
+    .put("country", "USA")
+    .put("type", "cultural")
+    .terminate();
 
-    Subject art = museum.create("art", "department");
-    art.index()
-        .put("name", "Department of Art")
-        .put("floor", "1")
-        .terminate();
+Subject art = museum.create("art", "department");
+art.index()
+    .put("name", "Department of Art")
+    .put("floor", 1)
+    .terminate();
 
-    Subject history = museum.create("history", "department");
-    history.index()
-        .put("name", "Department of History")
-        .put("floor", "2")
-        .terminate();
+Subject history = museum.create("history", "department");
+history.index()
+    .put("name", "Department of History")
+    .put("floor", 2)
+    .terminate();
 
-    Subject science = museum.create("science", "department");
-    science.index()
-        .put("name", "Department of Science")
-        .put("floor", "3")
-        .terminate();
+Subject science = museum.create("science", "department");
+science.index()
+    .put("name", "Department of Science")
+    .put("floor", 3)
+    .terminate();
 
-    Subject fossils = science.create("fossils", "section");
-    fossils.index()
-        .put("name", "Fossil Collection")
-        .put("room", "3B")
-        .terminate();
-}
+Subject fossils = science.create("fossils", "section");
+fossils.index()
+    .put("name", "Fossil Collection")
+    .put("room", "3B")
+    .terminate();
+
 ```
 
 ### Hierarchy Structure {#hierarchy-structure .unnumbered}
