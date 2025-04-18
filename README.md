@@ -16,6 +16,17 @@ It is designed for applications that need both a flexible data model and a light
 
 ## Quick Example
 
+To use `SubjectStore` in your Java project, add the following dependency to your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>systems.intino</groupId>
+    <artifactId>subject-store</artifactId>
+    <version>1.1.0</version>
+</dependency>
+```
+
+
 This snippet shows how to create a single subject and assign indexing attributes. The `index()` method is used to assign  static attributes intended for querying and identification, such as names, categories, or locations. 
 
 ```java
@@ -125,22 +136,16 @@ art.index()
     .put("floor", 1)
     .terminate();
 
-Subject history = museum.create("history", "department");
-history.index()
-    .put("name", "Department of History")
-    .put("floor", 2)
-    .terminate();
-
 Subject science = museum.create("science", "department");
 science.index()
     .put("name", "Department of Science")
-    .put("floor", 3)
+    .put("floor", 2)
     .terminate();
 
 Subject fossils = science.create("fossils", "section");
 fossils.index()
     .put("name", "Fossil Collection")
-    .put("room", "3B")
+    .put("room", "2B")
     .terminate();
 
 ```
@@ -160,11 +165,7 @@ You can retrieve a subject directly from the store using its unique name and typ
 Subject eiffel = store.get("eiffel tower", "building");
 ```
 
-Alternatively, for nested subjects, you can use hierarchical paths in the form:
-
-```
-"parent.type/child.type/grandchild.type"
-```
+Alternatively, for nested subjects, you can use hierarchical paths in the form ```parent.type/child.type/grandchild.type```.
 
 ```java
 Subject deck = store.get("burj khalifa.building/observation deck.detail");
