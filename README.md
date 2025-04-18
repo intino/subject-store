@@ -75,7 +75,7 @@ Each subject in `SubjectStore` can record time-stamped historical data using the
 
 Historical records are associated with both a date and a source (e.g.,`"sensor"`, `"website"`, `"manual"`), and can store arbitrary key-value pairs.
 
-``` java
+```java
 try (SubjectHistory history = subject.history()) {
     history.on(LocalDate.of(2025, 4, 17), "website")
         .put("state", "open")
@@ -122,9 +122,10 @@ graph TD
   A --> A1
   A --> A2
   A --> A3
-  A3 --> A4
+  A3 --> 
+```
 
-``` {.java language="Java" caption="Hierarchical subject structure with indexing"}
+```java
 Subject museum = store.create("national-museum", "institution");
 
 museum.index()
