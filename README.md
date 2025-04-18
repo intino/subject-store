@@ -111,11 +111,18 @@ try (SubjectHistory history = subject.history()) {
 
 `SubjectStore` allows subjects to be organized hierarchically by nesting child subjects under parents. The following example models a museum and its internal departments, focusing on structural identifiers.
 
-National Museum
-├── Department of Art -- Floor 1  
-├── Department of History -- Floor 2  
-└── Department of Science -- Floor 3  
-    └── Fossil Collection  -- Room 3B
+```mermaid
+graph TD
+  A[National Museum]
+  A1[Department of Art -- Floor 1]
+  A2[Department of History -- Floor 2]
+  A3[Department of Science -- Floor 3]
+  A4[Fossil Collection -- Room 3B]
+
+  A --> A1
+  A --> A2
+  A --> A3
+  A3 --> A4
 
 ``` {.java language="Java" caption="Hierarchical subject structure with indexing"}
 Subject museum = store.create("national-museum", "institution");
