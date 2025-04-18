@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.history.view.format;
+package systems.intino.datamarts.subjectstore.view.history.format;
 
 import java.time.*;
 import java.time.format.DateTimeParseException;

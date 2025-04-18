@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.history.view;
+package systems.intino.datamarts.subjectstore.view.history;
 
 import java.io.IOException;
 

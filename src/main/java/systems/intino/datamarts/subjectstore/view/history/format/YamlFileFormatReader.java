@@ -1,7 +1,7 @@
-package systems.intino.datamarts.subjectstore.history.view.format;
+package systems.intino.datamarts.subjectstore.view.history.format;
 
-import systems.intino.datamarts.subjectstore.history.view.Format;
-import systems.intino.datamarts.subjectstore.history.view.FormatReader;
+import systems.intino.datamarts.subjectstore.view.history.Format;
+import systems.intino.datamarts.subjectstore.view.history.FormatReader;
 
 import java.io.*;
 

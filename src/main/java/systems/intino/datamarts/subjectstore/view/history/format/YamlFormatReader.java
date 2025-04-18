@@ -1,19 +1,19 @@
-package systems.intino.datamarts.subjectstore.history.view.format;
+package systems.intino.datamarts.subjectstore.view.history.format;
 
 import org.yaml.snakeyaml.Yaml;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.*;
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
-import systems.intino.datamarts.subjectstore.history.view.Column;
-import systems.intino.datamarts.subjectstore.history.view.Format;
-import systems.intino.datamarts.subjectstore.history.view.FormatReader;
+import systems.intino.datamarts.subjectstore.view.history.Column;
+import systems.intino.datamarts.subjectstore.view.history.Format;
+import systems.intino.datamarts.subjectstore.view.history.FormatReader;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static systems.intino.datamarts.subjectstore.history.view.format.TemporalParser.parseInstant;
-import static systems.intino.datamarts.subjectstore.history.view.format.TemporalParser.parsePeriod;
+import static systems.intino.datamarts.subjectstore.view.history.format.TemporalParser.parseInstant;
+import static systems.intino.datamarts.subjectstore.view.history.format.TemporalParser.parsePeriod;
 
 
 public class YamlFormatReader implements FormatReader {

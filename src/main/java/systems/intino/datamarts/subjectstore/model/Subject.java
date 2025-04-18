@@ -9,6 +9,8 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import static systems.intino.datamarts.subjectstore.model.PatternFactory.pattern;
+
 public record Subject(String identifier, Context context) {
 	public static final String Any = "*";
 
@@ -77,6 +79,11 @@ public record Subject(String identifier, Context context) {
 		return new SubjectQuery() {
 
 			@Override
+			public int size() {
+				return subjects.size();
+			}
+
+			@Override
 			public Subject first() {
 				return subjects.getFirst();
 			}
@@ -102,26 +109,31 @@ public record Subject(String identifier, Context context) {
 			}
 
 			@Override
+			public SubjectFilter that(Predicate<Subject> predicate) {
+				return subjectFilter(subjects).that(predicate);
+			}
+
+			@Override
 			public AttributeFilter where(String... keys) {
 				return attributeFilter(subjects);
 			}
 		};
 	}
 
-	private static Predicate<Subject> notContains(String tag, String value) {
-		return notContains(new Term(tag, value));
-	}
-
-	private static Predicate<Subject> notContains(Term term) {
-		return s -> !s.terms().contains(term);
+	private static Predicate<Subject> contains(Term term) {
+		return s -> s.terms().contains(term);
 	}
 
 	private static Predicate<Subject> contains(String tag, String value) {
 		return contains(new Term(tag, value));
 	}
 
-	private static Predicate<Subject> contains(Term term) {
-		return s -> s.terms().contains(term);
+	private static Predicate<Subject> notContains(Term term) {
+		return s -> !s.terms().contains(term);
+	}
+
+	private static Predicate<Subject> notContains(String tag, String value) {
+		return notContains(new Term(tag, value));
 	}
 
 	private SubjectQuery.SubjectFilter subjectFilter(List<Subject> subjects) {
@@ -179,19 +191,26 @@ public record Subject(String identifier, Context context) {
 
 	private SubjectQuery.AttributeFilter attributeFilter(List<Subject> subjects) {
 		return new SubjectQuery.AttributeFilter() {
+
 			@Override
 			public List<Subject> contains(String value) {
-				return null;
+				return that(v -> v.toLowerCase().contains(value.toLowerCase()));
 			}
 
 			@Override
 			public List<Subject> accepts(String value) {
-				return null;
+				return that(t -> pattern(t).matcher(value).matches());
 			}
 
 			@Override
-			public List<Subject> matches(Predicate<String> predicate) {
-				return null;
+			public List<Subject> that(Predicate<String> predicate) {
+				return subjects.stream()
+						.filter(s -> anyMatch(predicate, s.terms()))
+						.toList();
+			}
+
+			private boolean anyMatch(Predicate<String> predicate, List<Term> terms) {
+				return terms.stream().map(Term::value).anyMatch(predicate);
 			}
 		};
 	}
@@ -269,6 +288,7 @@ public record Subject(String identifier, Context context) {
 
 	public interface Context {
 		Context Null = nullContext();
+
 		List<Subject> children(Subject subject, String type);
 
 		List<Term> terms(Subject subject);
@@ -282,7 +302,7 @@ public record Subject(String identifier, Context context) {
 	}
 
 	public interface Updating {
-		Updating Null = nullTransaction();
+		Updating Null = nullUpdating();
 
 		Updating set(Term term);
 		Updating put(Term term);
@@ -347,7 +367,7 @@ public record Subject(String identifier, Context context) {
 		};
 	}
 
-	private static Updating nullTransaction() {
+	private static Updating nullUpdating() {
 		return new Updating() {
 
 			@Override

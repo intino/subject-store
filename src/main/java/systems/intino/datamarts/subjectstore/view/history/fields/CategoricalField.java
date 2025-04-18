@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.history.view.fields;
+package systems.intino.datamarts.subjectstore.view.history.fields;
 
 import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 

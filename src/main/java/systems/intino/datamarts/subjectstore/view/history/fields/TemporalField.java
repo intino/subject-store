@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.history.view.fields;
+package systems.intino.datamarts.subjectstore.view.history.fields;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;

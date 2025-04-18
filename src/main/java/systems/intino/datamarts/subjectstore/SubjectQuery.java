@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public interface SubjectQuery {
+	int size();
+
 	Subject first();
 
 	List<Subject> collect();
@@ -17,12 +19,14 @@ public interface SubjectQuery {
 
 	SubjectFilter without(String tag, String value);
 
+	SubjectFilter that(Predicate<Subject> predicate);
+
 	AttributeFilter where(String... keys);
 
 	interface AttributeFilter {
 		List<Subject> contains(String value);
 		List<Subject> accepts(String value);
-		List<Subject> matches(Predicate<String> predicate);
+		List<Subject> that(Predicate<String> predicate);
 	}
 
 	interface SubjectFilter {

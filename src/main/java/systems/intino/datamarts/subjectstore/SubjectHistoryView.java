@@ -7,13 +7,13 @@ import systems.intino.datamarts.subjectstore.calculator.model.vectors.DoubleVect
 import systems.intino.datamarts.subjectstore.calculator.model.vectors.ObjectVector;
 import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
-import systems.intino.datamarts.subjectstore.history.view.Column;
-import systems.intino.datamarts.subjectstore.history.view.Format;
-import systems.intino.datamarts.subjectstore.history.view.fields.CategoricalField;
-import systems.intino.datamarts.subjectstore.history.view.fields.NumericalField;
-import systems.intino.datamarts.subjectstore.history.view.fields.TemporalField;
-import systems.intino.datamarts.subjectstore.history.view.format.YamlFileFormatReader;
-import systems.intino.datamarts.subjectstore.history.view.format.YamlFormatReader;
+import systems.intino.datamarts.subjectstore.view.history.Column;
+import systems.intino.datamarts.subjectstore.view.history.Format;
+import systems.intino.datamarts.subjectstore.view.history.fields.CategoricalField;
+import systems.intino.datamarts.subjectstore.view.history.fields.NumericalField;
+import systems.intino.datamarts.subjectstore.view.history.fields.TemporalField;
+import systems.intino.datamarts.subjectstore.view.history.format.YamlFileFormatReader;
+import systems.intino.datamarts.subjectstore.view.history.format.YamlFormatReader;
 
 import java.io.*;
 import java.time.Instant;

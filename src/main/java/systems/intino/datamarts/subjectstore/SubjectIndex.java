@@ -13,11 +13,11 @@ import java.io.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static systems.intino.datamarts.subjectstore.model.PatternFactory.pattern;
 import static systems.intino.datamarts.subjectstore.model.Subject.Any;
 
 public class SubjectIndex implements AutoCloseable {
@@ -79,6 +79,11 @@ public class SubjectIndex implements AutoCloseable {
 		return new SubjectQuery() {
 
 			@Override
+			public int size() {
+				return collect().size();
+			}
+
+			@Override
 			public Subject first() {
 				return collect().getFirst();
 			}
@@ -101,6 +106,11 @@ public class SubjectIndex implements AutoCloseable {
 			@Override
 			public SubjectFilter without(String tag, String value) {
 				return subjectFilter(types).without(tag, value);
+			}
+
+			@Override
+			public SubjectFilter that(Predicate<Subject> predicate) {
+				return null;
 			}
 
 			@Override
@@ -383,7 +393,7 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			@Override
-			public List<Subject> matches(Predicate<String> predicate) {
+			public List<Subject> that(Predicate<String> predicate) {
 				List<Integer> terms = termsMatchedBy(predicate);
 				return subjectSetWith(terms);
 			}
@@ -516,12 +526,6 @@ public class SubjectIndex implements AutoCloseable {
 
 	private Predicate<Subject> predicateFor(Set<String> types) {
 		return types.contains(Any) ? s->true : s -> types.contains(s.type());
-	}
-
-	private final Map<String, Pattern> patterns = new HashMap<>();
-
-	private Pattern pattern(String value) {
-		return patterns.computeIfAbsent(value, s -> Pattern.compile(value));
 	}
 
 	private Subject wrap(Subject subject) {

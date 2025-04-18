@@ -22,7 +22,6 @@ This snippet shows how to create a single subject and assign indexing attributes
 try (SubjectStore store = new SubjectStore("jdbc:sqlite:buildings.iss")) {
     Subject eiffel = store.create("eiffel tower", "building");
 
-    // Index the subject with static attributes
     eiffel.index()
         .set("name", "Eiffel Tower")
         .set("year", 1889)
@@ -30,15 +29,6 @@ try (SubjectStore store = new SubjectStore("jdbc:sqlite:buildings.iss")) {
         .put("country", "France")
         .put("continent", "Europe")
         .terminate();
-
-    // Record a historical snapshot
-    try (SubjectHistory history = eiffel.history()) {
-        history.on(LocalDate.now(), "visitor-data")
-            .put("state", "open")
-            .put("visitants", 3500)
-            .put("income", 42000)
-            .terminate();
-    }
 }
 ```
 
@@ -47,25 +37,21 @@ try (SubjectStore store = new SubjectStore("jdbc:sqlite:buildings.iss")) {
 You can retrieve subjects either by their unique name and type, or through flexible queries based on their indexed attributes.
 
 ```java
-// Check if a subject exists
 boolean exists = store.has("taj mahal", "building");
 
-// Direct retrieval by name and type (namedType)
 Subject eiffel = store.get("eiffel tower", "building");
 
-// Querying by attribute match
 Subject eiffel = store.subjects("building")
     .with("city", "Paris")
     .first();
 
-// Filtering using partial match or custom predicate
-Subjects towers = store.subjects("building")
+List<Subject> towers = store.subjects("building")
     .where("name").contains("tower")
-    .all();
+    .collect();
 
-Subjects modernBuildings = store.subjects("building")
-    .where("year").matches(v -> toNumber(v) > 1900)
-    .all();
+List<Subject> modernBuildings = store.subjects("building")
+    .where("year").that(v -> toNumber(v) > 1900)
+    .collect();
 
 ```
 
@@ -87,17 +73,15 @@ try (SubjectHistory history = subject.history()) {
 
 Historical data can later be queried as typed signals and summarized over defined time periods:
 
-``` java
+```java
 try (SubjectHistory history = subject.history()) {
-    // Numeric signal: visitants in the last 30 days
     NumericalSignal visitants = history.query()
         .number("visitants")
         .get(TimeSpan.LastMonth);
 
-    // Average visitants in the last 30 days
+    // Average visitants in the last month
     double average = visitants.summary().mean();
 
-    // Categorical signal: states in this year
     CategoricalSignal states = history.query()
         .text("state")
         .get(LocalDate.of(2025, 1, 1), LocalDate.now());
@@ -161,3 +145,47 @@ fossils.index()
 
 ```
 
+## Accessing Subjects: via Index or Hierarchical Navigation
+
+`SubjectStore` allows retrieving subjects in two primary ways:
+
+1. Direct Access
+2. Access from Another Subject
+
+### Direct Access
+
+You can retrieve a subject directly from the store using its unique name and type:
+
+```java
+Subject eiffel = store.get("eiffel tower", "building");
+```
+
+Alternatively, for nested subjects, you can use hierarchical paths in the form:
+
+```
+"parent.type/child.type/grandchild.type"
+```
+
+```java
+Subject deck = store.get("burj khalifa.building/observation deck.detail");
+```
+
+
+### Access from Another Subject
+
+Subjects can also be accessed by navigating from their parent:
+
+```java
+Subject building = store.get("burj khalifa", "building");
+Subject deck = building.children("detail")
+    .with("name", "At the Top")
+    .first();
+```
+
+This pattern is useful when traversing known relationships or building recursive structures.
+
+Additionally, you can navigate upwards in the hierarchy:
+
+```java
+Subject parent = deck.parent();
+```

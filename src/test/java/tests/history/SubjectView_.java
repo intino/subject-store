@@ -6,8 +6,8 @@ import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectHistoryView;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.MinMaxNormalizationFilter;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.RollingAverageFilter;
-import systems.intino.datamarts.subjectstore.history.view.Column;
-import systems.intino.datamarts.subjectstore.history.view.Format;
+import systems.intino.datamarts.subjectstore.view.history.Column;
+import systems.intino.datamarts.subjectstore.view.history.Format;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

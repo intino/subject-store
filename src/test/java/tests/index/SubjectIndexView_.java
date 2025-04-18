@@ -9,8 +9,8 @@ import systems.intino.datamarts.subjectstore.SubjectQuery;
 import systems.intino.datamarts.subjectstore.io.Statements;
 import systems.intino.datamarts.subjectstore.io.statements.TabularStatements;
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.index.view.Column;
-import systems.intino.datamarts.subjectstore.index.view.Summary;
+import systems.intino.datamarts.subjectstore.view.index.Column;
+import systems.intino.datamarts.subjectstore.view.index.Summary;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.index.view;
+package systems.intino.datamarts.subjectstore.view.index;
 
 import java.util.HashMap;
 import java.util.List;
