@@ -1,106 +1,25 @@
 package tests;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.SubjectHistory;
-import systems.intino.datamarts.subjectstore.SubjectQuery;
+import systems.intino.datamarts.subjectstore.SubjectIndexView;
 import systems.intino.datamarts.subjectstore.SubjectStore;
-import systems.intino.datamarts.subjectstore.TimeSpan;
-import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 import systems.intino.datamarts.subjectstore.model.Subject;
 
 import java.io.File;
-import java.time.Instant;
-import java.util.function.Predicate;
+import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static systems.intino.datamarts.subjectstore.TimeReference.today;
 
+@SuppressWarnings("NewClassNamingConvention")
 public class SubjectStore_ {
 	@Test
-	public void name() {
-		File file = new File("buildings.iss");
-		if (file.exists()) file.delete();
+	public void should_create_and_persist_subjects_with_hierarchy_and_history() throws IOException {
+		File file = File.createTempFile("xxx", ".iss");
 		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
-			store.has("taj-mahal", "building");
-			Subject s = store.create("taj-mahal", "building");
-			Subject taj = s.rename("taj mahal");
-			taj.index()
-					.set("name", "taj mahal")
-					.set("year", 1648)
-					.put("city", "agra")
-					.put("country", "India")
-					.put("continent", "Asia")
-					.terminate();
-			taj.create("domme", "detail").index()
-					.set("shape", "onion")
-					.set("height", 35)
-					.set("material", "white marble")
-					.terminate();
-			taj.create("minaret", "detail").index()
-					.set("count", 4)
-					.set("height", 40)
-					.terminate();
+			assertThat(store.has("taj-mahal", "building")).isFalse();
 
-			try (SubjectHistory history = taj.history()) {
-				history.on(today(), "website")
-						.put("state", "open")
-						.put("visitants", 2405)
-						.put("income", 28400)
-						.terminate();
-				NumericalSignal visitants = history.query()
-						.number("visitants")
-						.get(TimeSpan.LastYearWindow);
-				visitants.summary().mean();
-
-				history.query()
-						.text("state")
-						.get(Instant.parse("2025-01-01T00:00:00Z"), today(1))
-						.summary()
-						.mode();
-			}
-
-
-
-
-			Subject alhambra = store.create("alhambra", "building");
-			alhambra.index()
-					.set("name", "Alhambra")
-					.set("year", 889)
-					.put("city", "Granada")
-					.put("country", "Spain")
-					.put("continent", "Europe")
-					.terminate();
-
-			alhambra.create("courtyard", "detail").index()
-					.set("name", "Court of the Lions")
-					.set("style", "Islamic")
-					.terminate();
-
-			alhambra.create("tower", "detail").index()
-					.set("name", "Torre de la Vela")
-					.set("height", 26)
-					.set("function", "Watchtower")
-					.terminate();
-
-			Subject building = store.create("burj khalifa", "building");
-			building.index()
-					.set("name", "Burj khalifa")
-					.set("year", 2010)
-					.put("city", "Dubai")
-					.put("country", "United Arab Emirates")
-					.put("continent", "Asia")
-					.terminate();
-
-			building.create("spire", "detail").index()
-					.set("height", 829.8)
-					.set("function", "Aesthetic and communication")
-					.terminate();
-
-			building.create("observation deck", "detail").index()
-					.set("name", "At the Top")
-					.set("floor", 148)
-					.set("height", 555)
-					.terminate();
+			createSubjects(store);
+			Subject building = store.get("burj khalifa", "building");
 
 			assertThat(building.children("detail").where("name").contains("Top")).containsExactly(store.get("burj khalifa.building/observation deck.detail"));
 			assertThat(building.children("detail").where("name").contains("top")).containsExactly(store.get("burj khalifa.building/observation deck.detail"));
@@ -164,6 +83,85 @@ public class SubjectStore_ {
 			assertThat(store.subjects("detail").collect().size()).isEqualTo(4);
 			assertThat(store.subjects("detail").roots().size()).isEqualTo(0);
 		}
+	}
+
+	@Test
+	public void should_create_views() throws IOException {
+		File file = File.createTempFile("xxx", ".iss");
+		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
+			createSubjects(store);
+			SubjectIndexView view = store.view()
+					.type("building")
+					.add("year")
+					.add("city")
+					.add("country")
+					.build();
+			assertThat(view.column("city").summary().categories()).containsExactly("Agra", "Granada", "Dubai");
+			assertThat(view.column("city").summary().frequency("Agra")).isEqualTo(1);
+			assertThat(view.column("country").summary().categories()).containsExactly("United Arab Emirates", "Spain", "India");
+		}
+	}
+
+	private static void createSubjects(SubjectStore store) {
+		Subject s = store.create("taj-mahal", "building");
+		Subject taj = s.rename("taj mahal");
+		taj.index()
+				.set("name", "taj mahal")
+				.set("year", 1648)
+				.put("city", "Agra")
+				.put("country", "India")
+				.put("continent", "Asia")
+				.terminate();
+		taj.create("domme", "detail").index()
+				.set("shape", "onion")
+				.set("height", 35)
+				.set("material", "white marble")
+				.terminate();
+		taj.create("minaret", "detail").index()
+				.set("count", 4)
+				.set("height", 40)
+				.terminate();
+
+
+		Subject alhambra = store.create("alhambra", "building");
+		alhambra.index()
+				.set("name", "Alhambra")
+				.set("year", 889)
+				.put("city", "Granada")
+				.put("country", "Spain")
+				.put("continent", "Europe")
+				.terminate();
+
+		alhambra.create("courtyard", "detail").index()
+				.set("name", "Court of the Lions")
+				.set("style", "Islamic")
+				.terminate();
+
+		alhambra.create("tower", "detail").index()
+				.set("name", "Torre de la Vela")
+				.set("height", 26)
+				.set("function", "Watchtower")
+				.terminate();
+
+		Subject building = store.create("burj khalifa", "building");
+		building.index()
+				.set("name", "Burj khalifa")
+				.set("year", 2010)
+				.put("city", "Dubai")
+				.put("country", "United Arab Emirates")
+				.put("continent", "Asia")
+				.terminate();
+
+		building.create("spire", "detail").index()
+				.set("height", 829.8)
+				.set("function", "Aesthetic and communication")
+				.terminate();
+
+		building.create("observation deck", "detail").index()
+				.set("name", "At the Top")
+				.set("floor", 148)
+				.set("height", 555)
+				.terminate();
 	}
 
 	private int toNumber(String value) {

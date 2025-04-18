@@ -6,11 +6,11 @@ It is designed for applications that need both a flexible data model and a light
 
 ## Features
 
-- Hierarchical subjects with typed attributes
+- Lightweight and fast
 - Fluent creation and update API
+- Hierarchical subjects with typed attributes
 - Expressive query interface (`with`, `where`, `matches`, `contains`)
 - Support for time-series historical data per subject
-- Lightweight and fast
 
 ---
 
@@ -28,7 +28,7 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 </dependency>
 ```
 
-### Opening a store and accessing subjects
+### Creating and accessing subjects
 
 This snippet shows how to open a `SubjectStore`, create a new subject, check for existence, and retrieve it:
 
@@ -149,3 +149,21 @@ try (SubjectHistory history = subject.history()) {
 }
 ```
 
+### Creating a view from the store
+
+SubjectStore views provide a structured and summarized perspective over a subset of subjects of the same type. You can use them to analyze categorical distributions, frequencies, and filterable columns across your dataset.
+
+```java
+SubjectIndexView view = store.view()
+    .type("building")
+    .add("year")
+    .add("city")
+    .build();
+```
+
+Each column in a view offers a summary, including unique categories and their frequencies:
+
+```java
+List<String> statuses = view.column("city").summary().categories();
+int parisCount = view.column("cicty").summary().frequency("Paris");
+```

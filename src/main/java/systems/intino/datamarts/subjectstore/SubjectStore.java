@@ -50,4 +50,7 @@ public class SubjectStore implements AutoCloseable {
 		}
 	}
 
+	public SubjectIndexView.Builder view() {
+		return SubjectIndexView.of(index);
+	}
 }
