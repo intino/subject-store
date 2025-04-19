@@ -62,7 +62,7 @@ graph TD
 Subject museum = store.create("national-museum", "building");
     Subject art = museum.create("art", "department");
     Subject science = museum.create("science", "department");
-        Subject fossils = science.create("fossils", "section");
+        Subject fossils = science.create("fossils", "collection");
 
 ```
 
@@ -78,13 +78,13 @@ Subject department = store.get("national-museum.building/science.department");
 Children subjects can also be accessed by navigating from their parent:
 
 ```java
-Subject section = department.get("fossils", "section")
+Subject collection = department.get("fossils", "collection")
 ```
 
 Additionally, you can navigate upwards in the hierarchy:
 
 ```java
-Subject building = section.parent().parent();
+Subject building = collection.parent().parent();
 ```
 
 ### Indexing subjects
@@ -148,10 +148,11 @@ try (SubjectHistory history = subject.history()) {
     String state = states.summary().mode();
 }
 ```
+---
 
-### Creating a view from the store
+## Generating store views
 
-SubjectStore views provide a structured and summarized perspective over a subset of subjects of the same type. You can use them to analyze categorical distributions, frequencies, and filterable columns across your dataset.
+SubjectStore view generation provides a structured and summarized perspective over a subset of subjects of the same type. You can use views to analyze categorical distributions, frequencies, and filterable column definitions across your dataset.
 
 ```java
 SubjectIndexView view = store.view()
@@ -165,5 +166,54 @@ Each column in a view offers a summary, including unique categories and their fr
 
 ```java
 List<String> statuses = view.column("city").summary().categories();
-int parisCount = view.column("cicty").summary().frequency("Paris");
+int parisCount = view.column("city").summary().frequency("Paris");
 ```
+
+## Generating Subject History Views
+
+Subject History View generation allows transforming the historical data recorded for a subject into aggregated tables organized by time intervals. Each row represents a time segment (e.g., a year), and each column contains the result of an operation evaluated over the data in that interval.
+
+```java
+SubjectHistoryView buildingView = store
+    .view("taj mahal.building")
+    .from(Instant.parse("2010-01-01T00:00:00Z"))
+    .to(Instant.parse("2025-01-01T00:00:00Z"))
+    .period(Period.ofYears(1))
+    .add(new ColumnDefinition("tourist-visits", "visits.count"))
+    .add(new ColumnDefinition("average-temperature", "temperature.average"))
+    .build();
+```
+
+The format can also be defined using a YAML string. The following example produces a yearly table of a building’s history, where each row represents one year and each column contains an aggregated, normalized, or derived value based on that building’s data:
+
+```yaml
+rows:
+  from: 1900-01-01
+  to: 2025-01-01
+  period: P1Y
+
+columns:
+  - name: year
+    expr: year
+
+  - name: decade
+    expr: floor(year / 10) * 10
+
+  - name: visits
+    expr: visits.count
+
+  - name: temperature
+    expr: temperature.average
+
+  - name: temp-smoothed
+    expr: temperature
+    filters: [RollingAverage:5]
+
+  - name: temp-index
+    expr: temp-smoothed * 100
+
+  - name: country
+    expr: country.mode
+```
+
+For a complete description of the format syntax, available fields, filters, and functions, see the [Format Reference](help/FormatReference.md)

@@ -3,7 +3,7 @@ package systems.intino.datamarts.subjectstore.view.history.format;
 import org.yaml.snakeyaml.Yaml;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.*;
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
-import systems.intino.datamarts.subjectstore.view.history.Column;
+import systems.intino.datamarts.subjectstore.view.history.ColumnDefinition;
 import systems.intino.datamarts.subjectstore.view.history.Format;
 import systems.intino.datamarts.subjectstore.view.history.FormatReader;
 
@@ -17,64 +17,64 @@ import static systems.intino.datamarts.subjectstore.view.history.format.Temporal
 
 
 public class YamlFormatReader implements FormatReader {
-	private final String content;
+	private final String format;
 
-	public YamlFormatReader(String content) {
-		this.content = content;
+	public YamlFormatReader(String format) {
+		this.format = format;
 	}
 
 	@Override
 	public Format read() {
-		FormatDefinition formatDefinition = new Yaml().loadAs(content, FormatDefinition.class);
-		return formatOf(formatDefinition);
+		PojoFormat pojoFormat = new Yaml().loadAs(format, PojoFormat.class);
+		return map(pojoFormat);
 	}
 
-	private Format formatOf(FormatDefinition definition) {
-		Instant from = parseInstant(definition.rows.from);
-		Instant to = parseInstant(definition.rows.to);
-		TemporalAmount period = parsePeriod(definition.rows.period);
+	private Format map(PojoFormat format) {
+		Instant from = parseInstant(format.rows.from);
+		Instant to = parseInstant(format.rows.to);
+		TemporalAmount period = parsePeriod(format.rows.period);
 		return new Format(from, to, period)
-				.add(columnsIn(definition.columns));
+				.add(map(format.columns));
 	}
 
 
-	private List<Column> columnsIn(List<ColumnDefinition> definitions) {
-		return stream(definitions)
-				.map(this::column)
+	private List<ColumnDefinition> map(List<PojoColumn> columns) {
+		return stream(columns)
+				.map(this::map)
 				.toList();
 	}
 
-	private Column column(ColumnDefinition definition) {
-		return new Column(definition.name, definition.calc).
-				add(filtersIn(definition.filters));
+	private ColumnDefinition map(PojoColumn column) {
+		return new ColumnDefinition(column.name, column.calc).
+				add(filtersIn(column.filters));
 	}
 
 	private List<Filter> filtersIn(List<String> definitions) {
 		return stream(definitions)
-				.map(this::filter)
+				.map(this::map)
 				.toList();
 	}
 
-	private Filter filter(String definition) {
-		return filter(new FilterDefinition(definition));
+	private Filter map(String filter) {
+		return map(new PojoFilter(filter));
 	}
 
-	private Filter filter(FilterDefinition definition) {
-		return switch (definition.type()) {
+	private Filter map(PojoFilter filter) {
+		return switch (filter.type()) {
 			case "Sin" -> new SinFilter();
 			case "Cos" -> new CosFilter();
 			case "MinMaxNormalization" -> new MinMaxNormalizationFilter();
 			case "ZScoreNormalization" -> new ZScoreNormalizationFilter();
 			case "CumulativeSum" -> new CumulativeSumFilter();
 			case "Differencing" -> new DifferencingFilter();
-			case "Lag" -> new LagFilter(definition.asInteger(1));
-			case "RollingAverage" -> new RollingAverageFilter(definition.asInteger(1));
-			case "RollingSum" -> new RollingSumFilter(definition.asInteger(1));
-			case "RollingMax" -> new RollingMaxFilter(definition.asInteger(1));
-			case "RollingMin" -> new RollingMinFilter(definition.asInteger(1));
-			case "RollingStandardDeviation" -> new RollingStandardDeviationFilter(definition.asInteger(1));
-			case "BinaryThreshold" -> new BinaryThresholdFilter(definition.asDouble(1));
-			default -> throw new IllegalArgumentException("Unknown filter type: " + definition);
+			case "Lag" -> new LagFilter(filter.asInteger(1));
+			case "RollingAverage" -> new RollingAverageFilter(filter.asInteger(1));
+			case "RollingSum" -> new RollingSumFilter(filter.asInteger(1));
+			case "RollingMax" -> new RollingMaxFilter(filter.asInteger(1));
+			case "RollingMin" -> new RollingMinFilter(filter.asInteger(1));
+			case "RollingStandardDeviation" -> new RollingStandardDeviationFilter(filter.asInteger(1));
+			case "BinaryThreshold" -> new BinaryThresholdFilter(filter.asDouble(1));
+			default -> throw new IllegalArgumentException("Unknown filter type: " + filter);
 		};	}
 
 	private <T> Stream<T>  stream(List<T> definitions) {
@@ -82,24 +82,24 @@ public class YamlFormatReader implements FormatReader {
 	}
 
 
-	private static class FormatDefinition {
-		public Rows rows;
-		public List<ColumnDefinition> columns;
+	private static class PojoFormat {
+		public PojoRows rows;
+		public List<PojoColumn> columns;
 	}
 
-	private static class Rows {
+	private static class PojoRows {
 		public String from;
 		public String to;
 		public String period;
 	}
 
-	private static class ColumnDefinition {
+	private static class PojoColumn {
 		public String name;
 		public String calc;
 		public List<String> filters;
 	}
 
-	private record FilterDefinition(String value) {
+	private record PojoFilter(String value) {
 
 		public String type() {
 			return value.split(":")[0];

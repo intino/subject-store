@@ -1,11 +1,14 @@
 package systems.intino.datamarts.subjectstore;
 
 import systems.intino.datamarts.subjectstore.model.Subject;
+import systems.intino.datamarts.subjectstore.view.history.Format;
 
 public class SubjectStore implements AutoCloseable {
+	private final String storage;
 	private final SubjectIndex index;
 
 	public SubjectStore(String storage) {
+		this.storage = storage;
 		this.index = new SubjectIndex(storage);
 	}
 
@@ -53,4 +56,18 @@ public class SubjectStore implements AutoCloseable {
 	public SubjectIndexView.Builder view() {
 		return SubjectIndexView.of(index);
 	}
+
+	public SubjectHistoryView.Builder view(Subject subject) {
+		return SubjectHistoryView.of(subject.history());
+	}
+
+	public SubjectHistoryView.Builder view(String identifier) {
+		return view(get(identifier));
+	}
+
+	public SubjectHistoryView.Builder view(String name, String type) {
+		return view(get(name, type));
+	}
+
+
 }

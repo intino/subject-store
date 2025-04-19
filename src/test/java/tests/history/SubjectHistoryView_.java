@@ -1,12 +1,12 @@
 package tests.history;
 
 import org.junit.Test;
+import systems.intino.datamarts.subjectstore.view.history.ColumnDefinition;
 import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectHistoryView;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.MinMaxNormalizationFilter;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.RollingAverageFilter;
-import systems.intino.datamarts.subjectstore.view.history.Column;
 import systems.intino.datamarts.subjectstore.view.history.Format;
 
 import java.io.ByteArrayOutputStream;
@@ -19,7 +19,7 @@ import static java.time.temporal.ChronoUnit.DAYS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("NewClassNamingConvention")
-public class SubjectView_ {
+public class SubjectHistoryView_ {
 	private final static Instant from = Instant.parse("2025-01-01T00:00:00Z");
 	private final static Instant to = Instant.parse("2025-02-01T00:00:00Z");
 	private final static String expected = """
@@ -35,20 +35,18 @@ public class SubjectView_ {
 		File file = File.createTempFile("xyz", ":patient.oss");
 		SubjectHistory history = new SubjectHistory("map", Storages.in(file));
 		feed(history);
-		Format format = new Format(from, to, Duration.ofDays(7));
-		format.add(new Column("Year","ts.year"));
-		format.add(new Column("Month","ts.month-of-year"));
-		format.add(new Column("Day","sin(ts.day-of-month)+cos(ts.month-of-year)"));
-
-		format.add(new Column("TotalTemp","temperature.sum"));
-		format.add(new Column("AvgTemp","temperature.average"));
-		format.add(new Column("NormTemp","TotalTemp").add(new MinMaxNormalizationFilter()));
-		format.add(new Column("Trend","AvgTemp").add(new RollingAverageFilter(3)));
-
-		format.add(new Column("LastTemp","temperature.last"));
-		format.add(new Column("SkyMode","sky.mode"));
-		format.add(new Column("SkyCount","sky.count"));
-		format.add(new Column("NewTemp","NormTemp * 100"));
+		Format format = new Format(from, to, Duration.ofDays(7))
+			.add("Year","ts.year")
+			.add("Month","ts.month-of-year")
+			.add("Day","sin(ts.day-of-month)+cos(ts.month-of-year)")
+			.add("TotalTemp","temperature.sum")
+			.add("AvgTemp","temperature.average")
+			.add("NormTemp","TotalTemp", new MinMaxNormalizationFilter())
+			.add("Trend","AvgTemp", new RollingAverageFilter(3))
+			.add("LastTemp","temperature.last")
+			.add("SkyMode","sky.mode")
+			.add("SkyCount","sky.count")
+			.add("NewTemp","NormTemp * 100");
 		SubjectHistoryView view = new SubjectHistoryView(history, format);
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		view.exportTo(os);

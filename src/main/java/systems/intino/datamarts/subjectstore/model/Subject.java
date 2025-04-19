@@ -286,6 +286,7 @@ public record Subject(String identifier, Context context) {
 		return identifier.lastIndexOf('/') < 0;
 	}
 
+
 	public interface Context {
 		Context Null = nullContext();
 

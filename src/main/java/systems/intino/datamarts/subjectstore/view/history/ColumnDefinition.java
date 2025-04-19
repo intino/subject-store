@@ -6,23 +6,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class Column {
+public class ColumnDefinition {
 	public final String name;
 	public final String definition;
 	public final List<Filter> filters;
 
-	public Column(String name, String definition) {
+	public ColumnDefinition(String name, String definition) {
 		this.name = name;
 		this.definition = definition;
 		this.filters = new ArrayList<>();
 	}
 
-	public Column add(Filter filter) {
+	public ColumnDefinition add(Filter filter) {
 		filters.add(filter);
 		return this;
 	}
 
-	public Column add(List<Filter> filters) {
+	public ColumnDefinition add(List<Filter> filters) {
 		this.filters.addAll(filters);
 		return this;
 	}

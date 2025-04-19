@@ -1,12 +1,16 @@
 package tests;
 
 import org.junit.Test;
+import systems.intino.datamarts.subjectstore.SubjectHistoryView;
 import systems.intino.datamarts.subjectstore.SubjectIndexView;
 import systems.intino.datamarts.subjectstore.SubjectStore;
 import systems.intino.datamarts.subjectstore.model.Subject;
+import systems.intino.datamarts.subjectstore.view.history.ColumnDefinition;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.Period;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -95,6 +99,16 @@ public class SubjectStore_ {
 					.add("year")
 					.add("city")
 					.add("country")
+					.build();
+			SubjectHistoryView tajMahalHistory = store
+					.view("taj mahal.building")
+					.with(new File("format.yaml"));
+			SubjectHistoryView historyView = store
+					.view("taj mahal.building")
+					.from(Instant.ofEpochSecond(0))
+					.to(Instant.now())
+					.period(Period.of(1, 0 , 0))
+					.add(new ColumnDefinition("", ""))
 					.build();
 			assertThat(view.column("city").summary().categories()).containsExactly("Agra", "Granada", "Dubai");
 			assertThat(view.column("city").summary().frequency("Agra")).isEqualTo(1);

@@ -1,22 +1,29 @@
 package systems.intino.datamarts.subjectstore.view.history;
 
+import systems.intino.datamarts.subjectstore.calculator.model.Filter;
+
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-public class Format implements Iterable<Column> {
-	private final List<Column> columns;
+public class Format implements Iterable<ColumnDefinition> {
+	private final List<ColumnDefinition> columnDefinitions;
 	private final Instant from;
 	private final Instant to;
 	private final TemporalAmount duration;
 
 	public Format(Instant from, Instant to, TemporalAmount duration) {
+		this(from, to, duration, new ArrayList<>());
+	}
+
+	public Format(Instant from, Instant to, TemporalAmount duration, List<ColumnDefinition> columnDefinitions) {
 		this.from = from;
 		this.to = to;
 		this.duration = duration;
-		this.columns = new ArrayList<>();
+		this.columnDefinitions = columnDefinitions;
 	}
 
 	public Instant from() {
@@ -31,23 +38,30 @@ public class Format implements Iterable<Column> {
 		return duration;
 	}
 
-	public List<Column> columns() {
-		return columns;
+	public List<ColumnDefinition> columns() {
+		return columnDefinitions;
 	}
 
-	public Format add(Column column) {
-		this.columns.add(column);
+	public Format add(String name, String definition, Filter... filters) {
+		ColumnDefinition columnDefinition = new ColumnDefinition(name, definition);
+		Arrays.stream(filters).forEach(columnDefinition::add);
+		this.columnDefinitions.add(columnDefinition);
 		return this;
 	}
 
-	public Format add(List<Column> columns) {
-		this.columns.addAll(columns);
+	public Format add(ColumnDefinition columnDefinition) {
+		this.columnDefinitions.add(columnDefinition);
+		return this;
+	}
+
+	public Format add(List<ColumnDefinition> columnDefinitions) {
+		this.columnDefinitions.addAll(columnDefinitions);
 		return this;
 	}
 
 	@Override
-	public Iterator<Column> iterator() {
-		return columns.iterator();
+	public Iterator<ColumnDefinition> iterator() {
+		return columnDefinitions.iterator();
 	}
 
 	@Override

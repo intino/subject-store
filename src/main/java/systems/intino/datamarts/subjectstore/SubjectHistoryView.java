@@ -7,7 +7,7 @@ import systems.intino.datamarts.subjectstore.calculator.model.vectors.DoubleVect
 import systems.intino.datamarts.subjectstore.calculator.model.vectors.ObjectVector;
 import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
-import systems.intino.datamarts.subjectstore.view.history.Column;
+import systems.intino.datamarts.subjectstore.view.history.ColumnDefinition;
 import systems.intino.datamarts.subjectstore.view.history.Format;
 import systems.intino.datamarts.subjectstore.view.history.fields.CategoricalField;
 import systems.intino.datamarts.subjectstore.view.history.fields.NumericalField;
@@ -16,38 +16,36 @@ import systems.intino.datamarts.subjectstore.view.history.format.YamlFileFormatR
 import systems.intino.datamarts.subjectstore.view.history.format.YamlFormatReader;
 
 import java.io.*;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.Period;
 import java.time.temporal.TemporalAmount;
 import java.util.*;
 
 public class SubjectHistoryView {
-	private final SubjectHistory store;
+	private final SubjectHistory history;
 	private final Format format;
 	private final List<Instant> instants;
-	private final Map<String, Vector<?>> vectors;
+	private final Map<String, Vector<?>> columns;
 
-	public SubjectHistoryView(SubjectHistory store, Format format) {
-		this.store = store;
+	public static Builder of(SubjectHistory subjectHistory) {
+		return new Builder(subjectHistory);
+	}
+
+	public SubjectHistoryView(SubjectHistory history, Format format) {
+		this.history = history;
 		this.format = format;
 		this.instants = instants(format.from(), format.to(), format.duration());
-		this.vectors = new HashMap<>();
+		this.columns = new HashMap<>();
 		this.build();
 	}
 
-	public SubjectHistoryView(SubjectHistory store, String format) {
-		this(store, new YamlFormatReader(format).read());
+	public SubjectHistoryView(SubjectHistory history, String format) {
+		this(history, new YamlFormatReader(format).read());
 	}
 
-	public SubjectHistoryView(SubjectHistory store, File format) throws IOException {
-		this(store, new YamlFileFormatReader(format).read());
-	}
-
-	public List<Column> columns() {
-		return format.columns();
-	}
-
-	private String column(int i) {
-		return format.columns().get(i).name;
+	public SubjectHistoryView(SubjectHistory history, File format) throws IOException {
+		this(history, new YamlFileFormatReader(format).read());
 	}
 
 	public Instant from() {
@@ -62,8 +60,20 @@ public class SubjectHistoryView {
 		return format.duration();
 	}
 
-	public int rows() {
+	public int size() {
 		return instants.size();
+	}
+
+	public List<Instant> rows() {
+		return instants;
+	}
+
+	public List<String> columns() {
+		return format.columns().stream().map(c->c.name).toList();
+	}
+
+	private Vector<?> column(String name) {
+		return columns.get(name);
 	}
 
 	public void exportTo(File file) throws IOException {
@@ -79,19 +89,19 @@ public class SubjectHistoryView {
 	}
 
 	private void build() {
-		columns().forEach(this::build);
+		format.columns().forEach(this::build);
 	}
 
-	private void build(Column column) {
-		vectors.put(column.name, calculate(column));
+	private void build(ColumnDefinition columnDefinition) {
+		columns.put(columnDefinition.name, calculate(columnDefinition));
 	}
 
-	private Vector<?> calculate(Column column) {
-		if (column.isAlphanumeric()) {
-			return get(tagIn(column.definition), CategoricalField.of(fieldIn(column.definition)));
+	private Vector<?> calculate(ColumnDefinition columnDefinition) {
+		if (columnDefinition.isAlphanumeric()) {
+			return get(tagIn(columnDefinition.definition), CategoricalField.of(fieldIn(columnDefinition.definition)));
 		}
 		else {
-			return filter(calculate(column.definition), column.filters);
+			return filter(calculate(columnDefinition.definition), columnDefinition.filters);
 		}
 	}
 
@@ -112,11 +122,11 @@ public class SubjectHistoryView {
 	}
 
 	private VectorCalculator vectorCalculator() {
-		return new VectorCalculator(rows(), this::variable);
+		return new VectorCalculator(size(), this::variable);
 	}
 
 	private DoubleVector variable(String name) {
-		if (vectors.get(name) instanceof DoubleVector vector) return vector;
+		if (column(name) instanceof DoubleVector vector) return vector;
 		try {
 			String tag = tagIn(name);
 			String field = fieldIn(name);
@@ -135,21 +145,21 @@ public class SubjectHistoryView {
 	}
 
 	private DoubleVector calculate(String tag, NumericalField function) {
-		NumericalSignal signal = store.query().number(tag).get(from(), to());
+		NumericalSignal signal = history.query().number(tag).get(from(), to());
 		NumericalSignal[] segments = signal.segments(duration());
 		double[] values = Arrays.stream(segments).map(function).mapToDouble(v -> v).toArray();
 		return new DoubleVector(values);
 	}
 
 	private DoubleVector calculate(String tag, CategoricalField function) {
-		CategoricalSignal categoricalSignal = store.query().text(tag).get(from(), to());
+		CategoricalSignal categoricalSignal = history.query().text(tag).get(from(), to());
 		CategoricalSignal[] segments = categoricalSignal.segments(duration());
 		double[] values = Arrays.stream(segments).map(function).mapToDouble(s -> (double) s).toArray();
 		return new DoubleVector(values);
 	}
 
 	private Vector<?> get(String attribute, CategoricalField function) {
-		CategoricalSignal categoricalSignal = store.query().text(attribute).get(from(), to());
+		CategoricalSignal categoricalSignal = history.query().text(attribute).get(from(), to());
 		CategoricalSignal[] segments = categoricalSignal.segments(duration());
 		Object[] values = Arrays.stream(segments).map(function).toArray(Object[]::new);
 		return new ObjectVector(values);
@@ -169,17 +179,17 @@ public class SubjectHistoryView {
 
 	private String tsv() {
 		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < rows(); i++) {
-			StringJoiner row = new StringJoiner("\t");
-			for (int j = 0; j < columns().size(); j++)
-				row.add(String.valueOf(value(i, j)));
-			sb.append(row).append('\n');
+		for (int row = 0; row < size(); row++) {
+			StringJoiner line = new StringJoiner("\t");
+			for (String column : columns())
+				line.add(String.valueOf(value(row, column)));
+			sb.append(line).append('\n');
 		}
 		return sb.toString();
 	}
 
-	private Object value(int i, int j) {
-		Object o = vectors.get(column(j)).get(i);
+	private Object value(int row, String name) {
+		Object o = column(name).get(row);
 		return isEmpty(o) ? "" : o;
 	}
 
@@ -200,6 +210,61 @@ public class SubjectHistoryView {
 		return "Table(" + format + ")";
 	}
 
+	public static class Builder {
+		private final SubjectHistory history;
+		private final List<ColumnDefinition> columnDefinitions;
+		private Instant from;
+		private Instant to;
+		private TemporalAmount duration;
 
+		public Builder(SubjectHistory history) {
+			this.history = history;
+			this.columnDefinitions = new ArrayList<>();
+		}
+
+		public SubjectHistoryView with(File format) throws IOException {
+			return with(new YamlFileFormatReader(format).read());
+		}
+
+		public SubjectHistoryView with(Format format) {
+			return new SubjectHistoryView(history, format);
+		}
+
+		public Builder from(Instant from) {
+			this.from = from;
+			return this;
+		}
+
+		public Builder to(Instant to) {
+			this.to = to;
+			return this;
+		}
+
+		public Builder duration(Duration duration) {
+			this.duration = duration;
+			return this;
+		}
+
+		public Builder period(Period period) {
+			this.duration = period;
+			return this;
+		}
+
+		public Builder add(ColumnDefinition columnDefinition) {
+			this.columnDefinitions.add(columnDefinition);
+			return this;
+		}
+
+		public Builder add(List<ColumnDefinition> columnDefinitions) {
+			this.columnDefinitions.addAll(columnDefinitions);
+			return this;
+		}
+
+		public SubjectHistoryView build() {
+			return new SubjectHistoryView(history, new Format(from, to, duration, columnDefinitions));
+		}
+
+	}
 
 }
+
