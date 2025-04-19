@@ -60,7 +60,7 @@ public class TemporalParser {
 		}
 	}
 
-	public static TemporalAmount parsePeriod(String period) {
-		return period.contains("T") ? Duration.parse(period) : Period.parse(period);
+	public static TemporalAmount parseDuration(String duration) {
+		return duration.contains("T") ? Duration.parse(duration) : Period.parse(duration);
 	}
 }

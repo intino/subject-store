@@ -1,7 +1,6 @@
 package systems.intino.datamarts.subjectstore;
 
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.view.history.Format;
 
 public class SubjectStore implements AutoCloseable {
 	private final String storage;
@@ -61,7 +60,7 @@ public class SubjectStore implements AutoCloseable {
 		return SubjectHistoryView.of(subject.history());
 	}
 
-	public SubjectHistoryView.Builder view(String identifier) {
+	public SubjectHistoryView.Builder viewOf(String identifier) {
 		return view(get(identifier));
 	}
 

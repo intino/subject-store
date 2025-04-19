@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static systems.intino.datamarts.subjectstore.view.history.format.TemporalParser.parseInstant;
-import static systems.intino.datamarts.subjectstore.view.history.format.TemporalParser.parsePeriod;
+import static systems.intino.datamarts.subjectstore.view.history.format.TemporalParser.parseDuration;
 
 
 public class YamlFormatReader implements FormatReader {
@@ -32,7 +32,7 @@ public class YamlFormatReader implements FormatReader {
 	private Format map(PojoFormat format) {
 		Instant from = parseInstant(format.rows.from);
 		Instant to = parseInstant(format.rows.to);
-		TemporalAmount period = parsePeriod(format.rows.period);
+		TemporalAmount period = parseDuration(format.rows.period);
 		return new Format(from, to, period)
 				.add(map(format.columns));
 	}

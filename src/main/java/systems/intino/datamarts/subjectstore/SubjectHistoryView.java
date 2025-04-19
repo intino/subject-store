@@ -12,11 +12,11 @@ import systems.intino.datamarts.subjectstore.view.history.Format;
 import systems.intino.datamarts.subjectstore.view.history.fields.CategoricalField;
 import systems.intino.datamarts.subjectstore.view.history.fields.NumericalField;
 import systems.intino.datamarts.subjectstore.view.history.fields.TemporalField;
+import systems.intino.datamarts.subjectstore.view.history.format.TemporalParser;
 import systems.intino.datamarts.subjectstore.view.history.format.YamlFileFormatReader;
 import systems.intino.datamarts.subjectstore.view.history.format.YamlFormatReader;
 
 import java.io.*;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
@@ -230,27 +230,24 @@ public class SubjectHistoryView {
 			return new SubjectHistoryView(history, format);
 		}
 
-		public Builder from(Instant from) {
-			this.from = from;
+		public Builder from(String from) {
+			this.from = TemporalParser.parseInstant(from);
 			return this;
 		}
 
-		public Builder to(Instant to) {
-			this.to = to;
+		public Builder to(String to) {
+			this.to = TemporalParser.parseInstant(to);
 			return this;
 		}
 
-		public Builder duration(Duration duration) {
-			this.duration = duration;
+		public Builder duration(String duration) {
+			this.duration = TemporalParser.parseDuration(duration);
 			return this;
 		}
 
-		public Builder period(Period period) {
-			this.duration = period;
-			return this;
-		}
-
-		public Builder add(ColumnDefinition columnDefinition) {
+		public Builder add(String name, String definition, Filter... filters) {
+			ColumnDefinition columnDefinition = new ColumnDefinition(name, definition);
+			Arrays.stream(filters).forEach(columnDefinition::add);
 			this.columnDefinitions.add(columnDefinition);
 			return this;
 		}

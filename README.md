@@ -150,9 +150,9 @@ try (SubjectHistory history = subject.history()) {
 ```
 ---
 
-## Generating store views
+## Generating Subject Index Views
 
-SubjectStore view generation provides a structured and summarized perspective over a subset of subjects of the same type. You can use views to analyze categorical distributions, frequencies, and filterable column definitions across your dataset.
+Subject Index View generation provides a structured and summarized perspective over a subset of subjects of the same type. You can use views to analyze categorical distributions, frequencies, and filterable column definitions across your dataset.
 
 ```java
 SubjectIndexView view = store.view()
@@ -176,11 +176,11 @@ Subject History View generation allows transforming the historical data recorded
 ```java
 SubjectHistoryView buildingView = store
     .view("taj mahal.building")
-    .from(Instant.parse("2010-01-01T00:00:00Z"))
-    .to(Instant.parse("2025-01-01T00:00:00Z"))
-    .period(Period.ofYears(1))
-    .add(new ColumnDefinition("tourist-visits", "visits.count"))
-    .add(new ColumnDefinition("average-temperature", "temperature.average"))
+    .from("1980")
+    .to("2025-04")
+    .period("P1Y")
+    .add("tourist-visits", "visits.count")
+    .add("average-temperature", "temperature.average")
     .build();
 ```
 
