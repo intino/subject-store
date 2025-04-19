@@ -188,16 +188,16 @@ The format can also be defined using a YAML string. The following example produc
 
 ```yaml
 rows:
-  from: 1900-01-01
-  to: 2025-01-01
+  from: 1980
+  to: 2025-04
   period: P1Y
 
 columns:
   - name: year
-    expr: year
+    expr: ts.year
 
   - name: decade
-    expr: floor(year / 10) * 10
+    expr: floor(ts.year / 10) * 10
 
   - name: visits
     expr: visits.count

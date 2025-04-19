@@ -1,28 +1,56 @@
 # Subject History Format Reference
 
-## Rows
-Defines the temporal range of the view:
+The following example produces a yearly table of a building’s history, where each row represents one year and each column contains an aggregated, normalized, or derived value based on that building’s data:
 
-- `from`: start instant (e.g., `1800-01-01`)
-- `to`: end instant (e.g., `2025-01-01`)
-- `period`: duration of each time segment (e.g., `P1Y` for 1 year)
+```yaml
+rows:
+  from: 1980
+  to: 2025-04-10
+  period: P1Y
 
-Dates can be defined with different levels of precision (year, month, day, etc.).
+columns:
+  - name: year
+    expr: ts.year
 
-## Columns
-List of columns to include in the view. Each column includes:
+  - name: decade
+    expr: floor(ts.year / 10) * 10
+
+  - name: visits
+    expr: visits.count
+
+  - name: temperature
+    expr: temperature.average
+
+  - name: temp-smoothed
+    expr: temperature
+    filters: [RollingAverage:5]
+
+  - name: temp-index
+    expr: temp-smoothed * 100
+
+  - name: country
+    expr: country.mode
+```
+
+
+## Rows and Columns
+Rows defines the temporal range of the view:
+
+- `from`: start instant (e.g., `1980`)
+- `to`: end instant (e.g., `2025-04`)
+- `period`: duration of each time segment (e.g., `P1M` for 1 month)
+
+Columns to include in the view. Each column includes:
 
 - `name`: name of the column
-- `expr`: expression used to compute its value
+- `expr`: defines how column values are calculated and can refer to various types of variables. You can combine them using operators (`+`, `-`, `*`, `/`) and functions (`sin()`, `log10()`, etc.).
 - `filters` (optional): transformations applied to the expression result
 
-Expressions define how column values are calculated and can refer to various types of variables. You can combine them using operators (`+`, `-`, `*`, `/`) and functions (`sin()`, `log10()`, etc.).
-
-## Types of variables
+Types of variables inside expressions
 
 - **Previous columns**: You can reference previously defined columns by name to reuse calculations.
 - **Store tags**: Access time series stored in the subject's history. Use the format `tag.field`, e.g., `temperature.sum` or `visits.average`.
-- **Time instants (`ts`)**: Extract calendar-based information from the interval timestamp, e.g., `ts.month-of-year`, `ts.day-of-week`.
+- **Time stamps (`ts`)**: Extract calendar-based information from the interval timestamp, e.g., `ts.month-of-year`, `ts.day-of-week`.
 
 ## Tag Fields
 
@@ -41,7 +69,7 @@ Tags support field operators to aggregate values within a time segment. Syntax: 
 | `mode`         | Categorical | Most frequent value                 |
 | `entropy`      | Categorical | Value diversity (dispersion)        |
 
-## Time Fields
+## Time stamps Fields
 
 The `ts` object allows access to temporal markers:
 
