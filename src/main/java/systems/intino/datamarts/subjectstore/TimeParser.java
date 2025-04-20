@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.view.history.format;
+package systems.intino.datamarts.subjectstore;
 
 import java.time.*;
 import java.time.format.DateTimeParseException;
@@ -7,13 +7,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class TemporalParser {
+public class TimeParser {
 
 	private static final List<Function<String, Instant>> ParseInstants = List.of(
-		TemporalParser::year,
-		TemporalParser::yearMonth,
-		TemporalParser::localDate,
-		TemporalParser::instant
+		TimeParser::year,
+		TimeParser::yearMonth,
+		TimeParser::localDate,
+		TimeParser::instant
 
 	);
 

@@ -5,8 +5,8 @@ The following example produces a yearly table of a building’s history, where e
 ```yaml
 rows:
   from: 1980
-  to: 2025-04-10
-  period: P1Y
+  to: 2025-04
+  period: P1M
 
 columns:
   - name: year
@@ -49,25 +49,25 @@ Columns to include in the view. Each column includes:
 Types of variables inside expressions
 
 - **Previous columns**: You can reference previously defined columns by name to reuse calculations.
-- **Store tags**: Access time series stored in the subject's history. Use the format `tag.field`, e.g., `temperature.sum` or `visits.average`.
+- **Store tags**: Access time series stored in the subject's history. Use the historyFormat `tag.field`, e.g., `temperature.sum` or `visits.average`.
 - **Time stamps (`ts`)**: Extract calendar-based information from the interval timestamp, e.g., `ts.month-of-year`, `ts.day-of-week`.
 
 ## Tag Fields
 
 Tags support field operators to aggregate values within a time segment. Syntax: `tag.field`. Example: `visits.sum`
 
-| Operator       | Type        | Description                         |
-|----------------|-------------|-------------------------------------|
-| `count`        | Any         | Number of observations              |
-| `sum`          | Numeric     | Total sum                           |
-| `average`      | Numeric     | Arithmetic mean                     |
-| `sd`,          | Numeric     | Standard deviation                  |
-| `first`        | Numeric     | First observed value                |
-| `last`         | Numeric     | Last observed value                 |
-| `min`          | Numeric     | Minimum value                       |
-| `max`          | Numeric     | Maximum value                       |
-| `mode`         | Categorical | Most frequent value                 |
-| `entropy`      | Categorical | Value diversity (dispersion)        |
+| Operator     | Type        | Description                         |
+|--------------|-------------|-------------------------------------|
+| `count`      | Any         | Number of observations              |
+| `sum`        | Numeric     | Total sum                           |
+| `average`    | Numeric     | Arithmetic mean                     |
+| `sd`          | Numeric     | Standard deviation                  |
+| `first`      | Numeric     | First observed value                |
+| `last`       | Numeric     | Last observed value                 |
+| `min`        | Numeric     | Minimum value                       |
+| `max`        | Numeric     | Maximum value                       |
+| `mode`       | Categorical | Most frequent value                 |
+| `entropy`    | Categorical | Value diversity (dispersion)        |
 
 ## Time stamps Fields
 

@@ -117,10 +117,14 @@ public class SubjectIndex_ {
 			assertThat(index.query("p").first().identifier()).isEqualTo("1.o/12.p");
 			assertThat(index.query().roots().first()).isEqualTo(Subject.of("1.o"));
 			assertThat(index.query().roots().first().children().first()).isEqualTo(Subject.of("1.o/12.p"));
-			assertThat(index.get("1","o").isNull()).isFalse();
+			assertThat(index.get("1.o").isNull()).isFalse();
 			assertThat(index.get("1","o").parent().isNull()).isTrue();
 			assertThat(index.get("2" ,"o")).isNull();
 			assertThat(index.get("2" ,"p")).isNull();
+			assertThat(index.get("1.o").get("12.p").identifier()).isEqualTo("1.o/12.p");
+			assertThat(index.get("1.o").get("12","p").identifier()).isEqualTo("1.o/12.p");
+			assertThat(index.get("1.o").get("12.p").get("123.q").identifier()).isEqualTo("1.o/12.p/123.q");
+			assertThat(index.get("1.o").get("12.p/123.q").identifier()).isEqualTo("1.o/12.p/123.q");
 			assertThat(index.get("1.o/12.p").parent()).isEqualTo(index.get("1","o"));
 			assertThat(index.get("1.o/12.p").children().collect()).containsExactly(index.get("1.o/12.p/123.q"));
 			assertThat(index.get("1.o/12.p").children().first().identifier()).isEqualTo("1.o/12.p/123.q");

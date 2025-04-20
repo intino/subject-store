@@ -492,6 +492,11 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			@Override
+			public Subject get(String identifier) {
+				return SubjectIndex.this.get(identifier);
+			}
+
+			@Override
 			public void rename(Subject subject, String identifier) {
 				SubjectIndex.this.rename(subject, identifier);
 			}

@@ -15,7 +15,7 @@ import static java.time.temporal.ChronoUnit.HOURS;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Percentage.withPercentage;
-import static systems.intino.datamarts.subjectstore.TimeReference.today;
+import static systems.intino.datamarts.subjectstore.TimeReferences.today;
 
 @SuppressWarnings("NewClassNamingConvention")
 public class NumericalSignal_ {

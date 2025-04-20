@@ -4,60 +4,60 @@ import systems.intino.datamarts.subjectstore.calculator.VectorCalculator;
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 import systems.intino.datamarts.subjectstore.calculator.model.Vector;
 import systems.intino.datamarts.subjectstore.calculator.model.vectors.DoubleVector;
-import systems.intino.datamarts.subjectstore.calculator.model.vectors.ObjectVector;
+import systems.intino.datamarts.subjectstore.calculator.model.vectors.StringVector;
 import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
-import systems.intino.datamarts.subjectstore.view.history.ColumnDefinition;
-import systems.intino.datamarts.subjectstore.view.history.Format;
-import systems.intino.datamarts.subjectstore.view.history.fields.CategoricalField;
-import systems.intino.datamarts.subjectstore.view.history.fields.NumericalField;
-import systems.intino.datamarts.subjectstore.view.history.fields.TemporalField;
-import systems.intino.datamarts.subjectstore.view.history.format.TemporalParser;
-import systems.intino.datamarts.subjectstore.view.history.format.YamlFileFormatReader;
-import systems.intino.datamarts.subjectstore.view.history.format.YamlFormatReader;
+import systems.intino.datamarts.subjectstore.view.Column;
+import systems.intino.datamarts.subjectstore.view.Column.DoubleColumn;
+import systems.intino.datamarts.subjectstore.view.Column.StringColumn;
+import systems.intino.datamarts.subjectstore.view.format.history.ColumnDefinition;
+import systems.intino.datamarts.subjectstore.view.format.history.HistoryFormat;
+import systems.intino.datamarts.subjectstore.model.reducers.TextReducer;
+import systems.intino.datamarts.subjectstore.model.reducers.NumberReducer;
+import systems.intino.datamarts.subjectstore.model.reducers.TimeReducer;
+import systems.intino.datamarts.subjectstore.view.format.history.readers.YamlHistoryFormatReader;
 
 import java.io.*;
 import java.time.Instant;
-import java.time.Period;
 import java.time.temporal.TemporalAmount;
 import java.util.*;
 
-public class SubjectHistoryView {
+public class SubjectHistoryView implements Iterable<Column> {
 	private final SubjectHistory history;
-	private final Format format;
+	private final HistoryFormat historyFormat;
 	private final List<Instant> instants;
-	private final Map<String, Vector<?>> columns;
+	private final Map<String, Vector<?>> vectors;
 
 	public static Builder of(SubjectHistory subjectHistory) {
 		return new Builder(subjectHistory);
 	}
 
-	public SubjectHistoryView(SubjectHistory history, Format format) {
+	public SubjectHistoryView(SubjectHistory history, HistoryFormat historyFormat) {
 		this.history = history;
-		this.format = format;
-		this.instants = instants(format.from(), format.to(), format.duration());
-		this.columns = new HashMap<>();
+		this.historyFormat = historyFormat;
+		this.instants = instants(historyFormat.from(), historyFormat.to(), historyFormat.duration());
+		this.vectors = new HashMap<>();
 		this.build();
 	}
 
 	public SubjectHistoryView(SubjectHistory history, String format) {
-		this(history, new YamlFormatReader(format).read());
+		this(history, new YamlHistoryFormatReader(format).read());
 	}
 
 	public SubjectHistoryView(SubjectHistory history, File format) throws IOException {
-		this(history, new YamlFileFormatReader(format).read());
+		this(history, new YamlHistoryFormatReader(format).read());
 	}
 
 	public Instant from() {
-		return format.from();
+		return historyFormat.from();
 	}
 
 	public Instant to() {
-		return format.to();
+		return historyFormat.to();
 	}
 
 	public TemporalAmount duration() {
-		return format.duration();
+		return historyFormat.duration();
 	}
 
 	public int size() {
@@ -69,11 +69,22 @@ public class SubjectHistoryView {
 	}
 
 	public List<String> columns() {
-		return format.columns().stream().map(c->c.name).toList();
+		return historyFormat.columns().stream().map(c->c.name).toList();
 	}
 
-	private Vector<?> column(String name) {
-		return columns.get(name);
+	private Column column(String name) {
+		Vector<?> vector = vectors.get(name);
+		if (vector instanceof DoubleVector v) return new DoubleColumn(name, v.values());
+		if (vector instanceof StringVector v) return new StringColumn(name, v.values());
+		return () -> name;
+	}
+
+	private Object[] toArray(Vector<?> vector) {
+		return new Object[0];
+	}
+
+	private Vector<?> vector(String name) {
+		return vectors.get(name);
 	}
 
 	public void exportTo(File file) throws IOException {
@@ -89,16 +100,16 @@ public class SubjectHistoryView {
 	}
 
 	private void build() {
-		format.columns().forEach(this::build);
+		historyFormat.columns().forEach(this::build);
 	}
 
 	private void build(ColumnDefinition columnDefinition) {
-		columns.put(columnDefinition.name, calculate(columnDefinition));
+		vectors.put(columnDefinition.name, calculate(columnDefinition));
 	}
 
 	private Vector<?> calculate(ColumnDefinition columnDefinition) {
 		if (columnDefinition.isAlphanumeric()) {
-			return get(tagIn(columnDefinition.definition), CategoricalField.of(fieldIn(columnDefinition.definition)));
+			return get(tagIn(columnDefinition.definition), TextReducer.of(fieldIn(columnDefinition.definition)));
 		}
 		else {
 			return filter(calculate(columnDefinition.definition), columnDefinition.filters);
@@ -126,43 +137,43 @@ public class SubjectHistoryView {
 	}
 
 	private DoubleVector variable(String name) {
-		if (column(name) instanceof DoubleVector vector) return vector;
+		if (vector(name) instanceof DoubleVector vector) return vector;
 		try {
 			String tag = tagIn(name);
 			String field = fieldIn(name);
-			if (isTemporal(tag) && TemporalField.contains(field)) return calculate(TemporalField.of(field));
-			if (CategoricalField.contains(field)) return calculate(tag, CategoricalField.of(field));
-			if (NumericalField.contains(field)) return calculate(tag, NumericalField.of(field));
+			if (isTemporal(tag) && TimeReducer.contains(field)) return calculate(TimeReducer.of(field));
+			if (NumberReducer.contains(field)) {
+				return calculate(NumberReducer.of(field), history.query().number(tag).get(from(), to()));
+			}
+			if (TextReducer.contains(field)) return calculate(NumberReducer.of(field), history.query().text(tag).get(from(), to()));
 		}
 		catch (Exception ignored) {
 		}
 		throw new IllegalArgumentException("Variable not found: " + name);
 	}
 
-	private DoubleVector calculate(TemporalField temporalField) {
-		double[] values = instants.stream().map(temporalField).mapToDouble(s -> (double) s).toArray();
+	private DoubleVector calculate(TimeReducer reducer) {
+		double[] values = instants.stream().map(reducer).mapToDouble(s -> (double) s).toArray();
 		return new DoubleVector(values);
 	}
 
-	private DoubleVector calculate(String tag, NumericalField function) {
-		NumericalSignal signal = history.query().number(tag).get(from(), to());
+	private DoubleVector calculate(NumberReducer reducer, NumericalSignal signal) {
 		NumericalSignal[] segments = signal.segments(duration());
-		double[] values = Arrays.stream(segments).map(function).mapToDouble(v -> v).toArray();
+		double[] values = Arrays.stream(segments).map(reducer).mapToDouble(v -> v).toArray();
 		return new DoubleVector(values);
 	}
 
-	private DoubleVector calculate(String tag, CategoricalField function) {
-		CategoricalSignal categoricalSignal = history.query().text(tag).get(from(), to());
+	private DoubleVector calculate(NumberReducer reducer, CategoricalSignal categoricalSignal) {
 		CategoricalSignal[] segments = categoricalSignal.segments(duration());
-		double[] values = Arrays.stream(segments).map(function).mapToDouble(s -> (double) s).toArray();
+		double[] values = Arrays.stream(segments).map(reducer).mapToDouble(s -> (double) s).toArray();
 		return new DoubleVector(values);
 	}
 
-	private Vector<?> get(String attribute, CategoricalField function) {
+	private Vector<?> get(String attribute, TextReducer reducer) {
 		CategoricalSignal categoricalSignal = history.query().text(attribute).get(from(), to());
 		CategoricalSignal[] segments = categoricalSignal.segments(duration());
-		Object[] values = Arrays.stream(segments).map(function).toArray(Object[]::new);
-		return new ObjectVector(values);
+		String[] values = Arrays.stream(segments).map(reducer).toArray(String[]::new);
+		return new StringVector(values);
 	}
 
 	private boolean isTemporal(String tag) {
@@ -189,7 +200,7 @@ public class SubjectHistoryView {
 	}
 
 	private Object value(int row, String name) {
-		Object o = column(name).get(row);
+		Object o = vector(name).get(row);
 		return isEmpty(o) ? "" : o;
 	}
 
@@ -200,14 +211,30 @@ public class SubjectHistoryView {
 	}
 
 	private static List<Instant> instants(Instant from, Instant instant, TemporalAmount duration) {
-		return TimeReference
+		return TimeReferences
 				.iterate(from, instant, duration)
 				.toList();
 	}
 
 	@Override
 	public String toString() {
-		return "Table(" + format + ")";
+		return "Table(" + historyFormat + ")";
+	}
+
+	@Override
+	public Iterator<Column> iterator() {
+		return new Iterator<>() {
+			private final Iterator<String> iterator = columns().iterator();
+			@Override
+			public boolean hasNext() {
+				return iterator.hasNext();
+			}
+
+			@Override
+			public Column next() {
+				return column(iterator.next());
+			}
+		};
 	}
 
 	public static class Builder {
@@ -223,25 +250,25 @@ public class SubjectHistoryView {
 		}
 
 		public SubjectHistoryView with(File format) throws IOException {
-			return with(new YamlFileFormatReader(format).read());
+			return with(new YamlHistoryFormatReader(format).read());
 		}
 
-		public SubjectHistoryView with(Format format) {
-			return new SubjectHistoryView(history, format);
+		public SubjectHistoryView with(HistoryFormat historyFormat) {
+			return new SubjectHistoryView(history, historyFormat);
 		}
 
 		public Builder from(String from) {
-			this.from = TemporalParser.parseInstant(from);
+			this.from = TimeParser.parseInstant(from);
 			return this;
 		}
 
 		public Builder to(String to) {
-			this.to = TemporalParser.parseInstant(to);
+			this.to = TimeParser.parseInstant(to);
 			return this;
 		}
 
 		public Builder duration(String duration) {
-			this.duration = TemporalParser.parseDuration(duration);
+			this.duration = TimeParser.parseDuration(duration);
 			return this;
 		}
 
@@ -258,7 +285,7 @@ public class SubjectHistoryView {
 		}
 
 		public SubjectHistoryView build() {
-			return new SubjectHistoryView(history, new Format(from, to, duration, columnDefinitions));
+			return new SubjectHistoryView(history, new HistoryFormat(from, to, duration, columnDefinitions));
 		}
 
 	}

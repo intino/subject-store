@@ -1,6 +1,6 @@
 package systems.intino.datamarts.subjectstore.model.signals;
 
-import systems.intino.datamarts.subjectstore.TimeReference;
+import systems.intino.datamarts.subjectstore.TimeReferences;
 import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.time.Instant;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static systems.intino.datamarts.subjectstore.TimeReference.iterate;
+import static systems.intino.datamarts.subjectstore.TimeReferences.iterate;
 
 public interface CategoricalSignal extends Signal<String> {
 	default String[] values() { return stream().map(Point::value).toArray(String[]::new); }
@@ -21,7 +21,7 @@ public interface CategoricalSignal extends Signal<String> {
 
 	private Segment[] splitBy(Instant from, Instant to, TemporalAmount duration) {
 		return iterate(from, to, duration)
-				.map(current -> new Segment(current, TimeReference.add(current, duration), this))
+				.map(current -> new Segment(current, TimeReferences.add(current, duration), this))
 				.toArray(Segment[]::new);
 	}
 
@@ -114,4 +114,17 @@ public interface CategoricalSignal extends Signal<String> {
 			}
 		}
 	}
+
+	static boolean isCategorical(Signal<?> signal) {
+		return signal instanceof CategoricalSignal;
+	}
+
+	static boolean hasCategoricalContent(Signal<?> signal) {
+		return isCategorical(signal) && !signal.isEmpty();
+	}
+
+	static CategoricalSignal categorical(Signal<?> signal) {
+		return signal instanceof CategoricalSignal s ? s : null;
+	}
+
 }

@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static java.sql.Types.*;
-import static systems.intino.datamarts.subjectstore.TimeReference.*;
+import static systems.intino.datamarts.subjectstore.TimeReferences.*;
 
 public class SqlHistoryRegistry implements HistoryRegistry {
 	private final String identifier;

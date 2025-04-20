@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-
 public record DoubleVector(double[] values) implements Vector<Double> {
 
 	public DoubleVector add(DoubleVector vector) {
@@ -70,4 +69,5 @@ public record DoubleVector(double[] values) implements Vector<Double> {
 	public String toString() {
 		return Arrays.toString(values);
 	}
+
 }

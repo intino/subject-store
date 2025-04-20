@@ -10,8 +10,8 @@ import java.time.Instant;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static systems.intino.datamarts.subjectstore.TimeReference.Legacy;
-import static systems.intino.datamarts.subjectstore.TimeReference.today;
+import static systems.intino.datamarts.subjectstore.TimeReferences.Legacy;
+import static systems.intino.datamarts.subjectstore.TimeReferences.today;
 import static systems.intino.datamarts.subjectstore.TimeSpan.*;
 
 @SuppressWarnings("NewClassNamingConvention")

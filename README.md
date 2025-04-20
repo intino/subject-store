@@ -1,6 +1,6 @@
 # SubjectStore
 
-**SubjectStore** is a lightweight Java library for building, indexing, and querying hierarchical entities called **subjects**. Each subject can hold structured attributes, contain child subjects, and optionally maintain a time-stamped history of its state or metrics.
+**SubjectStore** is a lightweight Java library for building, indexing, and querying hierarchical entities called **subjects**. Each subject can hold attributes, can contain child subjects, and can maintain a time-stamped history of its state or metrics.
 
 It is designed for applications that need both a flexible data model and a lightweight, embeddable query engine — such as knowledge bases, simulations, digital twins, domain models, or semantic data layers.
 
@@ -89,7 +89,7 @@ Subject building = collection.parent().parent();
 
 ### Indexing subjects
 
-You can also retrieve subjects through flexible queries based on their indexed attributes. To make subjects searchable, you can assign indexing attributes using the `index()` method. These attributes are static and optimized for querying — such as names, categories, dates, and locations.
+Subjects can also be retrieved using flexible queries based on their indexed attributes. To enable this, you can assign indexing attributes using the `index()` method. These attributes are static and optimized for efficient querying — such as names, categories, dates, and locations.
 
 ```java
 eiffel.index()
@@ -118,13 +118,12 @@ List<Subject> modernBuildings = store.subjects("building")
 Each subject in `SubjectStore` can record time-stamped historical data using the `history()` method. This feature allows tracking of evolving metrics, state changes, or temporal observations without altering the subject’s current indexed attributes. Historical records are associated with both a date and a source (e.g.,`"sensor"`, `"website"`, `"manual"`), and can store arbitrary key-value pairs.
 
 ```java
-try (SubjectHistory history = subject.history()) {
-    history.on(LocalDate.of(2025, 4, 17), "website")
-        .put("state", "open")
-        .put("visitants", 3500)
-        .put("income", 42000)
-        .terminate();
-}
+SubjectHistory history = subject.history();
+history.on("2025-04-17", "website")
+    .put("state", "open")
+    .put("visitants", 3500)
+    .put("income", 42000)
+    .terminate();
 ```
 
 ### Analyzing subject history
@@ -132,27 +131,26 @@ try (SubjectHistory history = subject.history()) {
 Historical data can later be queried as typed signals and summarized over defined time periods:
 
 ```java
-try (SubjectHistory history = subject.history()) {
-    NumericalSignal visitants = history.query()
-        .number("visitants")
-        .get(TimeSpan.LastMonth);
+SubjectHistory history = subject.history();
+NumericalSignal visitants = history.query()
+    .number("visitants")
+    .get(TimeSpan.LastMonth);
 
-    // Average visitants in the last month
-    double average = visitants.summary().mean();
+// Average visitants in the last month
+double average = visitants.stats().mean();
 
-    CategoricalSignal states = history.query()
-        .text("state")
-        .get(LocalDate.of(2025, 1, 1), LocalDate.now());
-        
-    // Most frequent state in this year
-    String state = states.summary().mode();
-}
+CategoricalSignal states = history.query()
+    .text("state")
+    .get("2020", "2024");
+    
+// Most frequent state from first day of 2020 to first day of 2024
+String state = states.stats().mode();
 ```
 ---
 
 ## Generating Subject Index Views
 
-Subject Index View generation provides a structured and summarized perspective over a subset of subjects of the same type. You can use views to analyze categorical distributions, frequencies, and filterable column definitions across your dataset.
+Subject Index View generation provides a structured and summarized perspective over a subset of subjects of the same type. These views are built exclusively from indexed fields, and can be used to analyze categorical distributions, value frequencies, and filterable column definitions across your dataset.
 
 ```java
 SubjectIndexView view = store.view()
@@ -162,11 +160,11 @@ SubjectIndexView view = store.view()
     .build();
 ```
 
-Each column in a view offers a summary, including unique categories and their frequencies:
+Each column in a view offers a stats, including unique categories and their frequencies:
 
 ```java
-List<String> statuses = view.column("city").summary().categories();
-int parisCount = view.column("city").summary().frequency("Paris");
+List<String> statuses = view.column("city").stats().categories();
+int parisCount = view.column("city").stats().frequency("Paris");
 ```
 
 ## Generating Subject History Views
@@ -174,23 +172,26 @@ int parisCount = view.column("city").summary().frequency("Paris");
 Subject History View generation allows transforming the historical data recorded for a subject into aggregated tables organized by time intervals. Each row represents a time segment (e.g., a year), and each column contains the result of an operation evaluated over the data in that interval.
 
 ```java
-SubjectHistoryView buildingView = store
-    .view("taj mahal.building")
+SubjectHistoryView buildingView = store.viewOf("taj mahal.building")
     .from("1980")
     .to("2025-04")
-    .period("P1Y")
+    .period("P1M")
     .add("tourist-visits", "visits.count")
     .add("average-temperature", "temperature.average")
     .build();
 ```
 
-The format can also be defined using a YAML string. The following example produces a yearly table of a building’s history, where each row represents one year and each column contains an aggregated, normalized, or derived value based on that building’s data:
+The historyFormat can also be defined using a YAML string. The following example produces a yearly table of a building’s history, where each row represents one year and each column contains an aggregated, normalized, or derived value based on that building’s data:
+
+```java
+SubjectHistoryView buildingView = store.viewOf("taj mahal.building").with(historyFormat)
+```
 
 ```yaml
 rows:
   from: 1980
   to: 2025-04
-  period: P1Y
+  period: P1M
 
 columns:
   - name: year
@@ -216,4 +217,4 @@ columns:
     expr: country.mode
 ```
 
-For a complete description of the format syntax, available fields, filters, and functions, see the [Format Reference](help/FormatReference.md)
+For a complete description of the historyFormat syntax, available fields, filters, and functions, see the [Format Reference](help/FormatReference.md)

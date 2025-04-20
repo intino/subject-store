@@ -1,39 +1,51 @@
-package systems.intino.datamarts.subjectstore.view.history.format;
+package systems.intino.datamarts.subjectstore.view.format.history.readers;
 
 import org.yaml.snakeyaml.Yaml;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.*;
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
-import systems.intino.datamarts.subjectstore.view.history.ColumnDefinition;
-import systems.intino.datamarts.subjectstore.view.history.Format;
-import systems.intino.datamarts.subjectstore.view.history.FormatReader;
+import systems.intino.datamarts.subjectstore.view.format.history.ColumnDefinition;
+import systems.intino.datamarts.subjectstore.view.format.history.HistoryFormat;
+import systems.intino.datamarts.subjectstore.view.format.history.HistoryFormatReader;
 
+import java.io.*;
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static systems.intino.datamarts.subjectstore.view.history.format.TemporalParser.parseInstant;
-import static systems.intino.datamarts.subjectstore.view.history.format.TemporalParser.parseDuration;
+import static systems.intino.datamarts.subjectstore.TimeParser.parseInstant;
+import static systems.intino.datamarts.subjectstore.TimeParser.parseDuration;
 
 
-public class YamlFormatReader implements FormatReader {
+public class YamlHistoryFormatReader implements HistoryFormatReader {
 	private final String format;
 
-	public YamlFormatReader(String format) {
+	public YamlHistoryFormatReader(String format) {
 		this.format = format;
 	}
 
+	public YamlHistoryFormatReader(File format) throws IOException {
+		this(read(format));
+	}
+
+	private static String read(File file) throws IOException {
+		try (InputStream is = new BufferedInputStream(new FileInputStream(file))) {
+			return new String(is.readAllBytes());
+		}
+	}
+
+
 	@Override
-	public Format read() {
+	public HistoryFormat read() {
 		PojoFormat pojoFormat = new Yaml().loadAs(format, PojoFormat.class);
 		return map(pojoFormat);
 	}
 
-	private Format map(PojoFormat format) {
+	private HistoryFormat map(PojoFormat format) {
 		Instant from = parseInstant(format.rows.from);
 		Instant to = parseInstant(format.rows.to);
 		TemporalAmount period = parseDuration(format.rows.period);
-		return new Format(from, to, period)
+		return new HistoryFormat(from, to, period)
 				.add(map(format.columns));
 	}
 

@@ -1,13 +1,12 @@
 package tests.history;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.view.history.ColumnDefinition;
+import systems.intino.datamarts.subjectstore.view.format.history.HistoryFormat;
 import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectHistoryView;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.MinMaxNormalizationFilter;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.RollingAverageFilter;
-import systems.intino.datamarts.subjectstore.view.history.Format;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,8 +33,10 @@ public class SubjectHistoryView_ {
 	public void should_export_to_tabular_report_with_format_as_object() throws IOException {
 		File file = File.createTempFile("xyz", ":patient.oss");
 		SubjectHistory history = new SubjectHistory("map", Storages.in(file));
+		history.query().number("")
+						.get();
 		feed(history);
-		Format format = new Format(from, to, Duration.ofDays(7))
+		HistoryFormat historyFormat = new HistoryFormat(from, to, Duration.ofDays(7))
 			.add("Year","ts.year")
 			.add("Month","ts.month-of-year")
 			.add("Day","sin(ts.day-of-month)+cos(ts.month-of-year)")
@@ -47,7 +48,7 @@ public class SubjectHistoryView_ {
 			.add("SkyMode","sky.mode")
 			.add("SkyCount","sky.count")
 			.add("NewTemp","NormTemp * 100");
-		SubjectHistoryView view = new SubjectHistoryView(history, format);
+		SubjectHistoryView view = new SubjectHistoryView(history, historyFormat);
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		view.exportTo(os);
 		assertThat(os.toString()).isEqualTo(expected);

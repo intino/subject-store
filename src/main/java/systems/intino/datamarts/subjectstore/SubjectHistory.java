@@ -16,8 +16,9 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static java.util.Comparator.comparingInt;
-import static systems.intino.datamarts.subjectstore.TimeReference.BigBang;
-import static systems.intino.datamarts.subjectstore.TimeReference.Legacy;
+import static systems.intino.datamarts.subjectstore.TimeReferences.BigBang;
+import static systems.intino.datamarts.subjectstore.TimeReferences.Legacy;
+import static systems.intino.datamarts.subjectstore.TimeParser.parseInstant;
 
 public class SubjectHistory implements AutoCloseable {
 	private final String subject;
@@ -241,12 +242,16 @@ public class SubjectHistory implements AutoCloseable {
 			this.tag = tag;
 		}
 
+		public NumericalSignal all() {
+			return get(first(), last());
+		}
+
 		public Signal.Point<Number> get() {
 			return readNumber(tag);
 		}
 
-		public NumericalSignal all() {
-			return get(first(), last());
+		public NumericalSignal get(String from, String to) {
+			return get(parseInstant(from), parseInstant(to));
 		}
 
 		public NumericalSignal get(Instant from, Instant to) {
@@ -293,6 +298,10 @@ public class SubjectHistory implements AutoCloseable {
 		}
 	}
 	
+	public Transaction on(String instant, String source) {
+		return on(parseInstant(instant), source);
+	}
+
 	public Transaction on(Instant instant, String source) {
 		return transaction(new Feed(instant, source));
 	}

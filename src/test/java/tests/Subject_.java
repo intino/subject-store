@@ -19,6 +19,7 @@ public class Subject_ {
 	@Test
 	public void should_navigate_to_parent() {
 		Subject subject = Subject.of(" a / english.b.release  ");
+		assertThat(subject.identifier()).isEqualTo("a/english.b.release");
 		assertThat(subject.typedName()).isEqualTo("english.b.release");
 		assertThat(subject.name()).isEqualTo("english.b");
 		assertThat(subject.type()).isEqualTo("release");
@@ -26,6 +27,7 @@ public class Subject_ {
 		assertThat(subject.parent().name()).isEqualTo("a");
 		assertThat(subject.parent().type()).isEqualTo("");
 		assertThat(subject.parent().parent().isNull()).isTrue();
+		assertThat(subject.parent().get("english.b","release")).isEqualTo(subject);
 	}
 
 	@Test
@@ -90,6 +92,11 @@ public class Subject_ {
 			public Subject create(Subject child) {
 				childrenOf(child.parent()).add(child);
 				return child;
+			}
+
+			@Override
+			public Subject get(String identifier) {
+				return Subject.of(identifier);
 			}
 
 			@Override

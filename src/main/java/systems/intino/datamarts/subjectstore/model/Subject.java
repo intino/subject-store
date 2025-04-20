@@ -20,7 +20,7 @@ public record Subject(String identifier, Context context) {
 	}
 
 	public Subject {
-		identifier = identifier != null ? identifier.trim() : "";
+		identifier = identifier != null ? identifier.trim().replaceAll("\\s+/\\s+", "/") : null;
 		context = context != null ? context : Context.Null;
 	}
 
@@ -225,6 +225,28 @@ public record Subject(String identifier, Context context) {
 		return context != null ? context.create(child) : child;
 	}
 
+	public boolean is(String type) {
+		return type.equals("*") || type.equals(this.type());
+	}
+
+	public boolean isNull() {
+		return this.identifier.isEmpty();
+	}
+
+	public boolean isRoot() {
+		return identifier.lastIndexOf('/') < 0;
+	}
+
+	public Subject get(String name, String type) {
+		Subject subject = new Subject(this, name, type);
+		return context.get(subject.identifier);
+	}
+
+	public Subject get(String identifier) {
+		Subject subject = new Subject(this, identifier);
+		return context.get(subject.identifier);
+	}
+
 	public Updating index() {
 		checkIfContextExists();
 		return context.update(this);
@@ -254,14 +276,6 @@ public record Subject(String identifier, Context context) {
 		System.err.println("Context is not defined for '" + identifier + "'");
 	}
 
-	public boolean is(String type) {
-		return type.equals("*") || type.equals(this.type());
-	}
-
-	public boolean isNull() {
-		return this.identifier.isEmpty();
-	}
-
 	@Override
 	public String toString() {
 		return identifier;
@@ -282,21 +296,19 @@ public record Subject(String identifier, Context context) {
 		return i >= 0 ? identifier.substring(0, i) : "";
 	}
 
-	public boolean isRoot() {
-		return identifier.lastIndexOf('/') < 0;
-	}
-
 
 	public interface Context {
 		Context Null = nullContext();
 
 		List<Subject> children(Subject subject, String type);
-
 		List<Term> terms(Subject subject);
-		Subject create(Subject child);
-		void rename(Subject subject, String identifier);
 
+		Subject create(Subject child);
+		Subject get(String identifier);
+
+		void rename(Subject subject, String identifier);
 		void drop(Subject subject);
+
 		Updating update(Subject subject);
 
 		SubjectHistory history(Subject subject);
@@ -350,6 +362,11 @@ public record Subject(String identifier, Context context) {
 			@Override
 			public Subject create(Subject child) {
 				return child;
+			}
+
+			@Override
+			public Subject get(String identifier) {
+				return new Subject(identifier);
 			}
 
 			@Override

@@ -5,17 +5,12 @@ import org.junit.Test;
 import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectIndex;
 import systems.intino.datamarts.subjectstore.SubjectIndexView;
-import systems.intino.datamarts.subjectstore.SubjectQuery;
 import systems.intino.datamarts.subjectstore.io.Statements;
 import systems.intino.datamarts.subjectstore.io.statements.TabularStatements;
-import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.view.index.Column;
-import systems.intino.datamarts.subjectstore.view.index.Summary;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,67 +31,45 @@ public class SubjectIndexView_ {
 				.build();
 
 		assertThat(models.size()).isEqualTo(25);
-		assertThat(models.column("status").summary().categories()).containsExactly("active");
-		assertThat(models.column("name").summary().categories().size()).isEqualTo(25);
+		assertThat(models.column("status").stats().categories()).containsExactly("active");
+		assertThat(models.column("name").stats().categories().size()).isEqualTo(25);
 		assertThat(experiments.size()).isEqualTo(100);
-		assertThat(experiments.column("status").summary().categories()).containsExactly("running", "queued", "error", "done");
-		assertThat(experiments.column("status").summary().frequency("running")).isEqualTo(25);
+		assertThat(experiments.column("status").stats().categories()).containsExactly("running", "queued", "error", "done");
+		assertThat(experiments.column("status").stats().frequency("running")).isEqualTo(25);
 	}
 
 	@Test
-	public void should_calculate_summary_frequencies_consistently() {
+	public void should_calculate_summary_frequencies_consistently() throws IOException {
 		SubjectIndex index = new SubjectIndex(Storages.inMemory()).consume(statements());
 		assertThat(index.query().roots().size()).isEqualTo(435);
 		SubjectIndexView view = SubjectIndexView.of(index)
 				.type("port")
+				.add("name")
 				.add("country")
 				.add("cabotage-region")
 				.add("draft")
 				.add("cost-per-full")
 				.add("cost-per-full-transfer")
 				.build();
-		for (Column column : view) {
-			Summary summary = column.summary();
-			SubjectQuery query = index.query("port");
-			List<Subject> all = new ArrayList<>(query.collect());
-			for (String category : summary.categories()) {
-				List<Subject> x = query.with(column.name(), category).collect();
-				all.removeAll(x);
-				assertThat(summary.frequency(category)).isEqualTo(x.size());
-			}
-			assertThat(all.size()).isNotEqualTo(0);
-		}
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		view.exportTo(os);
+		assertThat(os.toString().trim()).isEqualTo(new String(inputStream("ports-filtered.tsv").readAllBytes()).trim());
 	}
 
 	private Statements statements() {
 		InputStream is = inputStream("ports.tsv");
-		Statements feeder = new TabularStatements(is, "\t");
-		feeder.schema()
+		Statements statements = new TabularStatements(is, "\t");
+		statements.schema()
 				.map("id", s-> s + ".port")
 				.map("latitude", s-> null)
 				.map("longitude", s-> null)
-				.map("id", s-> s + ".port")
-				.map("draft", this::range2)
-				.map("cost-per-full", this::range100)
-				.map("cost-per-full-transfer", this::range100)
-				.map("cost-port-call-fixed", this::range100)
-				.map("cost-port-call-per-ffe", this::range100);
-		return feeder;
+				.map("draft", s->s)
+				.map("cost-per-full", s->s)
+				.map("cost-per-full-transfer", s->s)
+				.map("cost-port-call-fixed", s->s)
+				.map("cost-port-call-per-ffe", s->s);
+		return statements;
 	}
-
-	private String range2(String value) {
-		return range(value, 2);
-	}
-
-	private String range100(String value) {
-		return range(value, 100);
-	}
-
-	private static String range(String value, int bin) {
-		int v = (int) (Double.parseDouble(value) / bin);
-		return '[' + String.valueOf(v * bin) + "-" + (v + 1) * bin + ')';
-	}
-
 
 	private static InputStream inputStream(String name) {
 		return SubjectIndex_.class.getClassLoader().getResourceAsStream(name);

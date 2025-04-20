@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.view.history.fields;
+package systems.intino.datamarts.subjectstore.model.reducers;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -9,11 +9,11 @@ import java.util.function.Function;
 
 import static java.time.ZoneOffset.UTC;
 
-public interface TemporalField extends Function<Instant, Object> {
-	Map<String, TemporalField> map = create();
+public interface TimeReducer extends Function<Instant, Object> {
+	Map<String, TimeReducer> map = create();
 
-	static Map<String, TemporalField> create() {
-		Map<String, TemporalField> map = new HashMap<>();
+	static Map<String, TimeReducer> create() {
+		Map<String, TimeReducer> map = new HashMap<>();
 		map.put("day-of-week", ts-> (double) zdt(ts).getDayOfWeek().getValue());
 		map.put("day-of-month", ts-> (double) zdt(ts).getDayOfMonth());
 		map.put("month-of-year", ts-> (double) (zdt(ts).getMonthValue()));
@@ -29,7 +29,7 @@ public interface TemporalField extends Function<Instant, Object> {
 	}
 
 
-	static TemporalField of(String function) {
+	static TimeReducer of(String function) {
 		return map.containsKey(function) ? map.get(function) : ts-> "Unknown function: " + function;
 	}
 

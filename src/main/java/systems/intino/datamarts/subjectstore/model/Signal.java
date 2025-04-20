@@ -1,5 +1,8 @@
 package systems.intino.datamarts.subjectstore.model;
 
+import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
+import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
@@ -15,6 +18,7 @@ public interface Signal<T> extends Iterable<Signal.Point<T>> {
 	int count();
 	boolean isEmpty();
 	Stream<Point<T>> stream();
+
 
 	abstract class Raw<X> implements Signal<X> {
 		private final Instant from;

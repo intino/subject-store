@@ -4,9 +4,9 @@ import systems.intino.datamarts.subjectstore.calculator.model.Vector;
 
 import java.util.Arrays;
 
-public record ObjectVector(Object[] values) implements Vector<Object> {
+public record StringVector(String[] values) implements Vector<String> {
 	@Override
-	public Object get(int index) {
+	public String get(int index) {
 		return values[index];
 	}
 
@@ -19,4 +19,5 @@ public record ObjectVector(Object[] values) implements Vector<Object> {
 	public String toString() {
 		return Arrays.toString(values);
 	}
+
 }

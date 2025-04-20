@@ -1,7 +1,7 @@
 package systems.intino.datamarts.subjectstore.model.signals;
 
 import com.tdunning.math.stats.TDigest;
-import systems.intino.datamarts.subjectstore.TimeReference;
+import systems.intino.datamarts.subjectstore.TimeReferences;
 import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.time.Instant;
@@ -19,8 +19,8 @@ public interface NumericalSignal extends Signal<Double> {
 	default SignalDistribution distribution() { return SignalDistribution.of(this); }
 
 	private Segment[] splitBy(Instant from, Instant to, TemporalAmount duration) {
-		return  TimeReference.iterate(from, to, duration)
-				.map(current -> new Segment(current, TimeReference.add(current, duration), this))
+		return  TimeReferences.iterate(from, to, duration)
+				.map(current -> new Segment(current, TimeReferences.add(current, duration), this))
 				.toArray(Segment[]::new);
 	}
 
@@ -228,5 +228,17 @@ public interface NumericalSignal extends Signal<Double> {
 				return points.get(name);
 			}
 		}
+	}
+
+	static boolean isNumerical(Signal<?> signal) {
+		return signal instanceof NumericalSignal;
+	}
+
+	static boolean hasNumericalContent(Signal<?> signal) {
+		return isNumerical(signal) && !signal.isEmpty();
+	}
+
+	static NumericalSignal numerical(Signal<?> signal) {
+		return signal instanceof NumericalSignal s ? s : null;
 	}
 }

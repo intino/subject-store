@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.view.history;
+package systems.intino.datamarts.subjectstore.view.format.history;
 
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 
@@ -9,17 +9,17 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-public class Format implements Iterable<ColumnDefinition> {
+public class HistoryFormat implements Iterable<ColumnDefinition> {
 	private final List<ColumnDefinition> columnDefinitions;
 	private final Instant from;
 	private final Instant to;
 	private final TemporalAmount duration;
 
-	public Format(Instant from, Instant to, TemporalAmount duration) {
+	public HistoryFormat(Instant from, Instant to, TemporalAmount duration) {
 		this(from, to, duration, new ArrayList<>());
 	}
 
-	public Format(Instant from, Instant to, TemporalAmount duration, List<ColumnDefinition> columnDefinitions) {
+	public HistoryFormat(Instant from, Instant to, TemporalAmount duration, List<ColumnDefinition> columnDefinitions) {
 		this.from = from;
 		this.to = to;
 		this.duration = duration;
@@ -42,19 +42,19 @@ public class Format implements Iterable<ColumnDefinition> {
 		return columnDefinitions;
 	}
 
-	public Format add(String name, String definition, Filter... filters) {
+	public HistoryFormat add(String name, String definition, Filter... filters) {
 		ColumnDefinition columnDefinition = new ColumnDefinition(name, definition);
 		Arrays.stream(filters).forEach(columnDefinition::add);
 		this.columnDefinitions.add(columnDefinition);
 		return this;
 	}
 
-	public Format add(ColumnDefinition columnDefinition) {
+	public HistoryFormat add(ColumnDefinition columnDefinition) {
 		this.columnDefinitions.add(columnDefinition);
 		return this;
 	}
 
-	public Format add(List<ColumnDefinition> columnDefinitions) {
+	public HistoryFormat add(List<ColumnDefinition> columnDefinitions) {
 		this.columnDefinitions.addAll(columnDefinitions);
 		return this;
 	}
