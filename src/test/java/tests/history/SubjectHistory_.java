@@ -52,7 +52,7 @@ public class SubjectHistory_ {
 	}
 
 	@Test
-	public void should_return_most_recent_value_as_current() throws Exception {
+	public void should_return_most_recent_get_as_current() throws Exception {
 		File file = File.createTempFile("patient", ".oss");
 		try (SubjectHistory history = new SubjectHistory("12345.patient", Storages.in(file))) {
 			feed_batch(history);
@@ -159,11 +159,11 @@ public class SubjectHistory_ {
 		assertThat(history.tags()).containsExactly("Country", "Latitude", "Longitude");
 		assertThat(history.ss(0)).isEqualTo("UN:all-ports");
 		assertThat(history.current().number("Latitude")).isEqualTo(31.219832454);
-		assertThat(history.query().number("Latitude").get()).isEqualTo(value(0, now, 31.219832454));
-		assertThat(history.query().number("Longitude").get()).isEqualTo(value(0, now, 121.486998052));
+		assertThat(history.query().number("Latitude").get()).isEqualTo(get(0, now, 31.219832454));
+		assertThat(history.query().number("Longitude").get()).isEqualTo(get(0, now, 121.486998052));
 		assertThat(history.query().number("Longitude").get(today(), today(1)).values()).containsExactly(121.486998052);
-		assertThat(history.query().text("Country").get()).isEqualTo(value(0, now, "China"));
-		assertThat(history.query().text("Country").get()).isEqualTo(value(0, now, "China"));
+		assertThat(history.query().text("Country").get()).isEqualTo(get(0, now, "China"));
+		assertThat(history.query().text("Country").get()).isEqualTo(get(0, now, "China"));
 		assertThat(history.query().text("Country").get(today(), today(1)).count()).isEqualTo(1);
 		assertThat(history.query().text("Country").get(today(), today(1)).values()).containsExactly("China");
 		assertThat(history.instants()).containsExactly(now);
@@ -228,13 +228,13 @@ public class SubjectHistory_ {
 		assertThat(history.tags()).containsExactly("Vessels", "State");
 		assertThat(history.ss(0)).isEqualTo("AIS:movements-0");
 		assertThat(history.ss(9)).isEqualTo("AIS:movements-9");
-		assertThat(history.query().number("Vessels").get()).isEqualTo(value(9, today(9), 1990.0));
+		assertThat(history.query().number("Vessels").get()).isEqualTo(get(9, today(9), 1990.0));
 		assertThat(history.query().number("Vessels").get(today(200), today(300)).isEmpty()).isTrue();
 		assertThat(history.query().number("Vessels").get(today(-200), today(-100)).isEmpty()).isTrue();
 		assertThat(history.query().number("Vessels").all().values()).containsExactly(1900L, 1910L, 1920L, 1930L, 1940L, 1950L, 1960L, 1970L, 1980L, 1990L);
 		assertThat(history.query().text("State").all().values()).containsExactly("D", "E", "P", "O", "L", "A", "R", "I", "S", "E");
 		assertThat(history.query().text("State").all().distinct()).containsExactly("D", "E", "P", "O", "L", "A", "R", "I", "S");
-		assertThat(history.query().text("State").get()).isEqualTo(value(9, today(9), "E"));
+		assertThat(history.query().text("State").get()).isEqualTo(get(9, today(9), "E"));
 		assertThat(history.query().text("State").get(today(0), today(10)).summary().mode()).isEqualTo("E");
 	}
 
@@ -286,7 +286,7 @@ public class SubjectHistory_ {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private static <T> Signal.Point<T> value(int feed, Instant instant, T value) {
+	private static <T> Signal.Point<T> get(int feed, Instant instant, T value) {
 		return new Signal.Point<>(feed, instant, value);
 	}
 

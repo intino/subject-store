@@ -3,25 +3,26 @@ package systems.intino.datamarts.subjectstore.model;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectQuery;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static systems.intino.datamarts.subjectstore.model.PatternFactory.pattern;
 
-public record Subject(String identifier, Context context) {
+public final class Subject {
 	public static final String Any = "*";
+	private final String identifier;
+	private final Context context;
 
 	public static Subject of(String identifier) {
 		if (identifier == null) return null;
 		return new Subject(identifier);
 	}
 
-	public Subject {
-		identifier = identifier != null ? identifier.trim().replaceAll("\\s+/\\s+", "/") : null;
-		context = context != null ? context : Context.Null;
+	public Subject(String identifier, Context context) {
+		this.identifier = identifier != null ? identifier.trim().replaceAll("\\s+/\\s+", "/") : null;;
+		this.context = context != null ? context : Context.Null;;
 	}
 
 	public Subject(Subject subject, Context context) {
@@ -37,11 +38,15 @@ public record Subject(String identifier, Context context) {
 	}
 
 	public Subject(Subject parent, String identifier) {
-		this(parent.identifier() + "/" + identifier, parent.context());
+		this(parent.identifier + "/" + identifier, parent.context());
 	}
 
 	public Subject(Subject parent, String name, String type) {
 		this(parent, name + "." + type);
+	}
+
+	public String identifier() {
+		return identifier;
 	}
 
 	public String typedName() {
@@ -61,61 +66,139 @@ public record Subject(String identifier, Context context) {
 		return i >= 0 ? identifier.substring(i + 1) : "";
 	}
 
+	public boolean is(String type) {
+		return type.equals("*") || type.equals(this.type());
+	}
+
+	public boolean isNull() {
+		return this.identifier.isEmpty();
+	}
+
+	public boolean isRoot() {
+		return identifier.lastIndexOf('/') < 0;
+	}
+
 	public Subject parent() {
 		return new Subject(parentIdentifier(), context);
 	}
 
 	public SubjectQuery children() {
 		checkIfContextExists();
-		return children(Any);
+		return query();
 	}
 
-	public SubjectQuery children(String type) {
+	public String get(String tag) {
+		return get(tag, ", ");
+	}
+
+	public String get(String tag, String separator) {
 		checkIfContextExists();
-		return query(context.children(this, type));
+		return terms(tag).stream().map(Term::value).collect(Collectors.joining(separator));
 	}
 
-	private SubjectQuery query(List<Subject> subjects) {
+	public List<Term> terms() {
+		checkIfContextExists();
+		return context.terms(this);
+	}
+
+	public List<Term> terms(String tag) {
+		checkIfContextExists();
+		return context.terms(this).stream()
+				.filter(t -> t.is(tag))
+				.toList();
+	}
+
+	public Subject create(String name, String type) {
+		Subject child = new Subject(this, name, type);
+		return context != null ? context.create(child) : child;
+	}
+
+	public Subject open(String name, String type) {
+		Subject subject = new Subject(this, name, type);
+		return context.get(subject.identifier);
+	}
+
+	public Subject open(String identifier) {
+		Subject subject = new Subject(this, identifier);
+		return context.get(subject.identifier);
+	}
+
+	public Subject rename(String name) {
+		Subject subject = new Subject(path() + name + "." + type(), context);
+		context.rename(this, subject.identifier);
+		return subject;
+	}
+
+	public void drop() {
+		checkIfContextExists();
+		context.drop(this);
+	}
+
+	public Updating index() {
+		checkIfContextExists();
+		return context.update(this);
+	}
+
+	public SubjectHistory history() {
+		return context.history(this);
+	}
+
+	private Context context() {
+		return context;
+	}
+
+	private SubjectQuery query() {
 		return new SubjectQuery() {
+			private final Set<String> types = new HashSet<>();
 
 			@Override
 			public int size() {
-				return subjects.size();
+				return subjects().size();
 			}
 
 			@Override
 			public Subject first() {
-				return subjects.getFirst();
+				return subjects().getFirst();
 			}
 
 			@Override
 			public List<Subject> collect() {
-				return subjects;
+				return subjects();
+			}
+
+			@Override
+			public SubjectQuery type(String... types) {
+				this.types.addAll(Arrays.asList(types));
+				return this;
 			}
 
 			@Override
 			public SubjectFilter roots() {
-				return subjectFilter(subjects).that(Subject::isRoot);
+				return subjectFilter(subjects()).that(Subject::isRoot);
 			}
 
 			@Override
 			public SubjectFilter with(String tag, String value) {
-				return subjectFilter(subjects).that(contains(tag, value));
+				return subjectFilter(subjects()).that(contains(tag, value));
 			}
 
 			@Override
 			public SubjectFilter without(String tag, String value) {
-				return subjectFilter(subjects).that(notContains(tag, value));
+				return subjectFilter(subjects()).that(notContains(tag, value));
 			}
 
 			@Override
 			public SubjectFilter that(Predicate<Subject> predicate) {
-				return subjectFilter(subjects).that(predicate);
+				return subjectFilter(subjects()).that(predicate);
 			}
 
 			@Override
-			public AttributeFilter where(String... keys) {
-				return attributeFilter(subjects);
+			public AttributeFilter where(String... tags) {
+				return attributeFilter(subjects());
+			}
+
+			private List<Subject> subjects() {
+				return context.children(Subject.this, types);
 			}
 		};
 	}
@@ -215,60 +298,10 @@ public record Subject(String identifier, Context context) {
 		};
 	}
 
-	public List<Term> terms() {
-		checkIfContextExists();
-		return context.terms(this);
-	}
 
-	public Subject create(String name, String type) {
-		Subject child = new Subject(this, name, type);
-		return context != null ? context.create(child) : child;
-	}
-
-	public boolean is(String type) {
-		return type.equals("*") || type.equals(this.type());
-	}
-
-	public boolean isNull() {
-		return this.identifier.isEmpty();
-	}
-
-	public boolean isRoot() {
-		return identifier.lastIndexOf('/') < 0;
-	}
-
-	public Subject get(String name, String type) {
-		Subject subject = new Subject(this, name, type);
-		return context.get(subject.identifier);
-	}
-
-	public Subject get(String identifier) {
-		Subject subject = new Subject(this, identifier);
-		return context.get(subject.identifier);
-	}
-
-	public Updating index() {
-		checkIfContextExists();
-		return context.update(this);
-	}
-
-	public SubjectHistory history() {
-		return context.history(this);
-	}
-
-	public Subject rename(String name) {
-		Subject subject = new Subject(path() + name + "." + type(), context);
-		context.rename(this, subject.identifier());
-		return subject;
-	}
 
 	private String path() {
 		return isRoot() ? "" : parentIdentifier() + "/";
-	}
-
-	public void drop() {
-		checkIfContextExists();
-		context.drop(this);
 	}
 
 	private void checkIfContextExists() {
@@ -296,17 +329,19 @@ public record Subject(String identifier, Context context) {
 		return i >= 0 ? identifier.substring(0, i) : "";
 	}
 
-
 	public interface Context {
 		Context Null = nullContext();
 
-		List<Subject> children(Subject subject, String type);
+		List<Subject> children(Subject subject, Set<String> types);
+
 		List<Term> terms(Subject subject);
 
 		Subject create(Subject child);
+
 		Subject get(String identifier);
 
 		void rename(Subject subject, String identifier);
+
 		void drop(Subject subject);
 
 		Updating update(Subject subject);
@@ -318,22 +353,29 @@ public record Subject(String identifier, Context context) {
 		Updating Null = nullUpdating();
 
 		Updating set(Term term);
+
 		Updating put(Term term);
+
 		Updating del(Term term);
+
 		Updating del(String tag);
 
 		default Updating set(String tag, Number value) {
-			return set(new Term(tag,String.valueOf(value)));
+			return set(new Term(tag, String.valueOf(value)));
 		}
+
 		default Updating set(String tag, String value) {
 			return set(new Term(tag, value));
 		}
+
 		default Updating put(String tag, Number value) {
 			return put(new Term(tag, String.valueOf(value)));
 		}
+
 		default Updating put(String tag, String value) {
 			return put(new Term(tag, value));
 		}
+
 		default Updating del(String tag, String value) {
 			return del(new Term(tag, value));
 		}
@@ -345,7 +387,7 @@ public record Subject(String identifier, Context context) {
 		return new Context() {
 
 			@Override
-			public List<Subject> children(Subject subject, String type) {
+			public List<Subject> children(Subject subject, Set<String> types) {
 				return List.of();
 			}
 
@@ -414,5 +456,6 @@ public record Subject(String identifier, Context context) {
 			}
 		};
 	}
+
 
 }

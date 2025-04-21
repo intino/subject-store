@@ -63,7 +63,7 @@ public class SqlIndexRegistry implements IndexRegistry {
 	}
 
 	@Override
-	public List<Integer> termsOf(int subject) {
+	public List<Integer> fullTermsOf(int subject) {
 		try (ResultSet rs = selectTermsOf(subject)) {
 			return readIntegers(rs);
 		} catch (SQLException e) {
@@ -72,7 +72,7 @@ public class SqlIndexRegistry implements IndexRegistry {
 	}
 
 	@Override
-	public List<Integer> exclusiveTermsOf(int subject) {
+	public List<Integer> selfTermsOf(int subject) {
 		try (ResultSet rs = selectExclusiveTermsOf(subject)) {
 			return readIntegers(rs);
 		} catch (SQLException e) {
@@ -81,8 +81,17 @@ public class SqlIndexRegistry implements IndexRegistry {
 	}
 
 	@Override
-	public List<Integer> subjectsFilteredBy(List<Integer> subjects, List<Integer> terms) {
-		try (ResultSet rs = selectSubjectsWith(subjects, terms)) {
+	public List<Integer> subjectsWithAll(List<Integer> terms) {
+		try (ResultSet rs = selectSubjectsWithAll(terms)) {
+			return readIntegers(rs);
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public List<Integer> subjectsWithAny(List<Integer> terms) {
+		try (ResultSet rs = selectSubjectsWithAny(terms)) {
 			return readIntegers(rs);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
@@ -119,16 +128,6 @@ public class SqlIndexRegistry implements IndexRegistry {
 		try {
 			ResultSet rs = statementProvider.get("select-statements").executeQuery();
 			return streamOf(rs);
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	@Override
-	public void defragment() {
-		try {
-			connection.createStatement().executeUpdate(Defragment);
-			connection.commit();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -172,26 +171,46 @@ public class SqlIndexRegistry implements IndexRegistry {
 		return statement.executeQuery();
 	}
 
-	private ResultSet selectSubjectsWith(List<Integer> subjects, List<Integer> terms) throws SQLException {
-		String sql = sqlFor(subjects, terms);
-		PreparedStatement statement = connection.prepareStatement(sql);
+	private static final String SELECT_SUBJECTS = "SELECT DISTINCT subject_id FROM links";
+
+	private ResultSet selectSubjectsWithAll(List<Integer> terms) throws SQLException {
+		String sql = SELECT_SUBJECTS + allExists(terms) + notExists(terms);
+		PreparedStatement statement = connection.prepareStatement(prepare(sql));
 		return statement.executeQuery();
 	}
 
-	private static final String SELECT_SUBJECTS = "SELECT DISTINCT subject_id FROM links WHERE subject_id in ";
-	private static String sqlFor(List<Integer> subjects, List<Integer> terms) {
-		return (SELECT_SUBJECTS + placeholders(subjects) + exists(terms) + notExists(terms))
-				.replace("links AND", "links WHERE");
+	private ResultSet selectSubjectsWithAny(List<Integer> terms) throws SQLException {
+		String sql = SELECT_SUBJECTS + anyExists(terms);
+		PreparedStatement statement = connection.prepareStatement(prepare(sql));
+		return statement.executeQuery();
+	}
+	private static String prepare(String sql) {
+		return sql.replace("links AND", "links WHERE");
 	}
 
-	private static String exists(List<Integer> terms) {
+	private static String anyExists(List<Integer> terms) {
 		int[] items = positive(terms);
-		return items.length > 0 ? " AND subject_id IN (SELECT subject_id FROM links WHERE term_id IN " + placeholders(items) + ")" : "";
+		if (items.length == 0) return "";
+		String termPlaceholders = placeholders(items);
+		return " AND subject_id IN (" +
+			   "SELECT subject_id FROM links WHERE term_id IN " + termPlaceholders + ")";
+	}
+
+	private static String allExists(List<Integer> terms) {
+		int[] items = positive(terms);
+		if (items.length == 0) return "";
+		String termPlaceholders = placeholders(items);
+		return " AND subject_id IN (" +
+			   "SELECT subject_id FROM links WHERE term_id IN " + termPlaceholders + " GROUP BY subject_id HAVING COUNT(DISTINCT term_id) = " + items.length + ")";
 	}
 
 	private static String notExists(List<Integer> terms) {
 		int[] items = negative(terms);
-		return items.length > 0 ? " AND subject_id NOT IN (SELECT subject_id FROM links WHERE term_id IN (" + placeholders(items) + "))" : "";
+		if (items.length == 0) return "";
+
+		String termPlaceholders = placeholders(items);
+		return " AND subject_id NOT IN (" +
+			   "SELECT subject_id FROM links WHERE term_id IN " + termPlaceholders + ")";
 	}
 
 	private static int[] positive(List<Integer> terms) {
@@ -310,7 +329,7 @@ public class SqlIndexRegistry implements IndexRegistry {
 			connection.commit();
 		}
 		catch (SQLException e) {
-			throw new RuntimeException("Failed to drop subject");
+			throw new RuntimeException("Failed to delete subject");
 		}
 	}
 
@@ -384,20 +403,6 @@ public class SqlIndexRegistry implements IndexRegistry {
 			
 			CREATE INDEX IF NOT EXISTS idx_subject ON links(subject_id);
 			CREATE INDEX IF NOT EXISTS idx_term ON links(term_id);
-			""";
-
-	private static final String Defragment = """
-			CREATE TABLE terms_new (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT);
-			CREATE TEMP TABLE terms_map (old_id INTEGER,new_id INTEGER);
-			CREATE INDEX idx_terms_name ON terms(name);
-			CREATE INDEX idx_terms_new_name ON terms_new(name);
-			CREATE INDEX idx_terms_map_old_id ON terms_map(old_id);
-			INSERT INTO terms_new (name) SELECT name FROM terms WHERE name IS NOT NULL;
-			INSERT INTO terms_map (old_id, new_id) SELECT id, (SELECT id FROM terms_new WHERE name = terms.name) FROM terms WHERE name IS NOT NULL;
-			UPDATE links SET term_id = (SELECT new_id FROM terms_map WHERE old_id = links.term_id) WHERE term_id IN (SELECT old_id FROM terms_map);
-			DROP INDEX idx_terms_new_name;
-			DROP TABLE terms;
-			ALTER TABLE terms_new RENAME TO terms;
 			""";
 
 	private void initTables() throws SQLException {

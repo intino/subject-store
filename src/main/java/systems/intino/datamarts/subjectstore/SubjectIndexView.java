@@ -15,8 +15,8 @@ public class SubjectIndexView implements Iterable<Column.StringColumn>  {
 	private final List<Subject> subjects;
 	private final List<String> tags;
 
-	public static Builder of(SubjectIndex subjectIndex) {
-		return new Builder(subjectIndex);
+	public static Builder of(List<Subject> subjects) {
+		return new Builder(subjects);
 	}
 
 	private SubjectIndexView(List<Subject> subjects, List<String> tags) {
@@ -121,29 +121,21 @@ public class SubjectIndexView implements Iterable<Column.StringColumn>  {
 	}
 
 	public static class Builder {
-		private final SubjectIndex subjectIndex;
-		private final List<String> types;
-		private final List<String> keys;
+		private final List<Subject> subjects;
+		private final List<String> tags;
 
-		public Builder(SubjectIndex subjectIndex) {
-			this.subjectIndex = subjectIndex;
-			this.types = new ArrayList<>();
-			this.keys = new ArrayList<>();
+		public Builder(List<Subject> subjects) {
+			this.subjects = subjects;
+			this.tags = new ArrayList<>();
 		}
 
-		public Builder type(String type) {
-			types.add(type);
-			return this;
-		}
-
-		public Builder add(String key) {
-			keys.add(key);
+		public Builder add(String tag) {
+			tags.add(tag);
 			return this;
 		}
 
 		public SubjectIndexView build() {
-			List<Subject> subjects = subjectIndex.query(types).collect();
-			return new SubjectIndexView(subjects, keys);
+			return new SubjectIndexView(subjects, tags);
 		}
 
 	}

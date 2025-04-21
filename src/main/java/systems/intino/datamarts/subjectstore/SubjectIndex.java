@@ -43,19 +43,19 @@ public class SubjectIndex implements AutoCloseable {
 		return subjects.contains(new Subject(identifier));
 	}
 
-	public Subject get(String name, String type) {
-		return get(new Subject(name, type));
+	public Subject open(String name, String type) {
+		return open(new Subject(name, type));
 	}
 
-	public Subject get(String identifier) {
-		return get(Subject.of(identifier));
+	public Subject open(String identifier) {
+		return open(Subject.of(identifier));
 	}
 
-	private Subject get(Subject subject) {
+	private Subject open(Subject subject) {
 		return subjects.contains(subject) ? wrap(subject) : null;
 	}
 
-	private Subject get(int subject) {
+	private Subject open(int subject) {
 		return subjects.contains(subject) ? wrap(subjects.get(subject)) : null;
 	}
 
@@ -64,19 +64,8 @@ public class SubjectIndex implements AutoCloseable {
 	}
 
 	public SubjectQuery query() {
-		return query(Any);
-	}
-
-	public SubjectQuery query(String... types) {
-		return query(setOf(types));
-	}
-
-	public SubjectQuery query(List<String> types) {
-		return query(new HashSet<>(types));
-	}
-
-	private SubjectQuery query(Set<String> types) {
 		return new SubjectQuery() {
+			private final Set<String> types = new HashSet<>();
 
 			@Override
 			public int size() {
@@ -91,6 +80,12 @@ public class SubjectIndex implements AutoCloseable {
 			@Override
 			public List<Subject> collect() {
 				return subjectFilter(types).collect();
+			}
+
+			@Override
+			public SubjectQuery type(String... types) {
+				this.types.addAll(Arrays.asList(types));
+				return this;
 			}
 
 			@Override
@@ -110,18 +105,14 @@ public class SubjectIndex implements AutoCloseable {
 
 			@Override
 			public SubjectFilter that(Predicate<Subject> predicate) {
-				return null;
+				return subjectFilter(types).that(predicate);
 			}
 
 			@Override
-			public AttributeFilter where(String... keys) {
-				return attributeFilter(types, Set.of(keys));
+			public AttributeFilter where(String... tags) {
+				return attributeFilter(types, Set.of(tags));
 			}
 		};	}
-
-	private Set<String> setOf(String[] types) {
-		return Set.of(types);
-	}
 
 	public Subject create(String name, String type) {
 		return create(new Subject(name, type));
@@ -134,7 +125,7 @@ public class SubjectIndex implements AutoCloseable {
 	private Subject create(Subject subject) {
 		int id = subjects.add(subject);
 		registry.commit();
-		return get(id);
+		return open(id);
 	}
 
 	private void rename(Subject subject, String identifier) {
@@ -147,8 +138,8 @@ public class SubjectIndex implements AutoCloseable {
 	private Updating update(Subject subject) {
 		return new Updating() {
 			private final int id = subjects.id(subject);
-			private final List<Integer> currentTerms = registry.termsOf(id);
-			private final List<Integer> exclusiveTerms = registry.exclusiveTermsOf(id);
+			private final List<Integer> currentTerms = registry.fullTermsOf(id);
+			private final List<Integer> exclusiveTerms = registry.selfTermsOf(id);
 
 			@Override
 			public Updating set(Term term) {
@@ -248,12 +239,12 @@ public class SubjectIndex implements AutoCloseable {
 	}
 
 	private void dropChildrenOf(Subject subject) {
-		subject.children(Any).collect().forEach(this::drop);
+		subject.children().collect().forEach(this::drop);
 	}
 
 	private void dropIndexOf(Subject subject) {
 		int id = subjects.id(subject);
-		terms.remove(registry.exclusiveTermsOf(id));
+		terms.remove(registry.selfTermsOf(id));
 		subjects.remove(subject);
 		registry.deleteSubject(id);
 	}
@@ -353,16 +344,17 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			private Stream<Subject> subjectStream() {
-				List<Integer> search = conditions.isEmpty() ? candidates : registry.subjectsFilteredBy(candidates, conditions);
-				return toSubjects(search);
+				List<Integer> search = conditions.isEmpty() ? candidates : registry.subjectsWithAll(conditions);
+				candidates.retainAll(search);
+				return toSubjects(candidates);
 			}
 
 		};
 	}
 
-	private SubjectQuery.AttributeFilter attributeFilter(Set<String> types, Set<String> keys) {
+	private SubjectQuery.AttributeFilter attributeFilter(Set<String> types, Set<String> tags) {
 		return new SubjectQuery.AttributeFilter() {
-			private final List<Integer> candidates = subjectsWith(types);
+			private final List<Integer> candidates = new ArrayList<>(subjectsWith(types));
 
 			@Override
 			public List<Subject> contains(String value) {
@@ -399,25 +391,27 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			private List<Subject> subjectSetWith(List<Integer> terms) {
-				return terms.isEmpty() ? List.of() : toSubjects(registry.subjectsFilteredBy(candidates, terms)).toList();
+				List<Integer> search = terms.isEmpty() ? List.of() : registry.subjectsWithAny(terms);
+				candidates.retainAll(search);
+				return toSubjects(candidates).toList();
 			}
 
 			private List<Integer> termsAcceptedBy(String value) {
-				return terms(keys)
+				return terms(tags)
 						.filter(t -> pattern(t.value()).matcher(value).matches())
 						.map(terms::id)
 						.toList();
 			}
 
 			private List<Integer> termsMatchedBy(Predicate<String> predicate) {
-				return terms(keys)
+				return terms(tags)
 						.filter(t->predicate.test(t.value()))
 						.map(terms::id)
 						.toList();
 			}
 
 			private List<Integer> termsContaining(String value) {
-				return terms(keys)
+				return terms(tags)
 						.filter(t -> t.value().contains(value))
 						.map(terms::id)
 						.toList();
@@ -468,10 +462,10 @@ public class SubjectIndex implements AutoCloseable {
 		return new Context() {
 
 			@Override
-			public List<Subject> children(Subject subject, String type) {
+			public List<Subject> children(Subject subject, Set<String> types) {
 				return subjects.stream()
 						.filter(s -> s.parent().equals(subject))
-						.filter(s -> s.is(type))
+						.filter(s -> types.isEmpty() || types.contains(s.type()))
 						.map(s->wrap(s))
 						.toList();
 			}
@@ -479,7 +473,7 @@ public class SubjectIndex implements AutoCloseable {
 			@Override
 			public List<Term> terms(Subject subject) {
 				int id = subjects.id(subject);
-				return id < 0 ? List.of() : toTerms(registry.termsOf(id));
+				return id < 0 ? List.of() : toTerms(registry.fullTermsOf(id));
 			}
 
 			private List<Term> toTerms(List<Integer> terms) {
@@ -493,7 +487,7 @@ public class SubjectIndex implements AutoCloseable {
 
 			@Override
 			public Subject get(String identifier) {
-				return SubjectIndex.this.get(identifier);
+				return SubjectIndex.this.open(identifier);
 			}
 
 			@Override
@@ -519,7 +513,7 @@ public class SubjectIndex implements AutoCloseable {
 	}
 
 	private List<Integer> subjectsWith(Set<String> types) {
-		return subjectsWith(predicateFor(types));
+		return subjectsWith(types.isEmpty() ? s->true : predicateFor(types));
 	}
 
 	private List<Integer> subjectsWith(Predicate<Subject> predicate) {
@@ -540,7 +534,7 @@ public class SubjectIndex implements AutoCloseable {
 	private int insert(Subject subject) {
 		int index = subjects.indexOfNull();
 		if (index <= 0) return registry.insertSubject(subject.identifier());
-		registry.setTerm(index, subject.identifier());
+		registry.setSubject(index, subject.identifier());
 		return index;
 	}
 

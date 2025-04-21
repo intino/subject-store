@@ -79,10 +79,6 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return () -> name;
 	}
 
-	private Object[] toArray(Vector<?> vector) {
-		return new Object[0];
-	}
-
 	private Vector<?> vector(String name) {
 		return vectors.get(name);
 	}
@@ -165,7 +161,7 @@ public class SubjectHistoryView implements Iterable<Column> {
 
 	private DoubleVector calculate(NumberReducer reducer, CategoricalSignal categoricalSignal) {
 		CategoricalSignal[] segments = categoricalSignal.segments(duration());
-		double[] values = Arrays.stream(segments).map(reducer).mapToDouble(s -> (double) s).toArray();
+		double[] values = Arrays.stream(segments).map(reducer).mapToDouble(s -> s).toArray();
 		return new DoubleVector(values);
 	}
 
@@ -250,6 +246,10 @@ public class SubjectHistoryView implements Iterable<Column> {
 		}
 
 		public SubjectHistoryView with(File format) throws IOException {
+			return with(new YamlHistoryFormatReader(format).read());
+		}
+
+		public SubjectHistoryView with(String format)  {
 			return with(new YamlHistoryFormatReader(format).read());
 		}
 

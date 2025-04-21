@@ -7,10 +7,7 @@ import systems.intino.datamarts.subjectstore.model.Term;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -27,7 +24,7 @@ public class Subject_ {
 		assertThat(subject.parent().name()).isEqualTo("a");
 		assertThat(subject.parent().type()).isEqualTo("");
 		assertThat(subject.parent().parent().isNull()).isTrue();
-		assertThat(subject.parent().get("english.b","release")).isEqualTo(subject);
+		assertThat(subject.parent().open("english.b","release")).isEqualTo(subject);
 	}
 
 	@Test
@@ -74,7 +71,7 @@ public class Subject_ {
 		return new Subject.Context() {
 
 			@Override
-			public List<Subject> children(Subject subject, String type) {
+			public List<Subject> children(Subject subject, Set<String> types) {
 				return childrenOf(subject);
 			}
 

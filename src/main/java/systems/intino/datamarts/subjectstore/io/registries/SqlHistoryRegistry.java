@@ -176,7 +176,8 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 	@Override
 	public void drop() {
 		try {
-			connection.createStatement().execute(normalize(DropTables));
+			connection.createStatement().executeUpdate(normalize(DropTables));
+			connection.commit();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
