@@ -22,7 +22,7 @@ jobs:
         echo "Tag commit: $TAG_COMMIT"
         echo "Master commit: $MASTER_COMMIT"
         if [ "$TAG_COMMIT" != "$MASTER_COMMIT" ]; then
-          echo "❌ El tag no apunta al último commit de master. Abortando despliegue."
+          echo "The tag does not point to the last master commit. Aborting deployment."
           exit 1
         fi
 
@@ -32,7 +32,7 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
         cache: 'maven'
-        server-id: ossrh
+        server-id: intino-sonatype
         server-username: MAVEN_USERNAME
         server-password: MAVEN_PASSWORD
         gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -47,4 +47,4 @@ jobs:
           ${{ runner.os }}-maven-
 
     - name: Deploy to Maven Central
-      run: mvn -f pom.xml clean deploy -P release -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }} --batch-mode
+      run: mvn -f pom.xml clean deploy -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }} --batch-mode
