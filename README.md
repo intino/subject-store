@@ -22,9 +22,9 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 
 ```xml
 <dependency>
-    <groupId>systems.intino</groupId>
+    <groupId>systems.intino.datamarts</groupId>
     <artifactId>subject-store</artifactId>
-    <version>1.1.0</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
