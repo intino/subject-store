@@ -33,8 +33,8 @@ jobs:
         java-version: '21'
         cache: 'maven'
         server-id: intino-sonatype
-        server-username:  ${{ secrets.MAVEN_USERNAME }}
-        server-password: ${{ secrets.MAVEN_PASSWORD }}
+        server-username:  MAVEN_USERNAME
+        server-password: MAVEN_PASSWORD
         gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
         gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
