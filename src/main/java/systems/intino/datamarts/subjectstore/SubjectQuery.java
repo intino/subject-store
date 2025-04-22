@@ -4,15 +4,18 @@ import systems.intino.datamarts.subjectstore.model.Subject;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public interface SubjectQuery {
 	SubjectQuery Empty = emptyQuery();
 
 	int size();
 
-	default boolean isEmpty() { return size() == 0; };
+	boolean isEmpty();
 
 	Subject first();
+
+	Stream<Subject> stream();
 
 	List<Subject> collect();
 
@@ -43,8 +46,18 @@ public interface SubjectQuery {
 			}
 
 			@Override
+			public boolean isEmpty() {
+				return true;
+			}
+
+			@Override
 			public Subject first() {
 				return Subject.of("");
+			}
+
+			@Override
+			public Stream<Subject> stream() {
+				return Stream.empty();
 			}
 
 			@Override

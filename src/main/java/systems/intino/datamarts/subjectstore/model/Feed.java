@@ -36,12 +36,20 @@ public final class Feed {
 
 	@Override
 	public String toString() {
+		return "Feed on " + instant + " from " + source;
+	}
+
+	public String serialize(String identifier) {
 		return String.join("\n",
-				"[subject]",
+				"[" + type(identifier) + "]",
 				"ts=" + instant.toString(),
 				"ss=" + source,
-				toString(facts.entrySet())
-		);
+				"id=" + identifier,
+				toString(facts.entrySet()));
+	}
+
+	private String type(String identifier) {
+		return identifier.substring(identifier.lastIndexOf('.') + 1);
 	}
 
 	private String toString(Set<Map.Entry<String, Object>> entries) {

@@ -5,14 +5,11 @@ import java.time.Instant;
 import static java.time.temporal.ChronoUnit.*;
 
 public enum TimeSpan {
-	LegacyPhase, BigBangPhase,
 	ThisYear, ThisMonth, ThisWeek, Today, ThisHour, ThisMinute, ThisSecond,
 	LastYearWindow, LastMonthWindow, LastWeekWindow, LastDayWindow, LastHourWindow, LasMinuteWindow, LasSecondWindow;
 
 	public Instant from() {
 		return switch (this) {
-			case LegacyPhase -> TimeReferences.Legacy;
-			case BigBangPhase -> TimeReferences.BigBang;
 			case ThisYear -> TimeReferences.thisYear();
 			case ThisMonth -> TimeReferences.thisMonth();
 			case ThisWeek -> TimeReferences.thisWeek();
@@ -33,8 +30,6 @@ public enum TimeSpan {
 
 	public Instant to() {
 		return switch (this) {
-			case LegacyPhase -> TimeReferences.Legacy.plus(1, SECONDS);
-			case BigBangPhase -> TimeReferences.BigBang.plus(1, SECONDS);
 			case ThisYear -> TimeReferences.thisYear().plus(365, DAYS);
 			case ThisMonth -> TimeReferences.thisMonth().plus(30, DAYS);
 			case ThisWeek -> TimeReferences.thisWeek().plus(7, DAYS);

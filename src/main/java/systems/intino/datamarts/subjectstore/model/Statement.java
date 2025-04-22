@@ -3,19 +3,23 @@ package systems.intino.datamarts.subjectstore.model;
 public record Statement(Subject subject, Term term) {
 
 	public Statement(String str) {
-		this(str.split("\t"));
+		this(x(str).split("\t"));
 	}
 
-	public Statement(String subject, String term) {
-		this(Subject.of(subject), Term.of(term));
+	private static String x(String str) {
+		return str;
+	}
+
+	public Statement(String subject, String tag, String value) {
+		this(Subject.of(subject), new Term(tag, value));
 	}
 
 	private Statement(String[] split) {
-		this(split[0], split[1]);
+		this(split[0], split[1], split[2]);
 	}
 
 	@Override
 	public String toString() {
-		return subject + "\t" + term;
+		return subject + "\t" + term.tag() + "\t" + term.value();
 	}
 }

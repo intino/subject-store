@@ -1,13 +1,12 @@
 package systems.intino.datamarts.subjectstore.io.feeds;
 
-import systems.intino.datamarts.subjectstore.io.Feeds;
 import systems.intino.datamarts.subjectstore.model.Feed;
 
 import java.io.*;
 import java.time.Instant;
 import java.util.*;
 
-public class DumpFeeds implements Feeds, Closeable {
+public class DumpFeeds implements Iterable<Feed>, Closeable {
 	private final InputStream is;
 	private final Iterator<String> lines;
 	private String currentLine;

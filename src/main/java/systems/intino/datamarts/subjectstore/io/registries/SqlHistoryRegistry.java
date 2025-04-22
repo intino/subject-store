@@ -10,7 +10,6 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static java.sql.Types.*;
-import static systems.intino.datamarts.subjectstore.TimeReferences.*;
 
 public class SqlHistoryRegistry implements HistoryRegistry {
 	private final String identifier;
@@ -314,8 +313,6 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 	}
 
 	private static String labelOf(Instant value) {
-		if (value.equals(Legacy)) return "Legacy";
-		if (value.equals(BigBang)) return "Big Bang";
 		return value.toString().substring(0, 19).replace('T', ' ');
 	}
 

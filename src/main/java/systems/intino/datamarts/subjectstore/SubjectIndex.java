@@ -17,18 +17,18 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static systems.intino.datamarts.subjectstore.model.PatternFactory.pattern;
+import static systems.intino.datamarts.subjectstore.helpers.PatternFactory.pattern;
 import static systems.intino.datamarts.subjectstore.model.Subject.Any;
 
 public class SubjectIndex implements AutoCloseable {
-	private final String storage;
+	private final String jdbcUrl;
 	private final IndexRegistry registry;
 	private final Lookup<Subject> subjects;
 	private final Lookup<Term> terms;
 	private final Context context;
 
 	public SubjectIndex(String jdbcUrl) {
-		this.storage = jdbcUrl;
+		this.jdbcUrl = jdbcUrl;
 		this.registry = new SqlIndexRegistry(jdbcUrl);
 		this.subjects = new Lookup<>(registry.subjects(), Subject::of, this::insert);
 		this.terms = new Lookup<>(registry.terms(), Term::of, this::insert);
@@ -71,24 +71,38 @@ public class SubjectIndex implements AutoCloseable {
 
 			@Override
 			public int size() {
-				return collect().size();
+				return (int) stream().count();
+			}
+
+			@Override
+			public boolean isEmpty() {
+				return stream().findAny().isEmpty();
 			}
 
 			@Override
 			public Subject first() {
-				return collect().getFirst();
+				return stream().findFirst().orElse(null);
+			}
+
+			@Override
+			public Stream<Subject> stream() {
+				return candidates().stream().map(i->toSubject(i));
 			}
 
 			@Override
 			public List<Subject> collect() {
-				return candidates().stream()
-						.map(i->toSubject(i))
-						.toList();
+				return stream().toList();
 			}
 
 			@Override
 			public SubjectQuery type(String... types) {
 				this.types.addAll(Arrays.asList(types));
+				return this;
+			}
+
+			@Override
+			public SubjectQuery isRoot() {
+				conditions.add(i->toSubject(i).isRoot());
 				return this;
 			}
 
@@ -108,18 +122,12 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			@Override
-			public SubjectQuery isRoot() {
-				conditions.add(i->toSubject(i).isRoot());
-				return this;
-			}
-
-			@Override
 			public AttributeFilter where(String... tags) {
 				return attributeFilter(candidates(), Set.of(tags));
 			}
 
 			private List<Integer> candidates() {
-				List<Integer> candidates = new ArrayList<>(subjectsWith(types));
+				List<Integer> candidates = new ArrayList<>(subjectsWith(types).toList());
 				candidates.retainAll(subjectsWithTags(candidates));
 				candidates.retainAll(subjectsWithConditions(candidates));
 				return candidates;
@@ -343,10 +351,9 @@ public class SubjectIndex implements AutoCloseable {
 		registry.deleteSubject(id);
 	}
 
+	@SuppressWarnings("resource")
 	private void dropHistoryOf(Subject subject) {
-		try (SubjectHistory history = subject.history()) {
-			history.drop();
-		}
+		if (subject.hasHistory()) subject.history().drop();
 	}
 
 	public Statements statements() {
@@ -361,8 +368,11 @@ public class SubjectIndex implements AutoCloseable {
 		return this;
 	}
 
-	public void dump(OutputStream os) {
-		statements().forEach(s->write(s.toString() + '\n', os));
+	public void dump(OutputStream os) throws IOException {
+		for (Statement statement : statements()) {
+			String str = statement.toString() + '\n';
+			os.write(str.getBytes());
+		}
 	}
 
 	public SubjectIndex restore(InputStream is) throws IOException {
@@ -372,15 +382,9 @@ public class SubjectIndex implements AutoCloseable {
 	}
 
 	private Iterator<Statement> stamentIterator() {
-		return registry.dump().map(Statement::new).iterator();
-	}
-
-	private void write(String str, OutputStream os) {
-		try {
-			os.write(str.getBytes());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		return registry.dump()
+				.map(Statement::new)
+				.iterator();
 	}
 
 	private Context createContext() {
@@ -431,20 +435,28 @@ public class SubjectIndex implements AutoCloseable {
 
 			@Override
 			public SubjectHistory history(Subject subject) {
-				return new SubjectHistory(subject.identifier(), SqlConnection.shared(storage));
+				return new SubjectHistory(subject.identifier(), SqlConnection.shared(jdbcUrl));
+			}
+
+			@Override
+			public boolean hasHistory(Subject subject) {
+				return SubjectIndex.this.hasHistory(subject);
 			}
 		};
 	}
 
-	private List<Integer> subjectsWith(Set<String> types) {
+	private boolean hasHistory(Subject subject) {
+		return registry.hasHistory(subjects.id(subject));
+	}
+
+	private Stream<Integer> subjectsWith(Set<String> types) {
 		return subjectsWith(types.isEmpty() ? s->true : predicateFor(types));
 	}
 
-	private List<Integer> subjectsWith(Predicate<Subject> predicate) {
+	private Stream<Integer> subjectsWith(Predicate<Subject> predicate) {
 		return subjects.stream()
 				.filter(predicate)
-				.map(subjects::id)
-				.toList();
+				.map(subjects::id);
 	}
 
 	private Predicate<Subject> predicateFor(Set<String> types) {
