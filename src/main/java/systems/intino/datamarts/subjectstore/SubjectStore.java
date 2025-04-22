@@ -2,12 +2,12 @@ package systems.intino.datamarts.subjectstore;
 
 import systems.intino.datamarts.subjectstore.model.Subject;
 
+import java.util.List;
+
 public class SubjectStore implements AutoCloseable {
-	private final String storage;
 	private final SubjectIndex index;
 
 	public SubjectStore(String storage) {
-		this.storage = storage;
 		this.index = new SubjectIndex(storage);
 	}
 
@@ -19,12 +19,12 @@ public class SubjectStore implements AutoCloseable {
 		return index.has(name, type);
 	}
 
-	public Subject get(String identifier) {
-		return index.get(identifier);
+	public Subject open(String identifier) {
+		return index.open(identifier);
 	}
 
-	public Subject get(String name, String type) {
-		return index.get(name, type);
+	public Subject open(String name, String type) {
+		return index.open(name, type);
 	}
 
 	public Subject create(String identifier) {
@@ -39,10 +39,6 @@ public class SubjectStore implements AutoCloseable {
 		return index.query();
 	}
 
-	public SubjectQuery subjects(String... types) {
-		return index.query(types);
-	}
-
 	@Override
 	public void close()  {
 		try {
@@ -52,20 +48,21 @@ public class SubjectStore implements AutoCloseable {
 		}
 	}
 
-	public SubjectIndexView.Builder view() {
-		return SubjectIndexView.of(index);
+
+	public SubjectIndexView.Builder viewOf(List<Subject> subjects) {
+		return SubjectIndexView.of(subjects);
 	}
 
-	public SubjectHistoryView.Builder view(Subject subject) {
+	public SubjectHistoryView.Builder viewOf(Subject subject) {
 		return SubjectHistoryView.of(subject.history());
 	}
 
 	public SubjectHistoryView.Builder viewOf(String identifier) {
-		return view(get(identifier));
+		return viewOf(open(identifier));
 	}
 
-	public SubjectHistoryView.Builder view(String name, String type) {
-		return view(get(name, type));
+	public SubjectHistoryView.Builder viewOf(String name, String type) {
+		return viewOf(open(name, type));
 	}
 
 

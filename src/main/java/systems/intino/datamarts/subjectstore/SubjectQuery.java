@@ -13,6 +13,8 @@ public interface SubjectQuery {
 
 	List<Subject> collect();
 
+	SubjectQuery type(String... types);
+
 	SubjectFilter roots();
 
 	SubjectFilter with(String tag, String value);
@@ -21,7 +23,7 @@ public interface SubjectQuery {
 
 	SubjectFilter that(Predicate<Subject> predicate);
 
-	AttributeFilter where(String... keys);
+	AttributeFilter where(String... tags);
 
 	interface AttributeFilter {
 		List<Subject> contains(String value);
@@ -54,7 +56,7 @@ public interface SubjectQuery {
 
 		default boolean isEmpty() {
 			return size() == 0;
-		};
+		}
 
 	}
 }

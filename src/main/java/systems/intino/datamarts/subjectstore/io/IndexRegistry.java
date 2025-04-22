@@ -7,10 +7,11 @@ public interface IndexRegistry extends AutoCloseable {
 	List<String> subjects();
 	List<String> terms();
 
-	List<Integer> termsOf(int subject);
-	List<Integer> exclusiveTermsOf(int subject);
+	List<Integer> fullTermsOf(int subject);
+	List<Integer> selfTermsOf(int subject);
 
-	List<Integer> subjectsFilteredBy(List<Integer> subjects, List<Integer> terms);
+	List<Integer> subjectsWithAll(List<Integer> terms);
+	List<Integer> subjectsWithAny(List<Integer> terms);
 
 	int insertSubject(String subject);
 	void setSubject(int id, String subject);
@@ -27,5 +28,4 @@ public interface IndexRegistry extends AutoCloseable {
 
 	Stream<String> dump();
 
-	void defragment();
 }

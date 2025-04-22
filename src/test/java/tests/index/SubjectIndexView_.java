@@ -20,13 +20,13 @@ public class SubjectIndexView_ {
 	@Test
 	public void should_create_views_including_summary() throws IOException {
 		SubjectIndex index = new SubjectIndex(Storages.inMemory()).restore(inputStream("subjects.txt"));
-		SubjectIndexView models = SubjectIndexView.of(index)
-				.type("model")
+		SubjectIndexView models = SubjectIndexView
+				.of(index.query().type("model").collect())
 				.add("status")
 				.add("name")
 				.build();
-		SubjectIndexView experiments = SubjectIndexView.of(index)
-				.type("experiment")
+		SubjectIndexView experiments = SubjectIndexView
+				.of(index.query().type("experiment").collect())
 				.add("status")
 				.build();
 
@@ -42,8 +42,8 @@ public class SubjectIndexView_ {
 	public void should_calculate_summary_frequencies_consistently() throws IOException {
 		SubjectIndex index = new SubjectIndex(Storages.inMemory()).consume(statements());
 		assertThat(index.query().roots().size()).isEqualTo(435);
-		SubjectIndexView view = SubjectIndexView.of(index)
-				.type("port")
+		SubjectIndexView view = SubjectIndexView
+				.of(index.query().type("port").collect())
 				.add("name")
 				.add("country")
 				.add("cabotage-region")

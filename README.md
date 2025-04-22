@@ -24,13 +24,13 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 <dependency>
     <groupId>systems.intino.datamarts</groupId>
     <artifactId>subject-store</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 </dependency>
 ```
 
 ### Creating and accessing subjects
 
-This snippet shows how to open a `SubjectStore`, create a new subject, check for existence, and retrieve it:
+This snippet shows how to use a `SubjectStore`, create a new subject, check for existence, and open it:
 
 ```java
 try (SubjectStore store = new SubjectStore("jdbc:sqlite:buildings.iss")) {
@@ -38,7 +38,7 @@ try (SubjectStore store = new SubjectStore("jdbc:sqlite:buildings.iss")) {
 
     boolean exists = store.has("taj mahal", "building");
 
-    Subject eiffel = store.get("eiffel tower", "building");
+    Subject eiffel = store.open("eiffel tower", "building");
 }
 ```
 
@@ -72,13 +72,13 @@ Subject museum = store.create("national-museum", "building");
 For nested subjects, you can use hierarchical paths in the form ```parent.type/child.type/grandchild.type```.
 
 ```java
-Subject department = store.get("national-museum.building/science.department");
+Subject department = store.open("national-museum.building/science.department");
 ```
 
 Children subjects can also be accessed by navigating from their parent:
 
 ```java
-Subject collection = department.get("fossils", "collection")
+Subject collection = department.open("fossils", "collection")
 ```
 
 Additionally, you can navigate upwards in the hierarchy:
@@ -111,6 +111,19 @@ List<Subject> towers = store.subjects("building")
 List<Subject> modernBuildings = store.subjects("building")
 		.where("year").that(v -> toNumber(v) > 1900)
 		.collect();
+```
+
+Once a subject has been indexed, the associated attributes can be retrieved programmatically.
+
+The get() method retrieves a string representation of the values assigned to a specific indexed attribute. If multiple values are present, they are joined using a configurable separator (default is ", ").
+
+```java
+String city = eiffel.get("city"); // "Paris"
+```
+
+To access all indexed values, you can use the terms() method:
+```java
+List<Term> terms = eiffel.terms(); // List of all index terms
 ```
 
 ### Tracking historical data
