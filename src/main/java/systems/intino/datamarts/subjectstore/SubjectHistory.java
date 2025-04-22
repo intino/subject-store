@@ -26,9 +26,9 @@ public class SubjectHistory implements AutoCloseable {
 	private final TagSet tagSet;
 	private final Timeline timeline;
 
-	public SubjectHistory(String subject, String storage) {
+	public SubjectHistory(String subject, String jdbcUrl) {
 		this.subject = subject;
-		this.registry = new SqlHistoryRegistry(subject, storage);
+		this.registry = new SqlHistoryRegistry(subject, jdbcUrl);
 		this.tagSet = new TagSet(registry.tags());
 		this.timeline = new Timeline(registry.instants());
 	}

@@ -7,8 +7,8 @@ import java.util.List;
 public class SubjectStore implements AutoCloseable {
 	private final SubjectIndex index;
 
-	public SubjectStore(String storage) {
-		this.index = new SubjectIndex(storage);
+	public SubjectStore(String jdbcUrl) {
+		this.index = new SubjectIndex(jdbcUrl);
 	}
 
 	public boolean has(String identifier) {

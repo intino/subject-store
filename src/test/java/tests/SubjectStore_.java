@@ -178,25 +178,6 @@ public class SubjectStore_ {
 	}
 
 
-	@Test
-	public void name() {
-		try (SubjectStore store = new SubjectStore("jdbc:sqlite:buildings.iss")) {
-			System.out.println(store.has("cabildo", "building"));
-			store.create("cabildo", "building")
-					.index()
-					.set("postal-code", "35011")
-					.put("email", "1")
-					.put("email", "2")
-					.set("city", "lpggc")
-					.terminate();
-			Subject cabildo = store.open("cabildo", "building");
-			String email = cabildo.get("email", "\n");
-			System.out.println(email);
-			cabildo.drop();
-		}
-	}
-
-
 	private int toNumber(String value) {
 		return Integer.parseInt(value);
 	}

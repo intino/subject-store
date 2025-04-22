@@ -27,12 +27,12 @@ public class SubjectIndex implements AutoCloseable {
 	private final Lookup<Term> terms;
 	private final Context context;
 
-	public SubjectIndex(String storage) {
-		this.storage = storage;
-		this.registry = new SqlIndexRegistry(storage);
+	public SubjectIndex(String jdbcUrl) {
+		this.storage = jdbcUrl;
+		this.registry = new SqlIndexRegistry(jdbcUrl);
 		this.subjects = new Lookup<>(registry.subjects(), Subject::of, this::insert);
 		this.terms = new Lookup<>(registry.terms(), Term::of, this::insert);
-		this.context = context();
+		this.context = createContext();
 	}
 
 	public boolean has(String name, String type) {
@@ -458,7 +458,7 @@ public class SubjectIndex implements AutoCloseable {
 		}
 	}
 
-	private Context context() {
+	private Context createContext() {
 		return new Context() {
 
 			@Override
@@ -466,7 +466,7 @@ public class SubjectIndex implements AutoCloseable {
 				return subjects.stream()
 						.filter(s -> s.parent().equals(subject))
 						.filter(s -> types.isEmpty() || types.contains(s.type()))
-						.map(s->wrap(s))
+						.map(s -> wrap(s))
 						.toList();
 			}
 
@@ -546,13 +546,11 @@ public class SubjectIndex implements AutoCloseable {
 	}
 
 	private Stream<Subject> toSubjects(List<Integer> subjects) {
-		return subjects.stream()
-				.map(this::toSubject)
-				.map(this::wrap);
+		return subjects.stream().map(this::toSubject);
 	}
 
 	private Subject toSubject(int subject) {
-		return this.subjects.get(subject);
+		return wrap(this.subjects.get(subject));
 	}
 
 	public Batch batch() {
