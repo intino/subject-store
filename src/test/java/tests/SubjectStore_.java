@@ -82,8 +82,6 @@ public class SubjectStore_ {
 		}
 	}
 
-	//TODO
-
 	public void should_create_views() throws IOException {
 		File file = File.createTempFile("xxx", ".iss");
 		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
