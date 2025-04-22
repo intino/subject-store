@@ -5,11 +5,9 @@ import systems.intino.datamarts.subjectstore.SubjectHistoryView;
 import systems.intino.datamarts.subjectstore.SubjectIndexView;
 import systems.intino.datamarts.subjectstore.SubjectStore;
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.model.Term;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,17 +26,15 @@ public class SubjectStore_ {
 			assertThat(building.children().type("detail").where("name").contains("top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
 			assertThat(building.children().type("detail").with("name", "At the Top").collect()).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
 			assertThat(building.children().type("detail").with("name", "At the Top").isRoot().collect()).isEmpty();
-			assertThat(building.children().type("detail").that(s1 -> s1.children().size() == 0).collect().size()).isEqualTo(2);
-			assertThat(building.children().type("detail").that(s1 -> s1.children().size() > 0).collect().size()).isEqualTo(0);
 			assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
 
 			assertThat(store.subjects().collect().size()).isEqualTo(9);
-			assertThat(store.subjects().roots().size()).isEqualTo(3);
+			assertThat(store.subjects().isRoot().size()).isEqualTo(3);
 			assertThat(store.subjects().type("building").collect().size()).isEqualTo(3);
 			assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
 			assertThat(store.subjects().type("building").with("continent", "Asia").collect().size()).isEqualTo(2);
-			assertThat(store.subjects().type("building").roots().size()).isEqualTo(3);
-			assertThat(store.subjects().type("detail").roots().size()).isEqualTo(0);
+			assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(3);
+			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
 			assertThat(store.subjects().type("detail").collect().size()).isEqualTo(6);
 			assertThat(store.subjects().type("patient").collect().size()).isEqualTo(0);
 		}
@@ -47,13 +43,13 @@ public class SubjectStore_ {
 			assertThat(store.has("alhambra", "building")).isTrue();
 			assertThat(store.has("torre del oro", "building")).isFalse();
 			assertThat(store.subjects().collect().size()).isEqualTo(9);
-			assertThat(store.subjects().roots().size()).isEqualTo(3);
+			assertThat(store.subjects().isRoot().size()).isEqualTo(3);
 			assertThat(store.subjects().type("building").collect().size()).isEqualTo(3);
 			assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
 			assertThat(store.subjects().type("building").with("continent", "Asia").collect().size()).isEqualTo(2);
-			assertThat(store.subjects().type("building").roots().size()).isEqualTo(3);
+			assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(3);
 			assertThat(store.subjects().type("detail").collect().size()).isEqualTo(6);
-			assertThat(store.subjects().type("detail").roots().size()).isEqualTo(0);
+			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
 			assertThat(store.subjects().type("patient").collect().size()).isEqualTo(0);
 
 			Subject building = store.subjects().type("building").with("city","Dubai").first();
@@ -61,30 +57,28 @@ public class SubjectStore_ {
 			assertThat(building.children().type("detail").where("name").contains("top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
 			assertThat(building.children().type("detail").with("name", "At the Top").collect()).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
 			assertThat(building.children().type("detail").with("name", "At the Top").isRoot().collect()).isEmpty();
-			assertThat(building.children().type("detail").that(s1 -> s1.children().size() == 0).collect().size()).isEqualTo(2);
-			assertThat(building.children().type("detail").that(s1 -> s1.children().size() > 0).collect().size()).isEqualTo(0);
 			assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
 
 			store.open("taj mahal", "building").drop();
 			assertThat(store.subjects().collect().size()).isEqualTo(6);
-			assertThat(store.subjects().roots().size()).isEqualTo(2);
+			assertThat(store.subjects().isRoot().size()).isEqualTo(2);
 			assertThat(store.subjects().type("building").collect().size()).isEqualTo(2);
 			assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
 			assertThat(store.subjects().type("building").with("continent", "Asia").collect().size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").roots().size()).isEqualTo(2);
+			assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(2);
 			assertThat(store.subjects().type("detail").collect().size()).isEqualTo(4);
-			assertThat(store.subjects().type("detail").roots().size()).isEqualTo(0);
+			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
 		}
 		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
 			assertThat(store.subjects().collect().size()).isEqualTo(6);
-			assertThat(store.subjects().roots().size()).isEqualTo(2);
+			assertThat(store.subjects().isRoot().size()).isEqualTo(2);
 			assertThat(store.subjects().type("building").collect().size()).isEqualTo(2);
 			assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
 			assertThat(store.subjects().type("building").where("continent").contains("Asia").size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").where("year").that(v-> toNumber(v) > 1900).size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").roots().size()).isEqualTo(2);
+			assertThat(store.subjects().type("building").where("year").matches(v-> toNumber(v) > 1900).size()).isEqualTo(1);
+			assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(2);
 			assertThat(store.subjects().type("detail").collect().size()).isEqualTo(4);
-			assertThat(store.subjects().type("detail").roots().size()).isEqualTo(0);
+			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
 		}
 	}
 

@@ -71,7 +71,7 @@ public class Subject_ {
 		return new Subject.Context() {
 
 			@Override
-			public List<Subject> children(Subject subject, Set<String> types) {
+			public List<Subject> children(Subject subject) {
 				return childrenOf(subject);
 			}
 

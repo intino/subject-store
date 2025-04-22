@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -34,14 +33,12 @@ public class SubjectIndex_ {
 	}
 
 	private static void check(SubjectIndex index)  {
-		assertThat(index.query().roots().first().toString()).isEqualTo("11.o");
-		assertThat(index.query().type("o").roots().first().toString()).isEqualTo("11.o");
-		assertThat(index.query().type("p").roots().isEmpty()).isTrue();
-		assertThat(index.query().with("name", "jose").isRoot().first().toString()).isEqualTo("11.o");
-		assertThat(index.query().without("name", "jose").isRoot().isEmpty()).isTrue();
-		assertThat(index.query().without("name", "mario").isRoot().first().toString()).isEqualTo("11.o");
-		assertThat(index.query().without("name", "mario").isRoot().that(a -> a.is("o")).first().toString()).isEqualTo("11.o");
-		assertThat(index.query().without("name", "mario").isRoot().that(a -> a.is("user")).isEmpty()).isTrue();
+		assertThat(index.subjects().isRoot().first().toString()).isEqualTo("11.o");
+		assertThat(index.subjects().type("o").isRoot().first().toString()).isEqualTo("11.o");
+		assertThat(index.subjects().type("p").isRoot().isEmpty()).isTrue();
+		assertThat(index.subjects().with("name", "jose").isRoot().first().toString()).isEqualTo("11.o");
+		assertThat(index.subjects().without("name", "jose").isRoot().isEmpty()).isTrue();
+		assertThat(index.subjects().without("name", "mario").isRoot().first().toString()).isEqualTo("11.o");
 	}
 
 	@Test
@@ -111,13 +108,15 @@ public class SubjectIndex_ {
 			s4.index().put("value", "4").terminate();
 			s4.drop();
 
-			assertThat(index.query().roots().collect().size()).isEqualTo(1);
-			assertThat(index.query().collect().size()).isEqualTo(3);
-			assertThat(index.query().type("o").collect().size()).isEqualTo(1);
-			assertThat(index.query().type("p").collect().size()).isEqualTo(1);
-			assertThat(index.query().type("p").first().identifier()).isEqualTo("1.o/12.p");
-			assertThat(index.query().roots().first()).isEqualTo(Subject.of("1.o"));
-			assertThat(index.query().roots().first().children().first()).isEqualTo(Subject.of("1.o/12.p"));
+			index.subjects().with("", "").where("").matches()
+
+			assertThat(index.subjects().isRoot().collect().size()).isEqualTo(1);
+			assertThat(index.subjects().collect().size()).isEqualTo(3);
+			assertThat(index.subjects().type("o").collect().size()).isEqualTo(1);
+			assertThat(index.subjects().type("p").collect().size()).isEqualTo(1);
+			assertThat(index.subjects().type("p").first().identifier()).isEqualTo("1.o/12.p");
+			assertThat(index.subjects().isRoot().first()).isEqualTo(Subject.of("1.o"));
+			assertThat(index.subjects().isRoot().first().children().first()).isEqualTo(Subject.of("1.o/12.p"));
 			assertThat(index.open("1.o").isNull()).isFalse();
 			assertThat(index.open("1","o").parent().isNull()).isTrue();
 			assertThat(index.open("2" ,"o")).isNull();
@@ -130,12 +129,12 @@ public class SubjectIndex_ {
 			assertThat(index.open("1.o/12.p").children().collect()).containsExactly(index.open("1.o/12.p/123.q"));
 			assertThat(index.open("1.o/12.p").children().first().identifier()).isEqualTo("1.o/12.p/123.q");
 			assertThat(index.open("1.o/12.p/123.q").parent().parent()).isEqualTo(Subject.of("1.o"));
-			assertThat(index.query().with("value", "1").isRoot().collect().size()).isEqualTo(1);
-			assertThat(index.query().type("o").with("value", "1").isRoot().collect().size()).isEqualTo(1);
-			assertThat(index.query().type("p").with("value", "1").isRoot().collect().size()).isEqualTo(0);
-			assertThat(index.query().type("p").with("value", "2").collect().size()).isEqualTo(1);
-			assertThat(index.query().type("p").with("value", "2").first()).isEqualTo(Subject.of("1.o/12.p"));
-			assertThat(index.query().with("value", "2").isRoot().collect().isEmpty()).isTrue();
+			assertThat(index.subjects().with("value", "1").isRoot().collect().size()).isEqualTo(1);
+			assertThat(index.subjects().type("o").with("value", "1").isRoot().collect().size()).isEqualTo(1);
+			assertThat(index.subjects().type("p").with("value", "1").isRoot().collect().size()).isEqualTo(0);
+			assertThat(index.subjects().type("p").with("value", "2").collect().size()).isEqualTo(1);
+			assertThat(index.subjects().type("p").with("value", "2").first()).isEqualTo(Subject.of("1.o/12.p"));
+			assertThat(index.subjects().with("value", "2").isRoot().collect().isEmpty()).isTrue();
 		}
 	}
 
@@ -153,11 +152,11 @@ public class SubjectIndex_ {
 					.put("team", "first")
 					.terminate();
 			index.open("11.o").drop();
-			assertThat(index.query().roots().first().toString()).isEqualTo("22.o");
+			assertThat(index.subjects().isRoot().first().toString()).isEqualTo("22.o");
 			assertThat(index.terms()).containsExactly(new Term("team","first"), new Term("name","luis"));
 		}
 		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
-			assertThat(index.query().roots().first().toString()).isEqualTo("22.o");
+			assertThat(index.subjects().isRoot().first().toString()).isEqualTo("22.o");
 		}
 	}
 
@@ -179,13 +178,13 @@ public class SubjectIndex_ {
 					.del("t","simulation")
 					.terminate();
 			assertThat(index.terms()).containsExactly(terms("description=simulation\nuser=mcaballero@gmail.com\nuser=josejuan@gmail.com"));
-			assertThat(index.query().roots().collect()).containsExactly(subjects("123456.model\n654321.model"));
-			assertThat(index.query().roots().collect()).containsExactly(subjects("123456.model\n654321.model"));
-			assertThat(index.query().with("user","mcaballero@gmail.com").isRoot().collect()).containsExactly(subjects("123456.model\n654321.model"));
-			assertThat(index.query().with("description","simulation").isRoot().collect()).containsExactly(subjects("123456.model"));
-			assertThat(index.query().with("user", "josejuan@gmail.com").isRoot().collect()).containsExactly(subjects("654321.model"));
-			assertThat(index.query().without("description","simulation").isRoot().collect()).containsExactly(subjects("654321.model"));
-			assertThat(index.query().without("user", "josejuan@gmail.com").isRoot().collect()).containsExactly(subjects("123456.model"));
+			assertThat(index.subjects().isRoot().collect()).containsExactly(subjects("123456.model\n654321.model"));
+			assertThat(index.subjects().isRoot().collect()).containsExactly(subjects("123456.model\n654321.model"));
+			assertThat(index.subjects().with("user","mcaballero@gmail.com").isRoot().collect()).containsExactly(subjects("123456.model\n654321.model"));
+			assertThat(index.subjects().with("description","simulation").isRoot().collect()).containsExactly(subjects("123456.model"));
+			assertThat(index.subjects().with("user", "josejuan@gmail.com").isRoot().collect()).containsExactly(subjects("654321.model"));
+			assertThat(index.subjects().without("description","simulation").isRoot().collect()).containsExactly(subjects("654321.model"));
+			assertThat(index.subjects().without("user", "josejuan@gmail.com").isRoot().collect()).containsExactly(subjects("123456.model"));
 		}
 	}
 
@@ -250,13 +249,13 @@ public class SubjectIndex_ {
 			index.create("123456", "model").index()
 					.del("team", "ulpgc")
 					.terminate();
-			assertThat(index.query().where("team", "project").contains("ulpgc es")).containsExactly(subjects("123456.model"));
-			assertThat(index.query().where("description").contains("sim")).containsExactly(subjects("123456.model\n654321.model"));
-			assertThat(index.query().where("description").contains("xxx")).containsExactly(subjects(""));
-			assertThat(index.query().where("team").contains("ulpgc")).containsExactly(new Subject("123456.model"));
-			assertThat(index.query().where("access").accepts("jose@gmail.com")).isEmpty();
-			assertThat(index.query().where("access").accepts("jose@ulpgc.es")).containsExactly(subjects("123456.model"));
-			assertThat(index.query().where("description", "user").contains("gmail")).containsExactly(subjects("123456.model\n654321.model"));
+			assertThat(index.subjects().where("team", "project").contains("ulpgc es")).containsExactly(subjects("123456.model"));
+			assertThat(index.subjects().where("description").contains("sim")).containsExactly(subjects("123456.model\n654321.model"));
+			assertThat(index.subjects().where("description").contains("xxx")).containsExactly(subjects(""));
+			assertThat(index.subjects().where("team").contains("ulpgc")).containsExactly(new Subject("123456.model"));
+			assertThat(index.subjects().where("access").accepts("jose@gmail.com")).isEmpty();
+			assertThat(index.subjects().where("access").accepts("jose@ulpgc.es")).containsExactly(subjects("123456.model"));
+			assertThat(index.subjects().where("description", "user").contains("gmail")).containsExactly(subjects("123456.model\n654321.model"));
 		}
 	}
 
@@ -299,7 +298,7 @@ public class SubjectIndex_ {
 			assertThat(index.open("P001.model").children().collect()).hasSize(1);
 			assertThat(index.open("P001.model").children().first().name()).isEqualTo("E002");
 
-			assertThat(index.query().type("model").with("name", "AI Research").collect()).contains(subject("P001.model"));
+			assertThat(index.subjects().type("model").with("name", "AI Research").collect()).contains(subject("P001.model"));
 		}
 	}
 
@@ -341,7 +340,7 @@ public class SubjectIndex_ {
 					.set("status", "running")
 					.terminate();
 
-			assertThat(index.query().collect().size()).isEqualTo(125);
+			assertThat(index.subjects().collect().size()).isEqualTo(125);
 			assertThat(index.terms().size()).isEqualTo(53);
 			assertThat(index.open("P001.model").terms()).contains(new Term("status","running"));
 			assertThat(index.open("P001.model").terms()).doesNotContain(new Term("lead","user1@example.com"));
@@ -352,7 +351,7 @@ public class SubjectIndex_ {
 		}
 		try (SubjectIndex index = new SubjectIndex(Storages.in(file))) {
 			assertThat(index.terms().size()).isEqualTo(53);
-			assertThat(index.query().collect().size()).isEqualTo(125);
+			assertThat(index.subjects().collect().size()).isEqualTo(125);
 			assertThat(index.open("P001.model").terms()).contains(new Term("status","running"));
 			assertThat(index.open("P001.model").terms()).doesNotContain(new Term("lead","user1@example.com"));
 			assertThat(index.open("P001.model").terms()).contains(new Term("lead","alice@example.com"));
@@ -364,20 +363,9 @@ public class SubjectIndex_ {
 
 	@Test
 	public void name() throws Exception {
-		try (SubjectIndex index = new SubjectIndex("jdbc:sqlite:index.iss")) {
-			List<Subject> collect = index.query()
-					.type("model")
-					.with("is-private", "true")
-					.without("is-template", "true")
-					.collect();
-			System.out.println(collect.size());
-			for (Subject subject : collect) {
-				System.out.println(subject);
-				for (Term term : subject.terms()) {
-					System.out.println(" " + term);
-				}
-				System.out.println();
-			}
+		File file = File.createTempFile("items", ".inx");
+		try (SubjectIndex index = new SubjectIndex(Storages.in(file)).restore(inputStream())) {
+			index.subjects().with("","").where("dsl").matches(v->v.startsWith(""));
 		}
 	}
 

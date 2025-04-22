@@ -36,7 +36,7 @@ public class SubjectStore implements AutoCloseable {
 	}
 
 	public SubjectQuery subjects() {
-		return index.query();
+		return index.subjects();
 	}
 
 	@Override

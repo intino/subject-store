@@ -6,7 +6,6 @@ import systems.intino.datamarts.subjectstore.SubjectQuery;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static systems.intino.datamarts.subjectstore.model.PatternFactory.pattern;
 
@@ -149,7 +148,7 @@ public final class Subject {
 
 	private SubjectQuery query() {
 		return new SubjectQuery() {
-			private final Set<String> types = new HashSet<>();
+			private final List<Predicate<Subject>> conditions = new ArrayList<>();
 
 			@Override
 			public int size() {
@@ -168,28 +167,30 @@ public final class Subject {
 
 			@Override
 			public SubjectQuery type(String... types) {
-				this.types.addAll(Arrays.asList(types));
+				return type(Set.of(types));
+			}
+
+			private SubjectQuery type(Set<String> types) {
+				conditions.add(s-> types.contains(s.type()));
 				return this;
 			}
 
 			@Override
-			public SubjectFilter roots() {
-				return subjectFilter(subjects()).that(Subject::isRoot);
+			public SubjectQuery isRoot() {
+				conditions.add(Subject::isRoot);
+				return this;
 			}
 
 			@Override
-			public SubjectFilter with(String tag, String value) {
-				return subjectFilter(subjects()).that(contains(tag, value));
+			public SubjectQuery with(String tag, String value) {
+				conditions.add(contains(tag, value));
+				return this;
 			}
 
 			@Override
-			public SubjectFilter without(String tag, String value) {
-				return subjectFilter(subjects()).that(notContains(tag, value));
-			}
-
-			@Override
-			public SubjectFilter that(Predicate<Subject> predicate) {
-				return subjectFilter(subjects()).that(predicate);
+			public SubjectQuery without(String tag, String value) {
+				conditions.add(notContains(tag, value));
+				return this;
 			}
 
 			@Override
@@ -198,8 +199,16 @@ public final class Subject {
 			}
 
 			private List<Subject> subjects() {
-				return context.children(Subject.this, types);
+				return context.children(Subject.this)
+						.stream()
+						.filter(c->conditions().test(c))
+						.toList();
 			}
+
+			private Predicate<Subject> conditions() {
+				return conditions.stream().reduce(x -> true, Predicate::and);
+			}
+
 		};
 	}
 
@@ -219,74 +228,21 @@ public final class Subject {
 		return notContains(new Term(tag, value));
 	}
 
-	private SubjectQuery.SubjectFilter subjectFilter(List<Subject> subjects) {
-		return new SubjectQuery.SubjectFilter() {
-			private final List<Predicate<Subject>> conditions = new ArrayList<>();
-
-			@Override
-			public int size() {
-				return (int) subjectStream().count();
-			}
-
-			@Override
-			public Subject first() {
-				return subjectStream().findFirst().orElse(null);
-			}
-
-			@Override
-			public List<Subject> collect() {
-				return subjectStream().toList();
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter isRoot() {
-				conditions.add(Subject::isRoot);
-				return this;
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter with(Term term) {
-				conditions.add(contains(term));
-				return this;
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter without(Term term) {
-				conditions.add(notContains(term));
-				return this;
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter that(Predicate<Subject> condition) {
-				conditions.add(condition);
-				return this;
-			}
-
-			private Predicate<Subject> conditions() {
-				return conditions.stream().reduce(x -> true, Predicate::and);
-			}
-
-			private Stream<Subject> subjectStream() {
-				return subjects.stream().filter(conditions());
-			}
-		};
-	}
-
 	private SubjectQuery.AttributeFilter attributeFilter(List<Subject> subjects) {
 		return new SubjectQuery.AttributeFilter() {
 
 			@Override
 			public List<Subject> contains(String value) {
-				return that(v -> v.toLowerCase().contains(value.toLowerCase()));
+				return matches(v -> v.toLowerCase().contains(value.toLowerCase()));
 			}
 
 			@Override
 			public List<Subject> accepts(String value) {
-				return that(t -> pattern(t).matcher(value).matches());
+				return matches(t -> pattern(t).matcher(value).matches());
 			}
 
 			@Override
-			public List<Subject> that(Predicate<String> predicate) {
+			public List<Subject> matches(Predicate<String> predicate) {
 				return subjects.stream()
 						.filter(s -> anyMatch(predicate, s.terms()))
 						.toList();
@@ -332,7 +288,7 @@ public final class Subject {
 	public interface Context {
 		Context Null = nullContext();
 
-		List<Subject> children(Subject subject, Set<String> types);
+		List<Subject> children(Subject subject);
 
 		List<Term> terms(Subject subject);
 
@@ -387,7 +343,7 @@ public final class Subject {
 		return new Context() {
 
 			@Override
-			public List<Subject> children(Subject subject, Set<String> types) {
+			public List<Subject> children(Subject subject) {
 				return List.of();
 			}
 

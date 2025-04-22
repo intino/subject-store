@@ -63,9 +63,11 @@ public class SubjectIndex implements AutoCloseable {
 		return terms.stream().toList();
 	}
 
-	public SubjectQuery query() {
+	public SubjectQuery subjects() {
 		return new SubjectQuery() {
 			private final Set<String> types = new HashSet<>();
+			private final List<Integer> tags = new ArrayList<>();
+			private final List<Predicate<Integer>> conditions = new ArrayList<>();
 
 			@Override
 			public int size() {
@@ -79,7 +81,9 @@ public class SubjectIndex implements AutoCloseable {
 
 			@Override
 			public List<Subject> collect() {
-				return subjectFilter(types).collect();
+				return candidates().stream()
+						.map(i->toSubject(i))
+						.toList();
 			}
 
 			@Override
@@ -89,30 +93,120 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			@Override
-			public SubjectFilter roots() {
-				return subjectFilter(types).isRoot();
+			public SubjectQuery with(String tag, String value) {
+				Term term = new Term(tag, value);
+				if (!terms.contains(term)) return SubjectQuery.Empty;
+				tags.add(terms.id(term));
+				return this;
 			}
 
 			@Override
-			public SubjectFilter with(String tag, String value) {
-				return subjectFilter(types).with(tag, value);
+			public SubjectQuery without(String tag, String value) {
+				Term term = new Term(tag, value);
+				if (terms.contains(term)) tags.add(-terms.id(term));
+				return this;
 			}
 
 			@Override
-			public SubjectFilter without(String tag, String value) {
-				return subjectFilter(types).without(tag, value);
-			}
-
-			@Override
-			public SubjectFilter that(Predicate<Subject> predicate) {
-				return subjectFilter(types).that(predicate);
+			public SubjectQuery isRoot() {
+				conditions.add(i->toSubject(i).isRoot());
+				return this;
 			}
 
 			@Override
 			public AttributeFilter where(String... tags) {
-				return attributeFilter(types, Set.of(tags));
+				return attributeFilter(candidates(), Set.of(tags));
 			}
-		};	}
+
+			private List<Integer> candidates() {
+				List<Integer> candidates = new ArrayList<>(subjectsWith(types));
+				candidates.retainAll(subjectsWithTags(candidates));
+				candidates.retainAll(subjectsWithConditions(candidates));
+				return candidates;
+			}
+
+			private List<Integer> subjectsWithConditions(List<Integer> candidates) {
+				return conditions.isEmpty() ? candidates : candidates.stream().filter(conditions()).toList();
+			}
+
+			private List<Integer> subjectsWithTags(List<Integer> candidates) {
+				return tags.isEmpty() ? candidates : registry.subjectsWithAll(tags);
+			}
+
+			private Predicate<Integer> conditions() {
+				return conditions.stream().reduce(x -> true, Predicate::and);
+			}
+		};
+	}
+
+	private SubjectQuery.AttributeFilter attributeFilter(List<Integer> candidates, Set<String> tags) {
+		return new SubjectQuery.AttributeFilter() {
+
+			@Override
+			public List<Subject> contains(String value) {
+				String[] values = value.split(" ");
+				return subjectsWith(termsWith(values));
+			}
+
+			@Override
+			public List<Subject> accepts(String value) {
+				return subjectsWith(termsAcceptedBy(value));
+			}
+
+			@Override
+			public List<Subject> matches(Predicate<String> predicate) {
+				return subjectsWith(termsMatchedBy(predicate));
+			}
+
+			private List<Integer> termsWith(String[] values) {
+				List<List<Integer>> lists = Arrays.stream(values)
+						.filter(v -> !v.isEmpty())
+						.map(this::termsContaining)
+						.collect(Collectors.toList());
+				return join(lists);
+			}
+
+			private static List<Integer> join(List<List<Integer>> lists) {
+				if (lists.isEmpty()) return List.of();
+				Set<Integer> join = new HashSet<>(lists.getFirst());
+				IntStream.range(1, lists.size())
+						.mapToObj(lists::get)
+						.forEach(join::retainAll);
+				return new ArrayList<>(join);
+			}
+
+			private List<Subject> subjectsWith(List<Integer> terms) {
+				List<Integer> subjects = terms.isEmpty() ? List.of() : registry.subjectsWithAny(terms);
+				candidates.retainAll(subjects);
+				return toSubjects(candidates);
+			}
+
+			private List<Integer> termsAcceptedBy(String value) {
+				return terms(tags)
+						.filter(t -> pattern(t.value()).matcher(value).matches())
+						.map(terms::id)
+						.toList();
+			}
+
+			private List<Integer> termsMatchedBy(Predicate<String> predicate) {
+				return terms(tags)
+						.filter(t->predicate.test(t.value()))
+						.map(terms::id)
+						.toList();
+			}
+
+			private List<Integer> termsContaining(String value) {
+				return terms(tags)
+						.filter(t -> t.value().contains(value))
+						.map(terms::id)
+						.toList();
+			}
+
+			private Stream<Term> terms(Set<String> tags) {
+				return terms.stream().filter(t -> tags.contains(t.tag()));
+			}
+		};
+	}
 
 	public Subject create(String name, String type) {
 		return create(new Subject(name, type));
@@ -255,175 +349,6 @@ public class SubjectIndex implements AutoCloseable {
 		}
 	}
 
-	private static final SubjectQuery.SubjectFilter EmptyQuery = emptyQuery();
-	private static SubjectQuery.SubjectFilter emptyQuery() {
-		return new SubjectQuery.SubjectFilter() {
-			@Override
-			public int size() {
-				return 0;
-			}
-
-			@Override
-			public Subject first() {
-				return null;
-			}
-
-			@Override
-			public List<Subject> collect() {
-				return List.of();
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter with(Term term) {
-				return this;
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter without(Term term) {
-				return this;
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter that(Predicate<Subject> predicate) {
-				return this;
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter isRoot() {
-				return this;
-			}
-		};
-	}
-
-	private SubjectQuery.SubjectFilter subjectFilter(Set<String> types) {
-		return subjectFilter(new ArrayList<>(subjectsWith(types)));
-	}
-
-	private SubjectQuery.SubjectFilter subjectFilter(List<Integer> candidates) {
-		return new SubjectQuery.SubjectFilter() {
-			private final List<Integer> conditions = new ArrayList<>();
-
-			@Override
-			public int size() {
-				return (int) subjectStream().count();
-			}
-
-			@Override
-			public Subject first() {
-				return subjectStream().findFirst().orElse(null);
-			}
-
-			@Override
-			public List<Subject> collect() {
-				return subjectStream().toList();
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter isRoot() {
-				return that(Subject::isRoot);
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter that(Predicate<Subject> predicate) {
-				candidates.removeIf(s -> !predicate.test(toSubject(s)));
-				return this;
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter with(Term term) {
-				if (!terms.contains(term)) return EmptyQuery;
-				conditions.add(terms.id(term));
-				return this;
-			}
-
-			@Override
-			public SubjectQuery.SubjectFilter without(Term term) {
-				if (terms.contains(term))
-					conditions.add(-terms.id(term));
-				return this;
-			}
-
-			private Stream<Subject> subjectStream() {
-				List<Integer> search = conditions.isEmpty() ? candidates : registry.subjectsWithAll(conditions);
-				candidates.retainAll(search);
-				return toSubjects(candidates);
-			}
-
-		};
-	}
-
-	private SubjectQuery.AttributeFilter attributeFilter(Set<String> types, Set<String> tags) {
-		return new SubjectQuery.AttributeFilter() {
-			private final List<Integer> candidates = new ArrayList<>(subjectsWith(types));
-
-			@Override
-			public List<Subject> contains(String value) {
-				String[] values = value.split(" ");
-				return subjectSetWith(termsWith(values));
-			}
-
-			private List<Integer> termsWith(String[] values) {
-				List<List<Integer>> lists = Arrays.stream(values)
-						.filter(v -> !v.isEmpty())
-						.map(this::termsContaining)
-						.collect(Collectors.toList());
-				return join(lists);
-			}
-
-			private static List<Integer> join(List<List<Integer>> lists) {
-				if (lists.isEmpty()) return List.of();
-				Set<Integer> join = new HashSet<>(lists.getFirst());
-				IntStream.range(1, lists.size())
-						.mapToObj(lists::get)
-						.forEach(join::retainAll);
-				return new ArrayList<>(join);
-			}
-			@Override
-			public List<Subject> accepts(String value) {
-				List<Integer> terms = termsAcceptedBy(value);
-				return subjectSetWith(terms);
-			}
-
-			@Override
-			public List<Subject> that(Predicate<String> predicate) {
-				List<Integer> terms = termsMatchedBy(predicate);
-				return subjectSetWith(terms);
-			}
-
-			private List<Subject> subjectSetWith(List<Integer> terms) {
-				List<Integer> search = terms.isEmpty() ? List.of() : registry.subjectsWithAny(terms);
-				candidates.retainAll(search);
-				return toSubjects(candidates).toList();
-			}
-
-			private List<Integer> termsAcceptedBy(String value) {
-				return terms(tags)
-						.filter(t -> pattern(t.value()).matcher(value).matches())
-						.map(terms::id)
-						.toList();
-			}
-
-			private List<Integer> termsMatchedBy(Predicate<String> predicate) {
-				return terms(tags)
-						.filter(t->predicate.test(t.value()))
-						.map(terms::id)
-						.toList();
-			}
-
-			private List<Integer> termsContaining(String value) {
-				return terms(tags)
-						.filter(t -> t.value().contains(value))
-						.map(terms::id)
-						.toList();
-			}
-
-			private Stream<Term> terms(Set<String> keys) {
-				return terms.stream()
-						.filter(t -> keys.contains(t.tag()));
-			}
-		};
-	}
-
 	public Statements statements() {
 		return this::stamentIterator;
 	}
@@ -462,10 +387,9 @@ public class SubjectIndex implements AutoCloseable {
 		return new Context() {
 
 			@Override
-			public List<Subject> children(Subject subject, Set<String> types) {
+			public List<Subject> children(Subject subject) {
 				return subjects.stream()
 						.filter(s -> s.parent().equals(subject))
-						.filter(s -> types.isEmpty() || types.contains(s.type()))
 						.map(s -> wrap(s))
 						.toList();
 			}
@@ -545,8 +469,8 @@ public class SubjectIndex implements AutoCloseable {
 		return index;
 	}
 
-	private Stream<Subject> toSubjects(List<Integer> subjects) {
-		return subjects.stream().map(this::toSubject);
+	private List<Subject> toSubjects(List<Integer> subjects) {
+		return subjects.stream().map(this::toSubject).toList();
 	}
 
 	private Subject toSubject(int subject) {

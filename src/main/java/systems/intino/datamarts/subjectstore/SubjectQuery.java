@@ -1,13 +1,16 @@
 package systems.intino.datamarts.subjectstore;
 
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.model.Term;
 
 import java.util.List;
 import java.util.function.Predicate;
 
 public interface SubjectQuery {
+	SubjectQuery Empty = emptyQuery();
+
 	int size();
+
+	default boolean isEmpty() { return size() == 0; };
 
 	Subject first();
 
@@ -15,48 +18,83 @@ public interface SubjectQuery {
 
 	SubjectQuery type(String... types);
 
-	SubjectFilter roots();
+	SubjectQuery isRoot();
 
-	SubjectFilter with(String tag, String value);
+	SubjectQuery with(String tag, String value);
 
-	SubjectFilter without(String tag, String value);
-
-	SubjectFilter that(Predicate<Subject> predicate);
+	SubjectQuery without(String tag, String value);
 
 	AttributeFilter where(String... tags);
 
 	interface AttributeFilter {
+
+		AttributeFilter Empty = emptyFilter();
+
 		List<Subject> contains(String value);
 		List<Subject> accepts(String value);
-		List<Subject> that(Predicate<String> predicate);
+		List<Subject> matches(Predicate<String> predicate);
 	}
 
-	interface SubjectFilter {
-		int size();
+	static SubjectQuery emptyQuery() {
+		return new SubjectQuery() {
+			@Override
+			public int size() {
+				return 0;
+			}
 
-		Subject first();
+			@Override
+			public Subject first() {
+				return Subject.of("");
+			}
 
-		List<Subject> collect();
+			@Override
+			public List<Subject> collect() {
+				return List.of();
+			}
 
-		SubjectFilter isRoot();
+			@Override
+			public SubjectQuery type(String... types) {
+				return this;
+			}
 
-		SubjectFilter with(Term term);
+			@Override
+			public SubjectQuery isRoot() {
+				return this;
+			}
 
-		SubjectFilter without(Term term);
+			@Override
+			public SubjectQuery with(String tag, String value) {
+				return this;
+			}
 
-		SubjectFilter that(Predicate<Subject> predicate);
+			@Override
+			public SubjectQuery without(String tag, String value) {
+				return this;
+			}
 
-		default SubjectFilter with(String tag, String value) {
-			return with(new Term(tag, value));
-		}
+			@Override
+			public AttributeFilter where(String... tags) {
+				return AttributeFilter.Empty;
+			}
+		};
+	}
 
-		default SubjectFilter without(String tag, String value) {
-			return without(new Term(tag, value));
-		}
+	static AttributeFilter emptyFilter() {
+		return new AttributeFilter() {
+			@Override
+			public List<Subject> contains(String value) {
+				return List.of();
+			}
 
-		default boolean isEmpty() {
-			return size() == 0;
-		}
+			@Override
+			public List<Subject> accepts(String value) {
+				return List.of();
+			}
 
+			@Override
+			public List<Subject> matches(Predicate<String> predicate) {
+				return List.of();
+			}
+		};
 	}
 }
