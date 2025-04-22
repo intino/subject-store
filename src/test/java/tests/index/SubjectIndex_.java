@@ -108,7 +108,11 @@ public class SubjectIndex_ {
 			s4.index().put("value", "4").terminate();
 			s4.drop();
 
-			index.subjects().with("", "").where("").matches()
+			index.subjects()
+					.with("visibility", "private")
+					.with("owner", "34102340134112341")
+					.without("usage", "template")
+					.collect();
 
 			assertThat(index.subjects().isRoot().collect().size()).isEqualTo(1);
 			assertThat(index.subjects().collect().size()).isEqualTo(3);

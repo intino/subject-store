@@ -11,9 +11,9 @@ public class SqlIndexRegistry implements IndexRegistry {
 	private final Connection connection;
 	private final StatementProvider statementProvider;
 
-	public SqlIndexRegistry(String storage) {
+	public SqlIndexRegistry(String jdbcUrl) {
 		try {
-			this.connection = SqlStorage.create(storage);
+			this.connection = SqlConnection.get(jdbcUrl);
 			this.initTables();
 			this.statementProvider = new StatementProvider();
 		} catch (SQLException e) {

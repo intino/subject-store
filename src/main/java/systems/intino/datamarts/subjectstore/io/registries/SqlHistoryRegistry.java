@@ -21,12 +21,11 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 	private int feedCount;
 	private int current;
 
-
-	public SqlHistoryRegistry(String identifier, String storage) {
+	public SqlHistoryRegistry(String identifier, String jdbcUrl) {
 		try {
 			this.identifier = identifier;
-			this.connection = SqlStorage.create(storage);
-			this.shared = storage.startsWith("shared:");
+			this.connection = SqlConnection.get(jdbcUrl);
+			this.shared = jdbcUrl.startsWith("shared:");
 			this.id = idOf(identifier);
 			this.initTables();
 			this.statementProvider = new StatementProvider();

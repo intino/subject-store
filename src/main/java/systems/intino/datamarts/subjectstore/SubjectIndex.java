@@ -2,7 +2,7 @@ package systems.intino.datamarts.subjectstore;
 
 import systems.intino.datamarts.subjectstore.io.IndexRegistry;
 import systems.intino.datamarts.subjectstore.io.Statements;
-import systems.intino.datamarts.subjectstore.io.registries.SqlStorage;
+import systems.intino.datamarts.subjectstore.io.registries.SqlConnection;
 import systems.intino.datamarts.subjectstore.io.statements.DumpStatements;
 import systems.intino.datamarts.subjectstore.io.registries.SqlIndexRegistry;
 import systems.intino.datamarts.subjectstore.model.*;
@@ -431,7 +431,7 @@ public class SubjectIndex implements AutoCloseable {
 
 			@Override
 			public SubjectHistory history(Subject subject) {
-				return new SubjectHistory(subject.identifier(), SqlStorage.shared(storage));
+				return new SubjectHistory(subject.identifier(), SqlConnection.shared(storage));
 			}
 		};
 	}

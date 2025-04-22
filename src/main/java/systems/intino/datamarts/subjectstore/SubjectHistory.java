@@ -11,6 +11,7 @@ import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 
 import java.io.*;
+import java.sql.Connection;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;

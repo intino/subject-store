@@ -5,47 +5,43 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
-public class SqlStorage {
+public class SqlConnection {
 	private static final Map<String, Connection> connections = new HashMap<>();
 	private static final String SHARED = "shared:";
 
-
-	public static String shared(String storage) {
-		return SHARED + storage;
-	}
-
-	public static Connection create(String storage) {
-		try {
-			Connection connection = get(unwrap(storage));
-			return connection != null ? connection : register(unwrap(storage));
-		} catch (SQLException e) {
-			return null;
-		}
-	}
-
-	private static Connection register(String storage) {
-		Connection connection = init(storage);
-		connections.put(storage, connection);
+	public static Connection get(String jdbcUrl) {
+		String url = unwrap(jdbcUrl);
+		Connection connection = open(url);
+		connections.put(url, connection);
 		return connection;
 	}
 
-	private static Connection get(String storage) throws SQLException {
-		Connection connection = connections.get(unwrap(storage));
-		return connection != null && !connection.isClosed() ? connection : null;
-	}
-
-	private static Connection init(String storage) {
+	private static Connection open(String url)  {
 		try {
-			Connection connection = DriverManager.getConnection(storage);
-			connection.setAutoCommit(false);
-			return connection;
+			Connection connection = connections.get(url);
+			return isValid(connection) ? connection : create(url);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
+	private static Connection create(String url) throws SQLException {
+		Connection connection = DriverManager.getConnection(url);
+		connection.setAutoCommit(false);
+		return connection;
+	}
+
+	private static boolean isValid(Connection connection) throws SQLException {
+		return connection != null && !connection.isClosed();
+	}
+
 	private static String unwrap(String storage) {
 		return storage.startsWith(SHARED) ? storage.substring(SHARED.length()) : storage;
+	}
+
+	public static String shared(String jdbcUrl) {
+		return SHARED + jdbcUrl;
 	}
 }
