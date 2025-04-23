@@ -6,8 +6,9 @@ import systems.intino.datamarts.subjectstore.SubjectQuery;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static systems.intino.datamarts.subjectstore.model.PatternFactory.pattern;
+import static systems.intino.datamarts.subjectstore.helpers.PatternFactory.pattern;
 
 public final class Subject {
 	public static final String Any = "*";
@@ -20,8 +21,8 @@ public final class Subject {
 	}
 
 	public Subject(String identifier, Context context) {
-		this.identifier = identifier != null ? identifier.trim().replaceAll("\\s+/\\s+", "/") : null;;
-		this.context = context != null ? context : Context.Null;;
+		this.identifier = identifier != null ? identifier.trim().replaceAll("\\s+/\\s+", "/") : null;
+		this.context = context != null ? context : Context.Null;
 	}
 
 	public Subject(Subject subject, Context context) {
@@ -138,6 +139,10 @@ public final class Subject {
 		return context.update(this);
 	}
 
+	public boolean hasHistory() {
+		return context.hasHistory(this);
+	}
+
 	public SubjectHistory history() {
 		return context.history(this);
 	}
@@ -152,17 +157,27 @@ public final class Subject {
 
 			@Override
 			public int size() {
-				return subjects().size();
+				return (int) subjects().count();
+			}
+
+			@Override
+			public boolean isEmpty() {
+				return subjects().findAny().isEmpty();
 			}
 
 			@Override
 			public Subject first() {
-				return subjects().getFirst();
+				return subjects().findFirst().orElse(null);
+			}
+
+			@Override
+			public Stream<Subject> stream() {
+				return subjects();
 			}
 
 			@Override
 			public List<Subject> collect() {
-				return subjects();
+				return subjects().toList();
 			}
 
 			@Override
@@ -198,11 +213,10 @@ public final class Subject {
 				return attributeFilter(subjects());
 			}
 
-			private List<Subject> subjects() {
+			private Stream<Subject> subjects() {
 				return context.children(Subject.this)
 						.stream()
-						.filter(c->conditions().test(c))
-						.toList();
+						.filter(c->conditions().test(c));
 			}
 
 			private Predicate<Subject> conditions() {
@@ -228,7 +242,7 @@ public final class Subject {
 		return notContains(new Term(tag, value));
 	}
 
-	private SubjectQuery.AttributeFilter attributeFilter(List<Subject> subjects) {
+	private SubjectQuery.AttributeFilter attributeFilter(Stream<Subject> subjects) {
 		return new SubjectQuery.AttributeFilter() {
 
 			@Override
@@ -243,7 +257,7 @@ public final class Subject {
 
 			@Override
 			public List<Subject> matches(Predicate<String> predicate) {
-				return subjects.stream()
+				return subjects
 						.filter(s -> anyMatch(predicate, s.terms()))
 						.toList();
 			}
@@ -303,6 +317,8 @@ public final class Subject {
 		Updating update(Subject subject);
 
 		SubjectHistory history(Subject subject);
+
+		boolean hasHistory(Subject subject);
 	}
 
 	public interface Updating {
@@ -379,6 +395,11 @@ public final class Subject {
 			@Override
 			public SubjectHistory history(Subject subject) {
 				return null;
+			}
+
+			@Override
+			public boolean hasHistory(Subject subject) {
+				return false;
 			}
 		};
 	}

@@ -109,6 +109,11 @@ public class Subject_ {
 			public SubjectHistory history(Subject subject) {
 				return null;
 			}
+
+			@Override
+			public boolean hasHistory(Subject subject) {
+				return false;
+			}
 		};
 	}
 

@@ -133,6 +133,15 @@ public class SqlIndexRegistry implements IndexRegistry {
 		}
 	}
 
+	@Override
+	public boolean hasHistory(int id) {
+		try (ResultSet rs = connection.getMetaData().getTables(null, null, "s" + id + "_tags", null)) {
+			return rs.next();
+		} catch (SQLException e) {
+			return false;
+		}
+	}
+
 	private static Stream<String> streamOf(ResultSet rs) {
 		return Stream.generate(() -> readFrom(rs))
 				.takeWhile(Objects::nonNull)
@@ -141,10 +150,15 @@ public class SqlIndexRegistry implements IndexRegistry {
 
 	private static String readFrom(ResultSet rs) {
 		try {
-			return rs.next() ? rs.getString(1) + "\t" + rs.getString(2) : null;
+			return rs.next() ? rs.getString(1) + "\t" + split(rs.getString(2)) : null;
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private static String split(String str) throws SQLException {
+		String[] split = str.split("=",2);
+		return split[0] + "\t" + split[1];
 	}
 
 	private static void close(ResultSet rs) {

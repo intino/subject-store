@@ -11,9 +11,6 @@ import static java.time.ZoneOffset.UTC;
 import static java.time.temporal.ChronoUnit.*;
 
 public class TimeReferences {
-	public static final Instant Legacy = Instant.ofEpochMilli(-60000000000000000L);
-	public static final Instant BigBang = Instant.ofEpochMilli(-10000000000000000L);
-
 	public static Instant thisYear() {
 		return toInstant(ZonedDateTime.now(UTC).withMonth(1).withDayOfMonth(1));
 	}

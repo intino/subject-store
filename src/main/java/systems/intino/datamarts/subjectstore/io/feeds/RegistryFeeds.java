@@ -1,6 +1,5 @@
 package systems.intino.datamarts.subjectstore.io.feeds;
 
-import systems.intino.datamarts.subjectstore.io.Feeds;
 import systems.intino.datamarts.subjectstore.model.Feed;
 
 import java.time.Instant;
@@ -10,7 +9,7 @@ import java.util.stream.Stream;
 
 import static systems.intino.datamarts.subjectstore.io.HistoryRegistry.Row;
 
-public class RegistryFeeds implements Feeds {
+public class RegistryFeeds implements Iterable<Feed> {
 	private final Iterator<Row> iterator;
 	private final Function<Integer, String> tagNames;
 	private Row row;

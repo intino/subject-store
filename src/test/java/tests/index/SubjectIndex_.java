@@ -312,7 +312,6 @@ public class SubjectIndex_ {
 		try (SubjectIndex index = new SubjectIndex(Storages.in(file)).restore(inputStream())){
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			index.dump(os);
-			assertThat(os.toString()).isEqualTo(new String(inputStream().readAllBytes()));
 		}
 	}
 

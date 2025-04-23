@@ -28,4 +28,5 @@ public interface IndexRegistry extends AutoCloseable {
 
 	Stream<String> dump();
 
+	boolean hasHistory(int id);
 }

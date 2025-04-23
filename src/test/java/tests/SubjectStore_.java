@@ -6,8 +6,7 @@ import systems.intino.datamarts.subjectstore.SubjectIndexView;
 import systems.intino.datamarts.subjectstore.SubjectStore;
 import systems.intino.datamarts.subjectstore.model.Subject;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -20,45 +19,11 @@ public class SubjectStore_ {
 			assertThat(store.has("taj-mahal", "building")).isFalse();
 
 			createSubjects(store);
-			Subject building = store.open("burj khalifa", "building");
-
-			assertThat(building.children().type("detail").where("name").contains("Top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
-			assertThat(building.children().type("detail").where("name").contains("top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
-			assertThat(building.children().type("detail").with("name", "At the Top").collect()).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
-			assertThat(building.children().type("detail").with("name", "At the Top").isRoot().collect()).isEmpty();
-			assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
-
-			assertThat(store.subjects().collect().size()).isEqualTo(9);
-			assertThat(store.subjects().isRoot().size()).isEqualTo(3);
-			assertThat(store.subjects().type("building").collect().size()).isEqualTo(3);
-			assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").with("continent", "Asia").collect().size()).isEqualTo(2);
-			assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(3);
-			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
-			assertThat(store.subjects().type("detail").collect().size()).isEqualTo(6);
-			assertThat(store.subjects().type("patient").collect().size()).isEqualTo(0);
+			test1(store);
 		}
 
 		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
-			assertThat(store.has("alhambra", "building")).isTrue();
-			assertThat(store.has("torre del oro", "building")).isFalse();
-			assertThat(store.subjects().collect().size()).isEqualTo(9);
-			assertThat(store.subjects().isRoot().size()).isEqualTo(3);
-			assertThat(store.subjects().type("building").collect().size()).isEqualTo(3);
-			assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").with("continent", "Asia").collect().size()).isEqualTo(2);
-			assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(3);
-			assertThat(store.subjects().type("detail").collect().size()).isEqualTo(6);
-			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
-			assertThat(store.subjects().type("patient").collect().size()).isEqualTo(0);
-
-			Subject building = store.subjects().type("building").with("city","Dubai").first();
-			assertThat(building.children().type("detail").where("name").contains("Top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
-			assertThat(building.children().type("detail").where("name").contains("top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
-			assertThat(building.children().type("detail").with("name", "At the Top").collect()).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
-			assertThat(building.children().type("detail").with("name", "At the Top").isRoot().collect()).isEmpty();
-			assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
-
+			test2(store);
 			store.open("taj mahal", "building").drop();
 			assertThat(store.subjects().collect().size()).isEqualTo(6);
 			assertThat(store.subjects().isRoot().size()).isEqualTo(2);
@@ -70,16 +35,90 @@ public class SubjectStore_ {
 			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
 		}
 		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
-			assertThat(store.subjects().collect().size()).isEqualTo(6);
-			assertThat(store.subjects().isRoot().size()).isEqualTo(2);
-			assertThat(store.subjects().type("building").collect().size()).isEqualTo(2);
-			assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").where("continent").contains("Asia").size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").where("year").matches(v-> toNumber(v) > 1900).size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(2);
-			assertThat(store.subjects().type("detail").collect().size()).isEqualTo(4);
-			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
+			test3(store);
 		}
+	}
+
+	@Test
+	public void should_dump_and_restore() throws IOException {
+		File file = File.createTempFile("xxx", ".iss");
+		ByteArrayOutputStream iOS = new ByteArrayOutputStream();
+		ByteArrayOutputStream hOS = new ByteArrayOutputStream();
+		try (SubjectStore store = new SubjectStore(Storages.in(file))) {
+			createSubjects(store);
+			createHistory(store);
+			store.dumpIndex(iOS);
+			store.dumpHistories(hOS);
+		}
+		InputStream iIS = new ByteArrayInputStream(iOS.toByteArray());
+		InputStream hIS = new ByteArrayInputStream(hOS.toByteArray());
+		File file2 = File.createTempFile("xxx", ".iss");
+		try (SubjectStore store = new SubjectStore(Storages.in(file2)).restoreIndex(iIS).restoreHistories(hIS)) {
+			test1(store);
+			test2(store);
+			testHistory(store);
+		}
+	}
+
+	private static void test1(SubjectStore store) {
+		Subject building = store.open("burj khalifa", "building");
+
+		assertThat(building.children().type("detail").where("name").contains("Top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
+		assertThat(building.children().type("detail").where("name").contains("top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
+		assertThat(building.children().type("detail").with("name", "At the Top").collect()).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
+		assertThat(building.children().type("detail").with("name", "At the Top").isRoot().collect()).isEmpty();
+		assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
+
+		assertThat(store.subjects().collect().size()).isEqualTo(9);
+		assertThat(store.subjects().isRoot().size()).isEqualTo(3);
+		assertThat(store.subjects().type("building").collect().size()).isEqualTo(3);
+		assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
+		assertThat(store.subjects().type("building").with("continent", "Asia").collect().size()).isEqualTo(2);
+		assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(3);
+		assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
+		assertThat(store.subjects().type("detail").collect().size()).isEqualTo(6);
+	}
+
+	private static void test2(SubjectStore store) {
+		assertThat(store.has("alhambra", "building")).isTrue();
+		assertThat(store.has("torre del oro", "building")).isFalse();
+		assertThat(store.subjects().collect().size()).isEqualTo(9);
+		assertThat(store.subjects().isRoot().size()).isEqualTo(3);
+		assertThat(store.subjects().type("building").collect().size()).isEqualTo(3);
+		assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
+		assertThat(store.subjects().type("building").with("continent", "Asia").collect().size()).isEqualTo(2);
+		assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(3);
+		assertThat(store.subjects().type("detail").collect().size()).isEqualTo(6);
+		assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
+		assertThat(store.subjects().type("patient").collect().size()).isEqualTo(0);
+
+		Subject building = store.subjects().type("building").with("city","Dubai").first();
+		assertThat(building.children().type("detail").where("name").contains("Top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
+		assertThat(building.children().type("detail").where("name").contains("top")).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
+		assertThat(building.children().type("detail").with("name", "At the Top").collect()).containsExactly(store.open("burj khalifa.building/observation deck.detail"));
+		assertThat(building.children().type("detail").with("name", "At the Top").isRoot().collect()).isEmpty();
+		assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
+	}
+
+	private void test3(SubjectStore store) {
+		assertThat(store.subjects().collect().size()).isEqualTo(6);
+		assertThat(store.subjects().isRoot().size()).isEqualTo(2);
+		assertThat(store.subjects().type("building").collect().size()).isEqualTo(2);
+		assertThat(store.subjects().type("building").with("country", "Spain").collect().size()).isEqualTo(1);
+		assertThat(store.subjects().type("building").where("continent").contains("Asia").size()).isEqualTo(1);
+		assertThat(store.subjects().type("building").where("year").matches(v-> toNumber(v) > 1900).size()).isEqualTo(1);
+		assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(2);
+		assertThat(store.subjects().type("detail").collect().size()).isEqualTo(4);
+		assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
+	}
+
+	@SuppressWarnings("resource")
+	private void testHistory(SubjectStore store) {
+		for (Subject subject : store.subjects().collect()) {
+			assertThat(subject.history().query().number("visits").all().summary().count()).isEqualTo(1);
+			assertThat(subject.history().query().number("visits").all().summary().sum()).isEqualTo(10.0);
+		}
+
 	}
 
 	public void should_create_views() throws IOException {
@@ -107,6 +146,7 @@ public class SubjectStore_ {
 			assertThat(view.column("country").stats().categories()).containsExactly("United Arab Emirates", "Spain", "India");
 		}
 	}
+
 	private static void createSubjects(SubjectStore store) {
 		Subject s = store.create("taj-mahal", "building");
 		Subject taj = s.rename("taj mahal");
@@ -169,6 +209,15 @@ public class SubjectStore_ {
 				.terminate();
 	}
 
+	@SuppressWarnings("resource")
+	private void createHistory(SubjectStore store) {
+		for (Subject subject : store.subjects().collect()) {
+			subject.history()
+					.on("2025", "test")
+					.put("visits", 10)
+					.terminate();
+		}
+	}
 
 	private int toNumber(String value) {
 		return Integer.parseInt(value);

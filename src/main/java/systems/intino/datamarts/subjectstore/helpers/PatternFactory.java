@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.model;
+package systems.intino.datamarts.subjectstore.helpers;
 
 import java.util.HashMap;
 import java.util.Map;
