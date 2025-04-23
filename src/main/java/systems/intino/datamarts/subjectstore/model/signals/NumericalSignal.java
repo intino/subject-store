@@ -13,6 +13,7 @@ import java.util.Objects;
 
 public interface NumericalSignal extends Signal<Double> {
 	default double[] values() { return stream().mapToDouble(Point::value).toArray(); }
+	default Instant[] instants() { return stream().map(Point::instant).toArray(Instant[]::new); }
 	default NumericalSignal[] segments(TemporalAmount duration) { return splitBy(from(), to(), duration); }
 	default NumericalSignal[] segments(int number) { return segments(duration().dividedBy(number)); }
 	default Summary summary() { return Summary.of(this); }

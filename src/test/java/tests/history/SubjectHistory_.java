@@ -1,12 +1,15 @@
 package tests.history;
 
 import org.junit.Test;
+import systems.intino.datamarts.subjectstore.TimeSpan;
+import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.io.*;
 import java.time.Instant;
+import java.util.stream.Stream;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -105,6 +108,7 @@ public class SubjectHistory_ {
 		assertThat(history.tags()).containsExactly("Country", "Latitude", "Longitude");
 		assertThat(history.ss(0)).isEqualTo("UN:all-ports");
 		assertThat(history.current().number("Latitude")).isEqualTo(31.219832454);
+
 		assertThat(history.query().number("Latitude").get()).isEqualTo(get(0, now, 31.219832454));
 		assertThat(history.query().number("Longitude").get()).isEqualTo(get(0, now, 121.486998052));
 		assertThat(history.query().number("Longitude").get(today(), today(1)).values()).containsExactly(121.486998052);
@@ -112,6 +116,7 @@ public class SubjectHistory_ {
 		assertThat(history.query().text("Country").get()).isEqualTo(get(0, now, "China"));
 		assertThat(history.query().text("Country").get(today(), today(1)).count()).isEqualTo(1);
 		assertThat(history.query().text("Country").get(today(), today(1)).values()).containsExactly("China");
+		assertThat(history.query().text("Country").get(today(), today(1)).instants().length).isEqualTo(1);
 		assertThat(history.instants()).containsExactly(now);
 	}
 
@@ -178,6 +183,7 @@ public class SubjectHistory_ {
 		assertThat(history.query().number("Vessels").get(today(200), today(300)).isEmpty()).isTrue();
 		assertThat(history.query().number("Vessels").get(today(-200), today(-100)).isEmpty()).isTrue();
 		assertThat(history.query().number("Vessels").all().values()).containsExactly(1900L, 1910L, 1920L, 1930L, 1940L, 1950L, 1960L, 1970L, 1980L, 1990L);
+		assertThat(history.query().number("Vessels").all().instants().length).isEqualTo(10);
 		assertThat(history.query().text("State").all().values()).containsExactly("D", "E", "P", "O", "L", "A", "R", "I", "S", "E");
 		assertThat(history.query().text("State").all().distinct()).containsExactly("D", "E", "P", "O", "L", "A", "R", "I", "S");
 		assertThat(history.query().text("State").get()).isEqualTo(get(9, today(9), "E"));
