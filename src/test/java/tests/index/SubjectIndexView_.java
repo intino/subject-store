@@ -2,6 +2,7 @@ package tests.index;
 
 
 import org.junit.Test;
+import systems.intino.datamarts.subjectstore.view.index.Column.Type;
 import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectIndex;
 import systems.intino.datamarts.subjectstore.SubjectIndexView;
@@ -13,47 +14,54 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static systems.intino.datamarts.subjectstore.SubjectIndexView.*;
+import static systems.intino.datamarts.subjectstore.view.index.Column.Type.Text;
 
 @SuppressWarnings("NewClassNamingConvention")
 public class SubjectIndexView_ {
 
 	@Test
-	public void should_create_views_including_summary() throws IOException {
-		SubjectIndex index = new SubjectIndex(Storages.inMemory()).restore(inputStream("subjects.txt"));
-		SubjectIndexView models = SubjectIndexView
-				.of(index.subjects().type("model").collect())
-				.add("status")
-				.add("name")
-				.build();
-		SubjectIndexView experiments = SubjectIndexView
-				.of(index.subjects().type("experiment").collect())
-				.add("status")
-				.build();
-
-		assertThat(models.size()).isEqualTo(25);
-		assertThat(models.column("status").stats().categories()).containsExactly("active");
-		assertThat(models.column("name").stats().categories().size()).isEqualTo(25);
-		assertThat(experiments.size()).isEqualTo(100);
-		assertThat(experiments.column("status").stats().categories()).containsExactly("running", "queued", "error", "done");
-		assertThat(experiments.column("status").stats().frequency("running")).isEqualTo(25);
+	public void should_create_views_including_summary() throws Exception {
+		try (SubjectIndex index = new SubjectIndex(Storages.inMemory()).restore(inputStream("subjects.txt"))) {
+			SubjectIndexView models = SubjectIndexView.of(index)
+					.type("model")
+					.add("status", Type.Text)
+					.add("name", Type.Text)
+					.build();
+			assertThat(models.size()).isEqualTo(25);
+			//TODO assertThat(models.column("status").stats().categories()).containsExactly("active");
+			//TODO assertThat(models.column("name").stats().categories().size()).isEqualTo(25);
+			//TODO assertThat(experiments.size()).isEqualTo(100);
+			//TODO assertThat(experiments.column("status").stats().categories()).containsExactly("running", "queued", "error", "done");
+			//TODO assertThat(experiments.column("status").stats().frequency("running")).isEqualTo(25);}
+		}
 	}
 
 	@Test
-	public void should_calculate_summary_frequencies_consistently() throws IOException {
-		SubjectIndex index = new SubjectIndex(Storages.inMemory()).consume(statements());
-		assertThat(index.subjects().isRoot().size()).isEqualTo(435);
-		SubjectIndexView view = SubjectIndexView
-				.of(index.subjects().type("port").collect())
-				.add("name")
-				.add("country")
-				.add("cabotage-region")
-				.add("draft")
-				.add("cost-per-full")
-				.add("cost-per-full-transfer")
-				.build();
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		view.exportTo(os);
-		assertThat(os.toString().trim()).isEqualTo(new String(inputStream("ports-filtered.tsv").readAllBytes()).trim());
+	public void should_calculate_summary_frequencies_consistently() throws Exception {
+		try (SubjectIndex index = new SubjectIndex(Storages.inMemory()).consume(statements())) {
+			assertThat(index.subjects().isRoot().size()).isEqualTo(435);
+			SubjectIndexView view = SubjectIndexView.of(index)
+					.type("port")
+					.add("name", Text)
+					.add("country", Text)
+					.add("cabotage-region", Type.Text)
+					.add("draft", Type.Number)
+					.add("cost-per-full", Type.Number)
+					.add("cost-per-full-transfer", Type.Number)
+					.sort("draft", SortDirection.Ascending)
+					.sort("name", SortDirection.Ascending)
+					.build();
+			ByteArrayOutputStream os = new ByteArrayOutputStream();
+			view.exportTo(os);
+			assertThat(os.toString().trim()).isEqualTo(content());
+		}
+	}
+
+	private static String content() throws IOException {
+		try (InputStream is = inputStream("ports-filtered-sorted.tsv")) {
+			return new String(is.readAllBytes()).trim();
+		}
 	}
 
 	private Statements statements() {

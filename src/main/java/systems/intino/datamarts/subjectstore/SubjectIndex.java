@@ -7,7 +7,7 @@ import systems.intino.datamarts.subjectstore.io.statements.DumpStatements;
 import systems.intino.datamarts.subjectstore.io.registries.SqlIndexRegistry;
 import systems.intino.datamarts.subjectstore.model.*;
 import systems.intino.datamarts.subjectstore.model.Subject.Context;
-import systems.intino.datamarts.subjectstore.model.Subject.Updating;
+import systems.intino.datamarts.subjectstore.model.Subject.Indexing;
 
 import java.io.*;
 import java.util.*;
@@ -237,14 +237,14 @@ public class SubjectIndex implements AutoCloseable {
 		registry.commit();
 	}
 
-	private Updating update(Subject subject) {
-		return new Updating() {
+	private Indexing update(Subject subject) {
+		return new Indexing() {
 			private final int id = subjects.id(subject);
 			private final List<Integer> currentTerms = registry.fullTermsOf(id);
 			private final List<Integer> exclusiveTerms = registry.selfTermsOf(id);
 
 			@Override
-			public Updating set(Term term) {
+			public Indexing set(Term term) {
 				int[] candidateTerms = termsWith(term.tag());
 				return candidateTerms.length == 1 ?
 						exclusiveTerms.contains(candidateTerms[0]) ?
@@ -253,44 +253,44 @@ public class SubjectIndex implements AutoCloseable {
 						replaceTerms(term, candidateTerms);
 			}
 
-			private Updating modifyTerm(Term term, int id) {
+			private Indexing modifyTerm(Term term, int id) {
 				registry.setTerm(id, term.toString());
 				terms.set(id, term);
 				return this;
 			}
 
-			private Updating replaceTerm(Term term, int id) {
+			private Indexing replaceTerm(Term term, int id) {
 				registry.unlink(this.id, id);
 				return link(term);
 			}
 
-			private Updating replaceTerms(Term term, int[] candidateTerms) {
+			private Indexing replaceTerms(Term term, int[] candidateTerms) {
 				del(candidateTerms);
 				return link(term);
 			}
 
-			public Updating put(Term term) {
+			public Indexing put(Term term) {
 				return link(term);
 			}
 
-			private Updating link(Term term) {
+			private Indexing link(Term term) {
 				int id = terms.add(term);
 				registry.link(this.id, id);
 				return this;
 			}
 
 			@Override
-			public Updating del(String tag) {
+			public Indexing del(String tag) {
 				int[] candidateTerms = termsWith(tag);
 				return del(candidateTerms);
 			}
 
 			@Override
-			public Updating del(Term term) {
+			public Indexing del(Term term) {
 				return del(id(term));
 			}
 
-			private Updating del(int id) {
+			private Indexing del(int id) {
 				if (id < 0) return this;
 				registry.unlink(this.id, id);
 				if (exclusiveTerms.contains(id)) {
@@ -302,7 +302,7 @@ public class SubjectIndex implements AutoCloseable {
 				return this;
 			}
 
-			private Updating del(int[] terms) {
+			private Indexing del(int[] terms) {
 				for (int term : terms) del(term);
 				return this;
 			}
@@ -362,15 +362,15 @@ public class SubjectIndex implements AutoCloseable {
 
 	public SubjectIndex consume(Statements statements) {
 		Batch batch = batch();
-		for (Statement statement : statements)
-			batch.put(statement);
+		for (Triple triple : statements)
+			batch.put(triple);
 		batch.terminate();
 		return this;
 	}
 
 	public void dump(OutputStream os) throws IOException {
-		for (Statement statement : statements()) {
-			String str = statement.toString() + '\n';
+		for (Triple triple : statements()) {
+			String str = triple.toString() + '\n';
 			os.write(str.getBytes());
 		}
 	}
@@ -381,9 +381,9 @@ public class SubjectIndex implements AutoCloseable {
 		}
 	}
 
-	private Iterator<Statement> stamentIterator() {
+	private Iterator<Triple> stamentIterator() {
 		return registry.dump()
-				.map(Statement::new)
+				.map(Triple::new)
 				.iterator();
 	}
 
@@ -405,7 +405,9 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			private List<Term> toTerms(List<Integer> terms) {
-				return terms.stream().map(SubjectIndex.this.terms::get).toList();
+				return terms.stream()
+						.map(SubjectIndex.this.terms::get)
+						.toList();
 			}
 
 			@Override
@@ -424,7 +426,7 @@ public class SubjectIndex implements AutoCloseable {
 			}
 
 			@Override
-			public Updating update(Subject subject) {
+			public Indexing index(Subject subject) {
 				return SubjectIndex.this.update(subject);
 			}
 
@@ -512,8 +514,8 @@ public class SubjectIndex implements AutoCloseable {
 
 	public interface Batch {
 
-		default void put(Statement statement) {
-			put(statement.subject(), statement.term());
+		default void put(Triple triple) {
+			put(triple.subject(), triple.term());
 		}
 
 		void put(Subject subject, Term term);

@@ -1,15 +1,12 @@
 package tests.history;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.TimeSpan;
-import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 import tests.Storages;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.io.*;
 import java.time.Instant;
-import java.util.stream.Stream;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,9 +28,7 @@ public class SubjectHistory_ {
 			assertThat(history.typedName()).isEqualTo("123.patient");
 			assertThat(history.size()).isEqualTo(0);
 			assertThat(history.exists("field")).isFalse();
-			assertThat(history.current().number("field")).isNull();
-			assertThat(history.current().text("field")).isNull();
-			assertThat(history.query().text("field").get()).isNull();
+			assertThat(history.current().point("field")).isNull();
 			assertThat(history.instants()).isEmpty();
 		}
 		finally {
@@ -109,11 +104,10 @@ public class SubjectHistory_ {
 		assertThat(history.ss(0)).isEqualTo("UN:all-ports");
 		assertThat(history.current().number("Latitude")).isEqualTo(31.219832454);
 
-		assertThat(history.query().number("Latitude").get()).isEqualTo(get(0, now, 31.219832454));
-		assertThat(history.query().number("Longitude").get()).isEqualTo(get(0, now, 121.486998052));
+		assertThat(history.current().point("Latitude")).isEqualTo(get(0, now, 31.219832454));
+		assertThat(history.current().point("Longitude")).isEqualTo(get(0, now, 121.486998052));
 		assertThat(history.query().number("Longitude").get(today(), today(1)).values()).containsExactly(121.486998052);
-		assertThat(history.query().text("Country").get()).isEqualTo(get(0, now, "China"));
-		assertThat(history.query().text("Country").get()).isEqualTo(get(0, now, "China"));
+		assertThat(history.current().point("Country")).isEqualTo(get(0, now, "China"));
 		assertThat(history.query().text("Country").get(today(), today(1)).count()).isEqualTo(1);
 		assertThat(history.query().text("Country").get(today(), today(1)).values()).containsExactly("China");
 		assertThat(history.query().text("Country").get(today(), today(1)).instants().length).isEqualTo(1);
@@ -179,14 +173,14 @@ public class SubjectHistory_ {
 		assertThat(history.tags()).containsExactly("Vessels", "State");
 		assertThat(history.ss(0)).isEqualTo("AIS:movements-0");
 		assertThat(history.ss(9)).isEqualTo("AIS:movements-9");
-		assertThat(history.query().number("Vessels").get()).isEqualTo(get(9, today(9), 1990.0));
+		assertThat(history.current().number("Vessels")).isEqualTo(get(9, today(9), 1990.0).value());
 		assertThat(history.query().number("Vessels").get(today(200), today(300)).isEmpty()).isTrue();
 		assertThat(history.query().number("Vessels").get(today(-200), today(-100)).isEmpty()).isTrue();
 		assertThat(history.query().number("Vessels").all().values()).containsExactly(1900L, 1910L, 1920L, 1930L, 1940L, 1950L, 1960L, 1970L, 1980L, 1990L);
 		assertThat(history.query().number("Vessels").all().instants().length).isEqualTo(10);
 		assertThat(history.query().text("State").all().values()).containsExactly("D", "E", "P", "O", "L", "A", "R", "I", "S", "E");
 		assertThat(history.query().text("State").all().distinct()).containsExactly("D", "E", "P", "O", "L", "A", "R", "I", "S");
-		assertThat(history.query().text("State").get()).isEqualTo(get(9, today(9), "E"));
+		assertThat(history.current().point("State")).isEqualTo(get(9, today(9), "E"));
 		assertThat(history.query().text("State").get(today(0), today(10)).summary().mode()).isEqualTo("E");
 	}
 
@@ -246,11 +240,9 @@ public class SubjectHistory_ {
 		assertThat(history.type()).startsWith("patient");
 		assertThat(history.name()).isEqualTo("12345");
 		assertThat(history.current().number("hemoglobin")).isEqualTo(145.0);
-		Signal.Point<Number> actual = history.query().number("hemoglobin").get();
+		Signal.Point<?> actual = history.current().point("hemoglobin");
 		assertThat(actual.value()).isEqualTo(145.0);
 		assertThat(history.instants()).containsExactly(day.plus(-20, DAYS), day.plus(-5, DAYS), day.plus(-3, DAYS), day);
 	}
-
-	//TODO test de DROP
 
 }

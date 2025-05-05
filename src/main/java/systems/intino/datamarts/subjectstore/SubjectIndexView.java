@@ -1,9 +1,9 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.model.Statement;
+import systems.intino.datamarts.subjectstore.model.Triple;
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.view.Column;
 import systems.intino.datamarts.subjectstore.model.Term;
+import systems.intino.datamarts.subjectstore.view.index.Column;
 
 import java.io.*;
 import java.util.*;
@@ -11,26 +11,33 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
 
-public class SubjectIndexView implements Iterable<Column.StringColumn>  {
-	private final List<Subject> subjects;
-	private final List<String> tags;
+public class SubjectIndexView implements Iterable<Column>  {
+	private final SubjectIndex index;
+	private final List<Column> columns;
+	private final List<Sort> sorts;
+	private final List<Subject> subjects = new ArrayList<>();
+
+	public static Builder of(SubjectIndex index) {
+		return new Builder(index);
+	}
+
+	private SubjectIndexView(SubjectIndex index, List<Column> columns, List<Sort> sorts) {
+		this.index = index;
+		this.columns = columns;
+		this.sorts = sorts;
+	}
 
 	public static Builder of(List<Subject> subjects) {
-		return new Builder(subjects);
+		return new Builder(null);
 	}
 
-	private SubjectIndexView(List<Subject> subjects, List<String> tags) {
-		this.subjects = subjects;
-		this.tags = tags;
-	}
-
-	public Statement[] get(int index) {
+	public Triple[] get(int index) {
 		return statements(subjects.get(index));
 	}
 
-	public Statement[] get(int index, String column) {
+	public Triple[] get(int index, String column) {
 		Subject subject = subjects.get(index);
-		return statements(subject, column).toArray(Statement[]::new);
+		return statements(subject, column).toArray(Triple[]::new);
 	}
 
 	public int size() {
@@ -41,12 +48,12 @@ public class SubjectIndexView implements Iterable<Column.StringColumn>  {
 		return subjects.stream().map(Subject::identifier).toList();
 	}
 
-	public List<String> columns() {
-		return tags;
+	public List<Column> columns() {
+		return columns;
 	}
 
-	public Column.StringColumn column(String name) {
-		return new Column.StringColumn(name, valuesOf(name));
+	public Column column(String name) {
+		return columns.stream().filter(c->c.name().equals(name)).findFirst().orElse(null);
 	}
 
 	private String[] valuesOf(String key) {
@@ -57,26 +64,8 @@ public class SubjectIndexView implements Iterable<Column.StringColumn>  {
 	}
 
 	@Override
-	public Iterator<Column.StringColumn> iterator() {
-		return new Iterator<>() {
-			private final Iterator<String> iterator = tags.iterator();
-
-			@Override
-			public boolean hasNext() {
-				return iterator.hasNext();
-			}
-
-			@Override
-			public Column.StringColumn next() {
-				return column(iterator.next());
-			}
-		};
-	}
-
-	public void exportTo(File file) throws IOException {
-		try (OutputStream os = new FileOutputStream(file)) {
-			exportTo(os);
-		}
+	public Iterator<Column> iterator() {
+		return columns.iterator();
 	}
 
 	public void exportTo(OutputStream os) throws IOException {
@@ -89,23 +78,23 @@ public class SubjectIndexView implements Iterable<Column.StringColumn>  {
 		StringBuilder sb = new StringBuilder();
 		for (Subject subject : subjects) {
 			StringJoiner line = new StringJoiner("\t");
-			for (String column : columns())
-				line.add(value(subject, column));
+			for (Column column : columns())
+				line.add(value(subject, column.name()));
 			sb.append(line).append('\n');
 		}
 		return sb.toString();
 	}
 
-	private Statement[] statements(Subject subject) {
-		return tags.stream()
-				.flatMap(s -> statements(subject, s))
-				.toArray(Statement[]::new);
+	private Triple[] statements(Subject subject) {
+		return columns.stream()
+				.flatMap(s -> statements(subject, s.name()))
+				.toArray(Triple[]::new);
 	}
 
-	private Stream<Statement> statements(Subject subject, String tag) {
+	private Stream<Triple> statements(Subject subject, String tag) {
 		return termsOf(subject).stream()
 				.filter(term->term.is(tag))
-				.map(term->new Statement(subject, term));
+				.map(term->new Triple(subject, term));
 	}
 
 	private String value(Subject subject, String tag) {
@@ -121,23 +110,52 @@ public class SubjectIndexView implements Iterable<Column.StringColumn>  {
 	}
 
 	public static class Builder {
-		private final List<Subject> subjects;
-		private final List<String> tags;
+		private final SubjectIndex index;
+		private final List<String> types;
+		private final List<Column> columns;
+		private final List<Sort> sorts;
 
-		public Builder(List<Subject> subjects) {
-			this.subjects = subjects;
-			this.tags = new ArrayList<>();
+		public Builder(SubjectIndex index) {
+			this.index = index;
+			this.types = new ArrayList<>();
+			this.columns = new ArrayList<>();
+			this.sorts = new ArrayList<>();
 		}
 
-		public Builder add(String tag) {
-			tags.add(tag);
+		public Builder type(String type) {
+			types.add(type);
+			return this;
+		}
+
+		public Builder add(String tag, Column.Type type) {
+			columns.add(new Column() {
+				@Override
+				public String name() {
+					return tag;
+				}
+
+				@Override
+				public Type type() {
+					return type;
+				}
+			});
+			return this;
+		}
+
+		public Builder sort(String tag, SortDirection direction) {
+			sorts.add(new Sort(tag, direction));
 			return this;
 		}
 
 		public SubjectIndexView build() {
-			return new SubjectIndexView(subjects, tags);
+			return new SubjectIndexView(index, columns, sorts);
 		}
-
 	}
+
+	public enum SortDirection {
+		Ascending, Descending
+	}
+
+	public record Sort(String tag, SortDirection direction) {}
 
 }

@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.view.format.history;
+package systems.intino.datamarts.subjectstore.view.history.format.history;
 
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 
@@ -42,8 +42,8 @@ public class HistoryFormat implements Iterable<ColumnDefinition> {
 		return columnDefinitions;
 	}
 
-	public HistoryFormat add(String name, String definition, Filter... filters) {
-		ColumnDefinition columnDefinition = new ColumnDefinition(name, definition);
+	public HistoryFormat add(String name, String expression, Filter... filters) {
+		ColumnDefinition columnDefinition = new ColumnDefinition(name, expression);
 		Arrays.stream(filters).forEach(columnDefinition::add);
 		this.columnDefinitions.add(columnDefinition);
 		return this;

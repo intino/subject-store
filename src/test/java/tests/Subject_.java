@@ -81,7 +81,7 @@ public class Subject_ {
 			}
 
 			@Override
-			public Subject.Updating update(Subject subject) {
+			public Subject.Indexing index(Subject subject) {
 				return null;
 			}
 

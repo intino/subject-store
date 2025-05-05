@@ -7,15 +7,15 @@ import systems.intino.datamarts.subjectstore.calculator.model.vectors.DoubleVect
 import systems.intino.datamarts.subjectstore.calculator.model.vectors.StringVector;
 import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
-import systems.intino.datamarts.subjectstore.view.Column;
-import systems.intino.datamarts.subjectstore.view.Column.DoubleColumn;
-import systems.intino.datamarts.subjectstore.view.Column.StringColumn;
-import systems.intino.datamarts.subjectstore.view.format.history.ColumnDefinition;
-import systems.intino.datamarts.subjectstore.view.format.history.HistoryFormat;
+import systems.intino.datamarts.subjectstore.view.history.Column;
+import systems.intino.datamarts.subjectstore.view.history.Column.DoubleColumn;
+import systems.intino.datamarts.subjectstore.view.history.Column.StringColumn;
+import systems.intino.datamarts.subjectstore.view.history.format.history.ColumnDefinition;
+import systems.intino.datamarts.subjectstore.view.history.format.history.HistoryFormat;
 import systems.intino.datamarts.subjectstore.model.reducers.TextReducer;
 import systems.intino.datamarts.subjectstore.model.reducers.NumberReducer;
 import systems.intino.datamarts.subjectstore.model.reducers.TimeReducer;
-import systems.intino.datamarts.subjectstore.view.format.history.readers.YamlHistoryFormatReader;
+import systems.intino.datamarts.subjectstore.view.history.format.history.readers.YamlHistoryFormatReader;
 
 import java.io.*;
 import java.time.Instant;
@@ -105,10 +105,10 @@ public class SubjectHistoryView implements Iterable<Column> {
 
 	private Vector<?> calculate(ColumnDefinition columnDefinition) {
 		if (columnDefinition.isAlphanumeric()) {
-			return get(tagIn(columnDefinition.definition), TextReducer.of(fieldIn(columnDefinition.definition)));
+			return get(tagIn(columnDefinition.expression), TextReducer.of(fieldIn(columnDefinition.expression)));
 		}
 		else {
-			return filter(calculate(columnDefinition.definition), columnDefinition.filters);
+			return filter(calculate(columnDefinition.expression), columnDefinition.filters);
 		}
 	}
 
@@ -258,17 +258,29 @@ public class SubjectHistoryView implements Iterable<Column> {
 		}
 
 		public Builder from(String from) {
-			this.from = TimeParser.parseInstant(from);
+			return from(TimeParser.parseInstant(from));
+		}
+
+		public Builder from(Instant from) {
+			this.from = from;
 			return this;
 		}
 
 		public Builder to(String to) {
-			this.to = TimeParser.parseInstant(to);
+			return from(TimeParser.parseInstant(to));
+		}
+
+		public Builder to(Instant to) {
+			this.to = to;
 			return this;
 		}
 
 		public Builder duration(String duration) {
-			this.duration = TimeParser.parseDuration(duration);
+			return duration(TimeParser.parseDuration(duration));
+		}
+
+		public Builder duration(TemporalAmount duration) {
+			this.duration = duration;
 			return this;
 		}
 

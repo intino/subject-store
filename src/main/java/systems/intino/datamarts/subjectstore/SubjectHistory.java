@@ -6,12 +6,14 @@ import systems.intino.datamarts.subjectstore.io.feeds.DumpFeeds;
 import systems.intino.datamarts.subjectstore.io.HistoryRegistry;
 import systems.intino.datamarts.subjectstore.io.registries.SqlHistoryRegistry;
 import systems.intino.datamarts.subjectstore.model.*;
+import systems.intino.datamarts.subjectstore.model.Signal.Point;
 import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 
 import java.io.*;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Comparator.comparingInt;
@@ -80,17 +82,42 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	public Current current() {
+		return current(valuesOf(registry.current()));
+	}
+
+	private Current current(Map<String, Point<?>> points) {
 		return new Current() {
+
+			@Override
+			public Point<?> point(String tag) {
+				return points.get(tag);
+			}
+
 			@Override
 			public Number number(String tag) {
-				return currentNumber(tag);
+				return point(tag).value() instanceof Number v ? v : null;
 			}
 
 			@Override
 			public String text(String tag) {
-				return currentText(tag);
+				return point(tag).value() instanceof String v ? v : null;
 			}
 		};
+	}
+
+	private Map<String, Point<?>> valuesOf(Stream<Row> current) {
+		return current.collect(Collectors.toMap(this::tag, this::point));
+	}
+
+	private Point<?> point(Row row) {
+		String value = row.at(4).asString();
+		int feed = row.at(1).asInt();
+		Instant instant = timeline.get(feed);
+		return value == null ? new Point<>(feed, instant, row.at(3).asDouble()) : new Point<>(feed, instant, value);
+	}
+
+	private String tag(Row row) {
+		return tagSet.get(row.at(2).asInt());
 	}
 
 	public Query query() {
@@ -107,60 +134,30 @@ public class SubjectHistory implements AutoCloseable {
 		};
 	}
 
-	private Number currentNumber(String tag) {
-		Signal.Point<Number> current = query().number(tag).get();
-		return current != null ? current.value() : null;
-	}
-
-	private String currentText(String tag) {
-		Signal.Point<String> current = query().text(tag).get();
-		return current != null ? current.value() : null;
-	}
-
-	private Signal.Point<Number> readNumber(String tag) {
-		int feed = tagSet.lastUpdatingFeedOf(tag);
-		if (feed == -1) return null;
-		return new Signal.Point<>(
-				feed,
-				timeline.get(feed),
-				registry.getNumber(tagSet.get(tag), feed)
-		);
-	}
-
-	private List<Signal.Point<Double>> readNumbers(String tag, Instant from, Instant to) {
+	private List<Point<Double>> readNumbers(String tag, Instant from, Instant to) {
 		return readNumbers(registry.getNumbers(tagSet.get(tag), timeline.from(from), timeline.to(to)));
 	}
 
-	private List<Signal.Point<Double>> readNumbers(Stream<Row> records) {
+	private List<Point<Double>> readNumbers(Stream<Row> records) {
 		return records.map(this::readNumber).toList();
 	}
 
-	private Signal.Point<Double> readNumber(Row row) {
+	private Point<Double> readNumber(Row row) {
 		int feed = row.at(1).asInt();
-		return new Signal.Point<>(feed, timeline.get(feed), row.at(2).asDouble());
+		return new Point<>(feed, timeline.get(feed), row.at(2).asDouble());
 	}
 
-	private Signal.Point<String> readText(String tag) {
-		int feed = tagSet.lastUpdatingFeedOf(tag);
-		if (feed == -1) return null;
-		return new Signal.Point<>(
-				feed,
-				timeline.get(feed),
-				registry.getText(tagSet.get(tag), feed)
-		);
-	}
-
-	private List<Signal.Point<String>> readTexts(String tag, Instant from, Instant to) {
+	private List<Point<String>> readTexts(String tag, Instant from, Instant to) {
 		return readTexts(registry.getTexts(tagSet.get(tag), timeline.from(from), timeline.to(to)));
 	}
 
-	private List<Signal.Point<String>> readTexts(Stream<Row> records) {
+	private List<Point<String>> readTexts(Stream<Row> records) {
 		return records.map(this::readText).toList();
 	}
 
-	private Signal.Point<String> readText(Row row) {
+	private Point<String> readText(Row row) {
 		int feed = row.at(1).asInt();
-		return new Signal.Point<>(feed, timeline.get(feed), row.at(2).asString());
+		return new Point<>(feed, timeline.get(feed), row.at(2).asString());
 	}
 
 	public void dump(OutputStream os) throws IOException {
@@ -171,8 +168,7 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	public Iterable<Feed> feeds() {
-		Map<Integer, String> dictionary = tagSet.dictionary();
-		return new RegistryFeeds(registry.dump(), dictionary::get);
+		return new RegistryFeeds(registry.dump(), tagSet.labels::get);
 	}
 
 	public SubjectHistory restore(InputStream is) throws IOException {
@@ -222,7 +218,7 @@ public class SubjectHistory implements AutoCloseable {
 	public class NumericalQuery {
 		private final String tag;
 
-		public NumericalQuery(String tag) {
+		private NumericalQuery(String tag) {
 			this.tag = tag;
 		}
 
@@ -230,20 +226,16 @@ public class SubjectHistory implements AutoCloseable {
 			return get(first(), last());
 		}
 
-		public Signal.Point<Number> get() {
-			return readNumber(tag);
-		}
-
 		public NumericalSignal get(String from, String to) {
 			return get(parseInstant(from), parseInstant(to));
 		}
 
-		public NumericalSignal get(Instant from, Instant to) {
-			return new NumericalSignal.Raw(from, to, readNumbers(tag, from, to));
-		}
-
 		public NumericalSignal get(TimeSpan span) {
 			return get(span.from(), span.to());
+		}
+
+		public NumericalSignal get(Instant from, Instant to) {
+			return new NumericalSignal.Raw(from, to, readNumbers(tag, from, to));
 		}
 
 		@Override
@@ -253,15 +245,10 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	public class CategoricalQuery {
-
 		private final String tag;
 
-		public CategoricalQuery(String tag) {
+		private CategoricalQuery(String tag) {
 			this.tag = tag;
-		}
-
-		public Signal.Point<String> get() {
-			return readText(tag);
 		}
 
 		public CategoricalSignal all() {
@@ -413,10 +400,12 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	public static class TagSet {
-		private final Map<String, Integer> labels;
+		private final Map<String, Integer> ids;
+		private final Map<Integer, String> labels;
 		private final Map<Integer, Integer> lastUpdatingFeeds;
 
 		TagSet(Stream<Row> rows)  {
+			this.ids = new HashMap<>();
 			this.labels = new HashMap<>();
 			this.lastUpdatingFeeds = new HashMap<>();
 			this.init(rows);
@@ -431,19 +420,23 @@ public class SubjectHistory implements AutoCloseable {
 		}
 
 		int get(String tag) {
+			return ids.get(tag);
+		}
+
+		String get(int tag) {
 			return labels.get(tag);
 		}
 
 		List<String> tags() {
-			return labels.entrySet().stream()
+			return ids.entrySet().stream()
 					.filter(e->e.getValue() > 1)
 					.sorted(comparingInt(Map.Entry::getValue))
 					.map(Map.Entry::getKey)
 					.toList();
 		}
 		
-		private void init(Stream<Row> records) {
-			records.forEach(this::init);
+		private void init(Stream<Row> rows) {
+			rows.forEach(this::init);
 		}
 
 		private void init(Row row) {
@@ -455,14 +448,16 @@ public class SubjectHistory implements AutoCloseable {
 		}
 
 		private void init(int id, String label, int feed) {
-			labels.put(label, id);
+			ids.put(label, id);
+			labels.put(id, label);
 			lastUpdatingFeeds.put(id, feed);
 		}
 
 		private int add(String tag)  {
 			if (contains(tag)) return -1;
-			int index = labels.size();
-			labels.put(tag, index);
+			int index = ids.size();
+			ids.put(tag, index);
+			labels.put(index, tag);
 			return index;
 		}
 
@@ -471,15 +466,9 @@ public class SubjectHistory implements AutoCloseable {
 		}
 
 		public boolean contains(String tag) {
-			return labels.containsKey(tag);
+			return ids.containsKey(tag);
 		}
 
-		private Map<Integer, String> dictionary() {
-			Map<Integer, String> result = new HashMap<>();
-			for (String tag : labels.keySet())
-				result.put(get(tag), tag);
-			return result;
-		}
 	}
 
 	public static class Timeline {
@@ -559,6 +548,8 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	public interface Current {
+		Point<?> point(String tag);
+
 		Number number(String tag);
 		String text(String tag);
 	}

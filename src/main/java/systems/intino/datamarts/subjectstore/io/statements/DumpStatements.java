@@ -1,8 +1,7 @@
 package systems.intino.datamarts.subjectstore.io.statements;
 
 import systems.intino.datamarts.subjectstore.io.Statements;
-import systems.intino.datamarts.subjectstore.model.Statement;
-import systems.intino.datamarts.subjectstore.model.Term;
+import systems.intino.datamarts.subjectstore.model.Triple;
 
 import java.io.*;
 import java.util.Iterator;
@@ -16,9 +15,9 @@ public class DumpStatements implements Statements, Closeable {
 	}
 
 	@Override
-	public Iterator<Statement> iterator() {
+	public Iterator<Triple> iterator() {
 		return lines()
-				.map(Statement::new)
+				.map(Triple::new)
 				.iterator();
 	}
 

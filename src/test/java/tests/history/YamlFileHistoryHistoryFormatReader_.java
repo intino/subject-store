@@ -3,8 +3,8 @@ package tests.history;
 import org.junit.Test;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.MinMaxNormalizationFilter;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.RollingAverageFilter;
-import systems.intino.datamarts.subjectstore.view.format.history.HistoryFormat;
-import systems.intino.datamarts.subjectstore.view.format.history.readers.YamlHistoryFormatReader;
+import systems.intino.datamarts.subjectstore.view.history.format.history.HistoryFormat;
+import systems.intino.datamarts.subjectstore.view.history.format.history.readers.YamlHistoryFormatReader;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -105,7 +105,7 @@ public class YamlFileHistoryHistoryFormatReader_ {
 		assertThat(historyFormat.duration()).isEqualTo(Period.ofYears(1));
 		assertThat(historyFormat.columns()).hasSize(1);
 		assertThat(historyFormat.columns().getFirst().name).isEqualTo("weight");
-		assertThat(historyFormat.columns().getFirst().definition).isEqualTo("weight / 100");
+		assertThat(historyFormat.columns().getFirst().expression).isEqualTo("weight / 100");
 		assertThat(historyFormat.columns().getFirst().filters.size()).isEqualTo(2);
 		assertThat(historyFormat.columns().getFirst().filters.getFirst()).isEqualTo(new RollingAverageFilter(3));
 		assertThat(historyFormat.columns().getFirst().filters.get(1)).isEqualTo(new MinMaxNormalizationFilter());

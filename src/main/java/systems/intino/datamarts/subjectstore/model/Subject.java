@@ -14,6 +14,7 @@ public final class Subject {
 	public static final String Any = "*";
 	private final String identifier;
 	private final Context context;
+	private final List<Term> terms;
 
 	public static Subject of(String identifier) {
 		if (identifier == null) return null;
@@ -23,6 +24,7 @@ public final class Subject {
 	public Subject(String identifier, Context context) {
 		this.identifier = identifier != null ? identifier.trim().replaceAll("\\s+/\\s+", "/") : null;
 		this.context = context != null ? context : Context.Null;
+		this.terms = new ArrayList<>();
 	}
 
 	public Subject(Subject subject, Context context) {
@@ -98,12 +100,13 @@ public final class Subject {
 
 	public List<Term> terms() {
 		checkIfContextExists();
-		return context.terms(this);
+		if (terms.isEmpty()) terms.addAll(context.terms(this));
+		return terms;
 	}
 
 	public List<Term> terms(String tag) {
 		checkIfContextExists();
-		return context.terms(this).stream()
+		return terms().stream()
 				.filter(t -> t.is(tag))
 				.toList();
 	}
@@ -134,9 +137,10 @@ public final class Subject {
 		context.drop(this);
 	}
 
-	public Updating index() {
+	public Indexing index() {
 		checkIfContextExists();
-		return context.update(this);
+		terms.clear();
+		return context.index(this);
 	}
 
 	public boolean hasHistory() {
@@ -314,41 +318,41 @@ public final class Subject {
 
 		void drop(Subject subject);
 
-		Updating update(Subject subject);
+		Indexing index(Subject subject);
 
 		SubjectHistory history(Subject subject);
 
 		boolean hasHistory(Subject subject);
 	}
 
-	public interface Updating {
-		Updating Null = nullUpdating();
+	public interface Indexing {
+		Indexing Null = nullIndexing();
 
-		Updating set(Term term);
+		Indexing set(Term term);
 
-		Updating put(Term term);
+		Indexing put(Term term);
 
-		Updating del(Term term);
+		Indexing del(Term term);
 
-		Updating del(String tag);
+		Indexing del(String tag);
 
-		default Updating set(String tag, Number value) {
+		default Indexing set(String tag, Number value) {
 			return set(new Term(tag, String.valueOf(value)));
 		}
 
-		default Updating set(String tag, String value) {
+		default Indexing set(String tag, String value) {
 			return set(new Term(tag, value));
 		}
 
-		default Updating put(String tag, Number value) {
+		default Indexing put(String tag, Number value) {
 			return put(new Term(tag, String.valueOf(value)));
 		}
 
-		default Updating put(String tag, String value) {
+		default Indexing put(String tag, String value) {
 			return put(new Term(tag, value));
 		}
 
-		default Updating del(String tag, String value) {
+		default Indexing del(String tag, String value) {
 			return del(new Term(tag, value));
 		}
 
@@ -369,8 +373,8 @@ public final class Subject {
 			}
 
 			@Override
-			public Updating update(Subject subject) {
-				return Updating.Null;
+			public Indexing index(Subject subject) {
+				return Indexing.Null;
 			}
 
 			@Override
@@ -404,26 +408,26 @@ public final class Subject {
 		};
 	}
 
-	private static Updating nullUpdating() {
-		return new Updating() {
+	private static Indexing nullIndexing() {
+		return new Indexing() {
 
 			@Override
-			public Updating set(Term term) {
+			public Indexing set(Term term) {
 				return this;
 			}
 
 			@Override
-			public Updating put(Term term) {
+			public Indexing put(Term term) {
 				return this;
 			}
 
 			@Override
-			public Updating del(Term term) {
+			public Indexing del(Term term) {
 				return this;
 			}
 
 			@Override
-			public Updating del(String tag) {
+			public Indexing del(String tag) {
 				return this;
 			}
 

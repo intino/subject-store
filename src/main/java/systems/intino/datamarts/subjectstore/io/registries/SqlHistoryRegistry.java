@@ -105,6 +105,16 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 	}
 
 	@Override
+	public Stream<Row> current() {
+		try {
+			return streamOf(selectLastValues());
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+
+	}
+
+	@Override
 	public Stream<Row> getNumbers(int tag, int from, int to) {
 		try {
 			return streamOf(selectDoubleValues(tag, from, to));
@@ -262,6 +272,11 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 		statement.setInt(1, tag);
 		statement.setInt(2, from);
 		statement.setInt(3, to);
+		return statement.executeQuery();
+	}
+
+	private ResultSet selectLastValues() throws SQLException {
+		PreparedStatement statement = statementProvider.get("select-last-values");
 		return statement.executeQuery();
 	}
 
@@ -446,6 +461,7 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 			statements.put("select-double-values", create("SELECT feed, num FROM s[id]_map WHERE tag = ? and feed BETWEEN ? AND ?"));
 			statements.put("select-string-value", create("SELECT txt FROM s[id]_map WHERE tag = ? AND feed = ?"));
 			statements.put("select-string-values", create("SELECT feed, txt FROM s[id]_map WHERE tag = ? and feed BETWEEN ? AND ?"));
+			statements.put("select-last-values", create("SELECT t.feed, t.tag, m.num, m.txt FROM s[id]_tags t JOIN s[id]_map m ON t.feed = m.feed AND t.tag = m.tag;"));
 			return statements;
 		}
 

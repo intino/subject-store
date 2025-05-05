@@ -260,11 +260,13 @@ public class SqlIndexRegistry implements IndexRegistry {
 
 	private ResultSet selectSubjects() throws SQLException {
 		PreparedStatement statement = statementProvider.get("select-subject");
+		statement.setFetchSize(500_000);
 		return statement.executeQuery();
 	}
 
 	private ResultSet selectTerms() throws SQLException {
 		PreparedStatement statement = statementProvider.get("select-terms");
+		statement.setFetchSize(500_000);
 		return statement.executeQuery();
 	}
 
@@ -403,6 +405,7 @@ public class SqlIndexRegistry implements IndexRegistry {
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				name TEXT
 			);
+			
 			
 			CREATE TABLE IF NOT EXISTS terms (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,

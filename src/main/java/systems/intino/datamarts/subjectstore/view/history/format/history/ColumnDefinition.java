@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.view.format.history;
+package systems.intino.datamarts.subjectstore.view.history.format.history;
 
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 
@@ -8,12 +8,12 @@ import java.util.Set;
 
 public class ColumnDefinition {
 	public final String name;
-	public final String definition;
+	public final String expression;
 	public final List<Filter> filters;
 
-	public ColumnDefinition(String name, String definition) {
+	public ColumnDefinition(String name, String expression) {
 		this.name = name;
-		this.definition = definition;
+		this.expression = expression;
 		this.filters = new ArrayList<>();
 	}
 
@@ -39,7 +39,7 @@ public class ColumnDefinition {
 
 	public boolean isAlphanumeric() {
 		return AlphanumericRules.stream()
-				.anyMatch(definition::contains);
+				.anyMatch(expression::contains);
 	}
 
 }

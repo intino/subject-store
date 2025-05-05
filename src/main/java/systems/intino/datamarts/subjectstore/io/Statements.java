@@ -1,10 +1,10 @@
 package systems.intino.datamarts.subjectstore.io;
 
-import systems.intino.datamarts.subjectstore.model.Statement;
+import systems.intino.datamarts.subjectstore.model.Triple;
 
 import java.util.function.Function;
 
-public interface Statements extends Iterable<Statement> {
+public interface Statements extends Iterable<Triple> {
 
 	default Schema schema() {
 		return (key, mapper) -> null;

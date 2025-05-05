@@ -19,6 +19,8 @@ public interface HistoryRegistry extends AutoCloseable {
 
 	String getText(int tag, int feed);
 
+	Stream<Row> current();
+
 	Stream<Row> getNumbers(int tag, int from, int to);
 
 	Stream<Row> getTexts(int tag, int from, int to);

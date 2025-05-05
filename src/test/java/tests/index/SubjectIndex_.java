@@ -20,6 +20,7 @@ public class SubjectIndex_ {
 	@Test
 	public void should_support_index_subject_and_conditional_query() throws Exception {
 		File file = File.createTempFile("subject", ".inx");
+		file = new File("x.inx");
 		try (SubjectIndex index = new SubjectIndex(Storages.in(file))){
 			index.create("11", "o").index().put("name", "jose").terminate();
 			check(index);
@@ -101,7 +102,9 @@ public class SubjectIndex_ {
 			Subject s1 = index.create("1","o");
 			s1.index().put("value", "1").terminate();
 			Subject s2 = s1.create("12", "p");
-			s2.index().put("value", "2").terminate();
+			s2.index()
+					.put("value", "2")
+					.terminate();
 			Subject s3 = s2.create("123", "q");
 			s3.index().put("value", "3").terminate();
 			Subject s4 = s2.create("124", "q");

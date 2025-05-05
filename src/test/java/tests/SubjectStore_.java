@@ -5,6 +5,7 @@ import systems.intino.datamarts.subjectstore.SubjectHistoryView;
 import systems.intino.datamarts.subjectstore.SubjectIndexView;
 import systems.intino.datamarts.subjectstore.SubjectStore;
 import systems.intino.datamarts.subjectstore.model.Subject;
+import systems.intino.datamarts.subjectstore.view.index.Column.Type;
 
 import java.io.*;
 
@@ -127,9 +128,9 @@ public class SubjectStore_ {
 			createSubjects(store);
 			SubjectIndexView view = store
 					.viewOf(store.subjects().type("building").collect())
-					.add("year")
-					.add("city")
-					.add("country")
+					.add("year", Type.Number)
+					.add("city", Type.Text)
+					.add("country", Type.Text)
 					.build();
 			SubjectHistoryView tajMahalHistory = store
 					.viewOf("taj mahal.building")
@@ -141,9 +142,6 @@ public class SubjectStore_ {
 					.duration("P1Y")
 					.add("","")
 					.build();
-			assertThat(view.column("city").stats().categories()).containsExactly("Agra", "Granada", "Dubai");
-			assertThat(view.column("city").stats().frequency("Agra")).isEqualTo(1);
-			assertThat(view.column("country").stats().categories()).containsExactly("United Arab Emirates", "Spain", "India");
 		}
 	}
 

@@ -1,7 +1,7 @@
 package systems.intino.datamarts.subjectstore.io.statements;
 
 import systems.intino.datamarts.subjectstore.io.Statements;
-import systems.intino.datamarts.subjectstore.model.Statement;
+import systems.intino.datamarts.subjectstore.model.Triple;
 import systems.intino.datamarts.subjectstore.model.Subject;
 import systems.intino.datamarts.subjectstore.model.Term;
 
@@ -30,9 +30,9 @@ public class TabularStatements implements Statements, AutoCloseable {
 	}
 
 	@Override
-	public Iterator<Statement> iterator() {
+	public Iterator<Triple> iterator() {
 		return new Iterator<>() {
-			Iterator<Statement> row = nextRow();
+			Iterator<Triple> row = nextRow();
 
 			@Override
 			public boolean hasNext() {
@@ -40,7 +40,7 @@ public class TabularStatements implements Statements, AutoCloseable {
 			}
 
 			@Override
-			public Statement next() {
+			public Triple next() {
 				try {
 					return row.next();
 				} finally {
@@ -50,7 +50,7 @@ public class TabularStatements implements Statements, AutoCloseable {
 		};
 	}
 
-	private Iterator<Statement> nextRow() {
+	private Iterator<Triple> nextRow() {
 		return header.statementsIn(nextLine());
 	}
 
@@ -106,7 +106,7 @@ public class TabularStatements implements Statements, AutoCloseable {
 			return value != null ? new Term(field, value) : null;
 		}
 
-		private Iterator<Statement> statementsIn(String[] values) {
+		private Iterator<Triple> statementsIn(String[] values) {
 			if (values.length == 0) return Collections.emptyIterator();
 			return new Iterator<>() {
 				final Subject subject = subject(values);
@@ -119,8 +119,8 @@ public class TabularStatements implements Statements, AutoCloseable {
 				}
 
 				@Override
-				public Statement next() {
-					return new Statement(subject, terms[i++]);
+				public Triple next() {
+					return new Triple(subject, terms[i++]);
 				}
 			};
 		}
