@@ -29,6 +29,7 @@ public class Subject_ {
 
 	@Test
 	public void should_create_children_without_context() {
+		Subject.context = context();
 		Subject subject = new Subject("a", "model");
 		Subject child = subject.create("b", "release");
 		Subject grandson = child.create("c", "properties");
@@ -40,7 +41,8 @@ public class Subject_ {
 
 	@Test
 	public void should_create_children_with_context() {
-		Subject subject = new Subject(" a.model ", context());
+		Subject.context = context();
+		Subject subject = new Subject(" a.model ");
 		Subject child = subject.create("b", "release");
 		Subject grandson = child.create("c", "properties");
 
@@ -54,6 +56,7 @@ public class Subject_ {
 
 	@Test
 	public void should_write_in_system_error_when_subject_context_is_not_defined() {
+		Subject.context = Subject.Context.Null;
 		PrintStream originalErr = System.err;
 		ByteArrayOutputStream errContent = new ByteArrayOutputStream();
 		System.setErr(new PrintStream(errContent));
@@ -81,7 +84,7 @@ public class Subject_ {
 			}
 
 			@Override
-			public Subject.Indexing index(Subject subject) {
+			public Subject.Updating update(Subject subject) {
 				return null;
 			}
 
@@ -103,16 +106,6 @@ public class Subject_ {
 			@Override
 			public void drop(Subject subject) {
 
-			}
-
-			@Override
-			public SubjectHistory history(Subject subject) {
-				return null;
-			}
-
-			@Override
-			public boolean hasHistory(Subject subject) {
-				return false;
 			}
 		};
 	}

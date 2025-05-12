@@ -1,20 +1,37 @@
 package systems.intino.datamarts.subjectstore;
 
 import systems.intino.datamarts.subjectstore.io.feeds.DumpFeeds;
+import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
 import systems.intino.datamarts.subjectstore.model.Feed;
 import systems.intino.datamarts.subjectstore.model.Subject;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SubjectStore implements AutoCloseable {
+	private final File indexFile;
 	private final SubjectIndex index;
+	private final String historyJdbcUrl;
 
-	public SubjectStore(String jdbcUrl) {
-		this.index = new SubjectIndex(jdbcUrl);
+	public SubjectStore(File indexFile) throws IOException {
+		this.indexFile = indexFile;
+		this.index = createIndex();
+		this.historyJdbcUrl = null;
+	}
+
+	public SubjectStore(File indexFile, String historyJdbcUrl) throws IOException {
+		this.indexFile = indexFile;
+		this.index = createIndex();
+		this.historyJdbcUrl = historyJdbcUrl;
+	}
+
+	@SuppressWarnings("ResultOfMethodCallIgnored")
+	public void seal() throws IOException {
+		try (OutputStream os = new BufferedOutputStream(new FileOutputStream(indexFile))) {
+			index.dump(os);
+			journalFile().delete();
+		}
 	}
 
 	public boolean has(String identifier) {
@@ -41,27 +58,40 @@ public class SubjectStore implements AutoCloseable {
 		return index.create(name, type);
 	}
 
+	public SubjectHistory historyOf(Subject subject) {
+		return new SubjectHistory(subject.identifier(), historyJdbcUrl);
+	}
+
 	public SubjectQuery subjects() {
 		return index.subjects();
 	}
 
-	public void dumpIndex(OutputStream os) throws IOException {
-		index.dump(os);
+	@SuppressWarnings("ResultOfMethodCallIgnored")
+	private SubjectIndex createIndex() throws IOException {
+		File journalFile = journalFile();
+		File recoverFile = new File(journalFile.getAbsolutePath() + ".recovering");
+		journalFile.renameTo(recoverFile);
+		try (InputStream is = new BufferedInputStream(new FileInputStream(indexFile))) {
+			return new SubjectIndex(journalFile).restore(new DumpTriples(is)).restore(new Journal(recoverFile));
+		}
+		finally {
+			recoverFile.delete();
+		}
 	}
-	
-	public void dumpHistories(OutputStream os) throws IOException {
-		for (Subject subject : subjects().collect())
-			if (subject.hasHistory())
-				dump(subject.history(), os);
+
+	private File journalFile() {
+		return new File(indexFile.getAbsolutePath() + ".journal");
+	}
+
+	private static String clean(String ts) {
+		return ts.replace("-", "")
+				.replace(":", "")
+				.replace("T", "")
+				.substring(0, 14);
 	}
 
 	private void dump(SubjectHistory history, OutputStream os) throws IOException {
 		history.dump(os);
-	}
-
-	public SubjectStore restoreIndex(InputStream is) throws IOException {
-		index.restore(is);
-		return this;
 	}
 	
 	public SubjectStore restoreHistories(InputStream is) throws IOException {
@@ -75,14 +105,19 @@ public class SubjectStore implements AutoCloseable {
 		return this;
 	}
 
+	public void dumpHistories(OutputStream os) throws IOException {
+		for (Subject subject : subjects().collect()) {
+
+		}
+	}
+
 	private boolean isNewSubject(Feed feed, List<Feed> feeds) {
 		return identifierIn(feed).compareTo(identifierIn(feeds)) != 0;
 	}
 
-	@SuppressWarnings("resource")
 	private void consume(List<Feed> feeds) {
 		if (feeds.isEmpty()) return;
-		open(identifierIn(feeds)).history().consume(feeds);
+		//TODO open(identifierIn(feeds)).history().consume(feeds);
 		feeds.clear();
 	}
 
@@ -94,22 +129,12 @@ public class SubjectStore implements AutoCloseable {
 		return (String) first.get("id");
 	}
 
-	@Override
-	public void close()  {
-		try {
-			index.close();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-
 	public SubjectIndexView.Builder viewOf(List<Subject> subjects) {
 		return SubjectIndexView.of(subjects);
 	}
 
 	public SubjectHistoryView.Builder viewOf(Subject subject) {
-		return SubjectHistoryView.of(subject.history());
+		return SubjectHistoryView.of(null);
 	}
 
 	public SubjectHistoryView.Builder viewOf(String identifier) {
@@ -121,4 +146,8 @@ public class SubjectStore implements AutoCloseable {
 	}
 
 
+	@Override
+	public void close() {
+
+	}
 }

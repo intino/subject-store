@@ -1,7 +1,7 @@
 package tests.history;
 
 import org.junit.Test;
-import tests.Storages;
+import tests.JdbcUrl;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.model.Signal;
 
@@ -18,11 +18,9 @@ public class SubjectHistory_ {
 	private static final Instant day = Instant.parse("2025-03-25T00:00:00Z");
 	private static final String categories = "DEPOLARISE";
 
-	@SuppressWarnings("ResultOfMethodCallIgnored")
 	@Test
-	public void should_handle_empty_history() {
-		File file = new File("patient.oss");
-		try (SubjectHistory history = new SubjectHistory("123.patient", Storages.in(file))) {
+	public void should_handle_empty_history() throws Exception {
+		try (SubjectHistory history = new SubjectHistory("123.patient", JdbcUrl.postgresql())) {
 			assertThat(history.name()).isEqualTo("123");
 			assertThat(history.type()).isEqualTo("patient");
 			assertThat(history.typedName()).isEqualTo("123.patient");
@@ -31,15 +29,11 @@ public class SubjectHistory_ {
 			assertThat(history.current().point("field")).isNull();
 			assertThat(history.instants()).isEmpty();
 		}
-		finally {
-			file.delete();
-		}
 	}
 
 	@Test
 	public void should_ignore_feed_without_data() throws Exception {
-		File file = File.createTempFile("port", ".oss");
-		try (SubjectHistory history = new SubjectHistory("00000", Storages.in(file))) {
+		try (SubjectHistory history = new SubjectHistory("00000", JdbcUrl.postgresql())) {
 			history.on(Instant.now(), "Skip").terminate();
 			assertThat(history.size()).isEqualTo(0);
 		}
@@ -47,42 +41,33 @@ public class SubjectHistory_ {
 
 	@Test
 	public void should_return_most_recent_get_as_current() throws Exception {
-		File file = File.createTempFile("patient", ".oss");
-		try (SubjectHistory history = new SubjectHistory("12345.patient", Storages.in(file))) {
+		try (SubjectHistory history = new SubjectHistory("12345.patient", JdbcUrl.postgresql())) {
 			feed_batch(history);
 			test_batch(history);
 		}
 	}
 
-	@SuppressWarnings("ResultOfMethodCallIgnored")
 	@Test
 	public void should_dump_and_restore_events() throws Exception {
-		File file = new File("patient.oss");
 		OutputStream os = new ByteArrayOutputStream();
-		try (SubjectHistory history = new SubjectHistory("12345.patient", Storages.in(file))) {
+		try (SubjectHistory history = new SubjectHistory("12345.patient", JdbcUrl.postgresql())) {
 			feed_batch(history);
 			history.dump(os);
-		}
-		finally {
-			file.delete();
 		}
 		String dump = os.toString();
 		test_dump(dump);
 		InputStream is = new ByteArrayInputStream(dump.getBytes());
-		 try (SubjectHistory history = new SubjectHistory("12345.patient", Storages.in(file)).restore(is)) {
+		try (SubjectHistory history = new SubjectHistory("12345.patient", JdbcUrl.postgresql()).restore(is)) {
 			history.restore(is);
 			test_batch(history);
-		}
-		finally {
-			file.delete();
 		}
 	}
 
 
 	@Test
 	public void should_store_features() throws Exception {
-		File file = File.createTempFile("port", ".oss");
-		try (SubjectHistory history = new SubjectHistory("00000", Storages.in(file))) {
+		String store = JdbcUrl.postgresql();
+		try (SubjectHistory history = new SubjectHistory("00000", store)) {
 			history.on(now, "UN:all-ports")
 					.put("Country", "China")
 					.put("Latitude", 31.219832454)
@@ -90,7 +75,7 @@ public class SubjectHistory_ {
 					.terminate();
 			test_stored_features(history);
 		}
-		try (SubjectHistory history = new SubjectHistory("00000", Storages.in(file))) {
+		try (SubjectHistory history = new SubjectHistory("00000", store)) {
 			test_stored_features(history);
 		}
 	}
@@ -116,44 +101,36 @@ public class SubjectHistory_ {
 
 	@Test
 	public void should_store_time_series() throws Exception {
-		File file = File.createTempFile("port", ".oss");
-		try (SubjectHistory history = new SubjectHistory("00000", Storages.in(file))) {
+		String module = JdbcUrl.postgresql();
+		try (SubjectHistory history = new SubjectHistory("00000", module)) {
 			feed_time_series(history);
 			test_stored_time_series(history);
-			System.gc();
 		}
-		try (SubjectHistory history = new SubjectHistory("00000", Storages.in(file))) {
+		try (SubjectHistory history = new SubjectHistory("00000", module)) {
 			test_stored_time_series(history);
 		}
 	}
 
 	@Test
 	public void should_create_memory_databases() {
-		try (SubjectHistory history = new SubjectHistory("00000", Storages.inMemory())) {
+		try (SubjectHistory history = new SubjectHistory("00000", JdbcUrl.memory())) {
 			feed_time_series(history);
 			test_stored_time_series(history);
 		}
 	}
 
-	@SuppressWarnings({"ResultOfMethodCallIgnored", "resource"})
 	@Test
-	public void should_include_several_subjects() {
-		File file = new File("subjects.oss");
-		String connection = Storages.in(file);
-		if (file.exists()) file.delete();
-		try {
-			SubjectHistory[] histories = new SubjectHistory[]{
-					new SubjectHistory("00001", connection),
-					new SubjectHistory("00002", connection),
-					new SubjectHistory("00003", connection),
-					new SubjectHistory("00004", connection)
-			};
-			for (SubjectHistory history : histories) {
-				feed_time_series(history);
-				test_stored_time_series(history);
-			}
-		} finally {
-			file.delete();
+	public void should_include_several_subjects() throws Exception {
+		String connection = JdbcUrl.postgresql();
+		SubjectHistory[] histories = new SubjectHistory[]{
+				new SubjectHistory("00001", connection),
+				new SubjectHistory("00002", connection),
+				new SubjectHistory("00003", connection),
+				new SubjectHistory("00004", connection)
+		};
+		for (SubjectHistory history : histories) {
+			feed_time_series(history);
+			test_stored_time_series(history);
 		}
 	}
 

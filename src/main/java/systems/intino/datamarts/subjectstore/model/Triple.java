@@ -1,21 +1,19 @@
 package systems.intino.datamarts.subjectstore.model;
 
-public record Triple(Subject subject, Term term) {
+public record Triple(String subject, String tag, String value) {
 
-	public Triple(String str) {
-		this(str.split("\t"));
+	public static Triple of(String str) {
+		int i = str.indexOf('\t');
+		int j = str.indexOf('\t', i + 1);
+		return new Triple(str.substring(0, i), str.substring(i+1, j), str.substring(j+1));
 	}
 
-	public Triple(String subject, String tag, String value) {
-		this(Subject.of(subject), new Term(tag, value));
-	}
-
-	private Triple(String[] split) {
-		this(split[0], split[1], split[2]);
+	public String term() {
+		return tag + '=' + value;
 	}
 
 	@Override
 	public String toString() {
-		return subject + "\t" + term.tag() + "\t" + term.value();
+		return subject + "\t" + tag + "\t" + value;
 	}
 }

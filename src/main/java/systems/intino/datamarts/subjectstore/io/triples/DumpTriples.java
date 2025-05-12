@@ -1,23 +1,23 @@
-package systems.intino.datamarts.subjectstore.io.statements;
+package systems.intino.datamarts.subjectstore.io.triples;
 
-import systems.intino.datamarts.subjectstore.io.Statements;
+import systems.intino.datamarts.subjectstore.io.Triples;
 import systems.intino.datamarts.subjectstore.model.Triple;
 
 import java.io.*;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
-public class DumpStatements implements Statements, Closeable {
+public class DumpTriples implements Triples, Closeable {
 	private final InputStream is;
 
-	public DumpStatements(InputStream is) {
+	public DumpTriples(InputStream is) {
 		this.is = is;
 	}
 
 	@Override
 	public Iterator<Triple> iterator() {
 		return lines()
-				.map(Triple::new)
+				.map(Triple::of)
 				.iterator();
 	}
 

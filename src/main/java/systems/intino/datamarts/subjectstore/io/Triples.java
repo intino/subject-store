@@ -4,7 +4,7 @@ import systems.intino.datamarts.subjectstore.model.Triple;
 
 import java.util.function.Function;
 
-public interface Statements extends Iterable<Triple> {
+public interface Triples extends Iterable<Triple> {
 
 	default Schema schema() {
 		return (key, mapper) -> null;

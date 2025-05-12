@@ -40,6 +40,11 @@ public class SubjectHistoryView implements Iterable<Column> {
 		this.build();
 	}
 
+	public SubjectHistoryView crop(int top, int bottom) {
+		//TODO
+		return this;
+	}
+
 	public SubjectHistoryView(SubjectHistory history, String format) {
 		this(history, new YamlHistoryFormatReader(format).read());
 	}
@@ -81,12 +86,6 @@ public class SubjectHistoryView implements Iterable<Column> {
 
 	private Vector<?> vector(String name) {
 		return vectors.get(name);
-	}
-
-	public void exportTo(File file) throws IOException {
-		try (OutputStream os = new FileOutputStream(file)) {
-			exportTo(os);
-		}
 	}
 
 	public void exportTo(OutputStream os) throws IOException {

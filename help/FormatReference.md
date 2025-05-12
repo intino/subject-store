@@ -48,7 +48,7 @@ Columns to include in the view. Each column includes:
 
 Types of variables inside expressions
 
-- **Previous columns**: You can reference previously defined columns by name to reuse calculations.
+- **Previous columns**: You can entry previously defined columns by name to reuse calculations.
 - **Store tags**: Access time series stored in the subject's history. Use the historyFormat `tag.field`, e.g., `temperature.sum` or `visits.average`.
 - **Time stamps (`ts`)**: Extract calendar-based information from the interval timestamp, e.g., `ts.month-of-year`, `ts.day-of-week`.
 

@@ -1,6 +1,6 @@
-package systems.intino.datamarts.subjectstore.io.statements;
+package systems.intino.datamarts.subjectstore.io.triples;
 
-import systems.intino.datamarts.subjectstore.io.Statements;
+import systems.intino.datamarts.subjectstore.io.Triples;
 import systems.intino.datamarts.subjectstore.model.Triple;
 import systems.intino.datamarts.subjectstore.model.Subject;
 import systems.intino.datamarts.subjectstore.model.Term;
@@ -13,12 +13,12 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
-public class TabularStatements implements Statements, AutoCloseable {
+public class TabularTriples implements Triples, AutoCloseable {
 	private final BufferedReader reader;
 	private final TabularSchema header;
 	private final String separator;
 
-	public TabularStatements(InputStream is, String separator) {
+	public TabularTriples(InputStream is, String separator) {
 		this.reader = new BufferedReader(new InputStreamReader(is));
 		this.separator = separator;
 		this.header = new TabularSchema(nextLine());
@@ -51,7 +51,7 @@ public class TabularStatements implements Statements, AutoCloseable {
 	}
 
 	private Iterator<Triple> nextRow() {
-		return header.statementsIn(nextLine());
+		return header.triples(nextLine());
 	}
 
 	private String[] nextLine() {
@@ -106,7 +106,7 @@ public class TabularStatements implements Statements, AutoCloseable {
 			return value != null ? new Term(field, value) : null;
 		}
 
-		private Iterator<Triple> statementsIn(String[] values) {
+		private Iterator<Triple> triples(String[] values) {
 			if (values.length == 0) return Collections.emptyIterator();
 			return new Iterator<>() {
 				final Subject subject = subject(values);
@@ -120,7 +120,8 @@ public class TabularStatements implements Statements, AutoCloseable {
 
 				@Override
 				public Triple next() {
-					return new Triple(subject, terms[i++]);
+					Term term = terms[i++];
+					return new Triple(subject.identifier(), term.tag(), term.value());
 				}
 			};
 		}

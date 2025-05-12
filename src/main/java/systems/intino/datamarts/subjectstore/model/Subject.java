@@ -1,6 +1,5 @@
 package systems.intino.datamarts.subjectstore.model;
 
-import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectQuery;
 
 import java.util.*;
@@ -8,39 +7,34 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static systems.intino.datamarts.subjectstore.helpers.PatternFactory.pattern;
+public record Subject(String identifier) {
+	public static Context context = Context.Null;
 
-public final class Subject {
-	public static final String Any = "*";
-	private final String identifier;
-	private final Context context;
-	private final List<Term> terms;
+	public Subject {
+		identifier = clean(identifier);
+	}
 
 	public static Subject of(String identifier) {
+		return identifier != null ? new Subject(identifier) : null;
+	}
+
+	private static String clean(String identifier) {
 		if (identifier == null) return null;
-		return new Subject(identifier);
-	}
-
-	public Subject(String identifier, Context context) {
-		this.identifier = identifier != null ? identifier.trim().replaceAll("\\s+/\\s+", "/") : null;
-		this.context = context != null ? context : Context.Null;
-		this.terms = new ArrayList<>();
-	}
-
-	public Subject(Subject subject, Context context) {
-		this(subject.identifier, context);
-	}
-
-	public Subject(String identifier) {
-		this(identifier, Context.Null);
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < identifier.length(); i++) {
+			char c = identifier.charAt(i);
+			if (Character.isWhitespace(c)) continue;
+			sb.append(c);
+		}
+		return sb.toString();
 	}
 
 	public Subject(String name, String type) {
-		this(name + "." + type, Context.Null);
+		this(name + "." + type);
 	}
 
 	public Subject(Subject parent, String identifier) {
-		this(parent.identifier + "/" + identifier, parent.context());
+		this(parent.identifier + "/" + identifier);
 	}
 
 	public Subject(Subject parent, String name, String type) {
@@ -81,7 +75,7 @@ public final class Subject {
 	}
 
 	public Subject parent() {
-		return new Subject(parentIdentifier(), context);
+		return new Subject(parentIdentifier());
 	}
 
 	public SubjectQuery children() {
@@ -100,8 +94,7 @@ public final class Subject {
 
 	public List<Term> terms() {
 		checkIfContextExists();
-		if (terms.isEmpty()) terms.addAll(context.terms(this));
-		return terms;
+		return context.terms(this);
 	}
 
 	public List<Term> terms(String tag) {
@@ -127,7 +120,7 @@ public final class Subject {
 	}
 
 	public Subject rename(String name) {
-		Subject subject = new Subject(path() + name + "." + type(), context);
+		Subject subject = new Subject(path() + name + "." + type());
 		context.rename(this, subject.identifier);
 		return subject;
 	}
@@ -137,18 +130,9 @@ public final class Subject {
 		context.drop(this);
 	}
 
-	public Indexing index() {
+	public Updating update() {
 		checkIfContextExists();
-		terms.clear();
-		return context.index(this);
-	}
-
-	public boolean hasHistory() {
-		return context.hasHistory(this);
-	}
-
-	public SubjectHistory history() {
-		return context.history(this);
+		return context.update(this);
 	}
 
 	private Context context() {
@@ -157,7 +141,9 @@ public final class Subject {
 
 	private SubjectQuery query() {
 		return new SubjectQuery() {
+			private final SubjectQuery This = this;
 			private final List<Predicate<Subject>> conditions = new ArrayList<>();
+			private final Sorting sorting = new Sorting();
 
 			@Override
 			public int size() {
@@ -176,7 +162,7 @@ public final class Subject {
 
 			@Override
 			public Stream<Subject> stream() {
-				return subjects();
+				return subjects().sorted(sorting::sort);
 			}
 
 			@Override
@@ -185,12 +171,8 @@ public final class Subject {
 			}
 
 			@Override
-			public SubjectQuery type(String... types) {
-				return type(Set.of(types));
-			}
-
-			private SubjectQuery type(Set<String> types) {
-				conditions.add(s-> types.contains(s.type()));
+			public SubjectQuery type(String type) {
+				conditions.add(s-> s.is(type));
 				return this;
 			}
 
@@ -201,20 +183,19 @@ public final class Subject {
 			}
 
 			@Override
-			public SubjectQuery with(String tag, String value) {
-				conditions.add(contains(tag, value));
+			public SubjectQuery orderBy(String tag, Comparator<String> comparator) {
+				sorting.add(tag, comparator);
 				return this;
 			}
 
 			@Override
-			public SubjectQuery without(String tag, String value) {
-				conditions.add(notContains(tag, value));
-				return this;
+			public AttributeFilter where(String tag) {
+				return predicate -> where(tag, predicate);
 			}
 
-			@Override
-			public AttributeFilter where(String... tags) {
-				return attributeFilter(subjects());
+			private SubjectQuery where(String tag, Predicate<String> predicate) {
+				conditions.add(s->s.terms().stream().anyMatch(t-> t.is(tag) && predicate.test(t.value())));
+				return This;
 			}
 
 			private Stream<Subject> subjects() {
@@ -229,50 +210,6 @@ public final class Subject {
 
 		};
 	}
-
-	private static Predicate<Subject> contains(Term term) {
-		return s -> s.terms().contains(term);
-	}
-
-	private static Predicate<Subject> contains(String tag, String value) {
-		return contains(new Term(tag, value));
-	}
-
-	private static Predicate<Subject> notContains(Term term) {
-		return s -> !s.terms().contains(term);
-	}
-
-	private static Predicate<Subject> notContains(String tag, String value) {
-		return notContains(new Term(tag, value));
-	}
-
-	private SubjectQuery.AttributeFilter attributeFilter(Stream<Subject> subjects) {
-		return new SubjectQuery.AttributeFilter() {
-
-			@Override
-			public List<Subject> contains(String value) {
-				return matches(v -> v.toLowerCase().contains(value.toLowerCase()));
-			}
-
-			@Override
-			public List<Subject> accepts(String value) {
-				return matches(t -> pattern(t).matcher(value).matches());
-			}
-
-			@Override
-			public List<Subject> matches(Predicate<String> predicate) {
-				return subjects
-						.filter(s -> anyMatch(predicate, s.terms()))
-						.toList();
-			}
-
-			private boolean anyMatch(Predicate<String> predicate, List<Term> terms) {
-				return terms.stream().map(Term::value).anyMatch(predicate);
-			}
-		};
-	}
-
-
 
 	private String path() {
 		return isRoot() ? "" : parentIdentifier() + "/";
@@ -318,45 +255,41 @@ public final class Subject {
 
 		void drop(Subject subject);
 
-		Indexing index(Subject subject);
+		Updating update(Subject subject);
 
-		SubjectHistory history(Subject subject);
-
-		boolean hasHistory(Subject subject);
 	}
 
-	public interface Indexing {
-		Indexing Null = nullIndexing();
+	public interface Updating {
+		Updating Null = nullUpdating();
 
-		Indexing set(Term term);
+		Updating set(Term term);
 
-		Indexing put(Term term);
+		Updating put(Term term);
 
-		Indexing del(Term term);
+		Updating del(Term term);
 
-		Indexing del(String tag);
+		Updating del(String tag);
 
-		default Indexing set(String tag, Number value) {
+		default Updating set(String tag, Number value) {
 			return set(new Term(tag, String.valueOf(value)));
 		}
 
-		default Indexing set(String tag, String value) {
+		default Updating set(String tag, String value) {
 			return set(new Term(tag, value));
 		}
 
-		default Indexing put(String tag, Number value) {
+		default Updating put(String tag, Number value) {
 			return put(new Term(tag, String.valueOf(value)));
 		}
 
-		default Indexing put(String tag, String value) {
+		default Updating put(String tag, String value) {
 			return put(new Term(tag, value));
 		}
 
-		default Indexing del(String tag, String value) {
+		default Updating del(String tag, String value) {
 			return del(new Term(tag, value));
 		}
 
-		void terminate();
 	}
 
 	private static Context nullContext() {
@@ -373,8 +306,8 @@ public final class Subject {
 			}
 
 			@Override
-			public Indexing index(Subject subject) {
-				return Indexing.Null;
+			public Updating update(Subject subject) {
+				return Updating.Null;
 			}
 
 			@Override
@@ -396,45 +329,32 @@ public final class Subject {
 
 			}
 
-			@Override
-			public SubjectHistory history(Subject subject) {
-				return null;
-			}
-
-			@Override
-			public boolean hasHistory(Subject subject) {
-				return false;
-			}
 		};
 	}
 
-	private static Indexing nullIndexing() {
-		return new Indexing() {
+	private static Updating nullUpdating() {
+		return new Updating() {
 
 			@Override
-			public Indexing set(Term term) {
+			public Updating set(Term term) {
 				return this;
 			}
 
 			@Override
-			public Indexing put(Term term) {
+			public Updating put(Term term) {
 				return this;
 			}
 
 			@Override
-			public Indexing del(Term term) {
+			public Updating del(Term term) {
 				return this;
 			}
 
 			@Override
-			public Indexing del(String tag) {
+			public Updating del(String tag) {
 				return this;
 			}
 
-			@Override
-			public void terminate() {
-
-			}
 		};
 	}
 

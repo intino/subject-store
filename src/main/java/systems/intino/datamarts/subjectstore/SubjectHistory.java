@@ -230,12 +230,12 @@ public class SubjectHistory implements AutoCloseable {
 			return get(parseInstant(from), parseInstant(to));
 		}
 
-		public NumericalSignal get(TimeSpan span) {
-			return get(span.from(), span.to());
-		}
-
 		public NumericalSignal get(Instant from, Instant to) {
 			return new NumericalSignal.Raw(from, to, readNumbers(tag, from, to));
+		}
+
+		public NumericalSignal get(TimeSpan span) {
+			return get(span.from(), span.to());
 		}
 
 		@Override

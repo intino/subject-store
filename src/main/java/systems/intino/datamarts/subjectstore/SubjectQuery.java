@@ -1,45 +1,53 @@
 package systems.intino.datamarts.subjectstore;
 
+import systems.intino.datamarts.subjectstore.helpers.PatternFactory;
 import systems.intino.datamarts.subjectstore.model.Subject;
 
-import java.util.List;
+import java.time.Instant;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+
+import static java.lang.Double.parseDouble;
 
 public interface SubjectQuery {
 	SubjectQuery Empty = emptyQuery();
 
 	int size();
-
 	boolean isEmpty();
-
 	Subject first();
-
 	Stream<Subject> stream();
-
 	List<Subject> collect();
-
-	SubjectQuery type(String... types);
-
+	SubjectQuery type(String type);
 	SubjectQuery isRoot();
-
-	SubjectQuery with(String tag, String value);
-
-	SubjectQuery without(String tag, String value);
-
-	AttributeFilter where(String... tags);
+	default SubjectQuery orderBy(String tag) {
+		return orderBy(tag, String::compareTo);
+	}
+	default SubjectQuery orderBy(String tag, OrderType type) {
+		return orderBy(tag, type::compare);
+	}
+	SubjectQuery orderBy(String tag, Comparator<String> comparator);
+	AttributeFilter where(String tag);
 
 	interface AttributeFilter {
+		default SubjectQuery equals(String value) {
+			return satisfy(v -> v.equalsIgnoreCase(value));
+		}
+		default SubjectQuery contains(String... values) {
+			return satisfy(v -> Arrays.stream(values).allMatch(v::contains));
+		}
 
-		AttributeFilter Empty = emptyFilter();
+		default SubjectQuery accepts(String value) {
+			return satisfy(v-> PatternFactory.pattern(v).matcher(value).matches());
+		}
 
-		List<Subject> contains(String value);
-		List<Subject> accepts(String value);
-		List<Subject> matches(Predicate<String> predicate);
+		SubjectQuery satisfy(Predicate<String> predicate);
+
 	}
 
 	static SubjectQuery emptyQuery() {
 		return new SubjectQuery() {
+			private final SubjectQuery This = this;
 			@Override
 			public int size() {
 				return 0;
@@ -66,7 +74,7 @@ public interface SubjectQuery {
 			}
 
 			@Override
-			public SubjectQuery type(String... types) {
+			public SubjectQuery type(String type) {
 				return this;
 			}
 
@@ -76,38 +84,52 @@ public interface SubjectQuery {
 			}
 
 			@Override
-			public SubjectQuery with(String tag, String value) {
+			public SubjectQuery orderBy(String tag, Comparator<String> comparator) {
 				return this;
 			}
 
 			@Override
-			public SubjectQuery without(String tag, String value) {
-				return this;
+			public AttributeFilter where(String tag) {
+				return predicate -> This;
 			}
 
-			@Override
-			public AttributeFilter where(String... tags) {
-				return AttributeFilter.Empty;
-			}
 		};
 	}
 
-	static AttributeFilter emptyFilter() {
-		return new AttributeFilter() {
-			@Override
-			public List<Subject> contains(String value) {
-				return List.of();
-			}
+	class Sorting {
+		private final List<Sort> sorts = new ArrayList<>();
+		public void add(String tag, Comparator<String> comparator) {
+			sorts.add(new Sort(tag, comparator));
+		}
 
-			@Override
-			public List<Subject> accepts(String value) {
-				return List.of();
+		public int sort(Subject s1, Subject s2) {
+			for (Sort sort : sorts) {
+				String v1 = s1.get(sort.tag());
+				String v2 = s2.get(sort.tag());
+				int compare = sort.comparator().compare(v1, v2);
+				if (compare != 0) return compare;
 			}
+			return 0;
+		}
+		private record Sort(String tag, Comparator<String> comparator) {}
 
-			@Override
-			public List<Subject> matches(Predicate<String> predicate) {
-				return List.of();
-			}
-		};
+	}
+
+	enum OrderType {
+		TextAscending, TextDescending,
+		NumericAscending, NumericDescending,
+		InstantAscending, InstantDescending;
+
+		public int compare(String s1, String s2) {
+			if (s1.isEmpty() && s2.isEmpty()) return 0;
+			if (s1.isEmpty()) return 1;
+			if (s2.isEmpty()) return -1;
+			if (this == NumericAscending) return Double.compare(parseDouble(s1), parseDouble(s2));
+			if (this == NumericDescending) return Double.compare(parseDouble(s2), parseDouble(s1));
+			if (this == InstantAscending) return Instant.parse(s1).compareTo(Instant.parse(s2));
+			if (this == InstantDescending) return Instant.parse(s2).compareTo(Instant.parse(s1));
+			if (this == TextAscending) return s2.compareTo(s1);
+			return s1.compareTo(s2);
+		}
 	}
 }
