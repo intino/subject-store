@@ -1,6 +1,6 @@
 package systems.intino.datamarts.subjectstore.io.triples;
 
-import systems.intino.datamarts.subjectstore.io.Triples;
+import systems.intino.datamarts.subjectstore.model.Triples;
 import systems.intino.datamarts.subjectstore.model.Triple;
 
 import java.io.*;
@@ -14,7 +14,7 @@ public class DumpTriples implements Triples, Closeable {
 		this.is = is;
 	}
 
-	@Override
+	@Override @SuppressWarnings("NullableProblems")
 	public Iterator<Triple> iterator() {
 		return lines()
 				.map(Triple::of)

@@ -1,6 +1,4 @@
-package systems.intino.datamarts.subjectstore.io;
-
-import systems.intino.datamarts.subjectstore.model.Triple;
+package systems.intino.datamarts.subjectstore.model;
 
 import java.util.function.Function;
 

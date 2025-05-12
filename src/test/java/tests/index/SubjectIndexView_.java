@@ -6,7 +6,7 @@ import systems.intino.datamarts.subjectstore.model.Subject;
 import systems.intino.datamarts.subjectstore.view.index.Column.Type;
 import systems.intino.datamarts.subjectstore.SubjectIndex;
 import systems.intino.datamarts.subjectstore.SubjectIndexView;
-import systems.intino.datamarts.subjectstore.io.Triples;
+import systems.intino.datamarts.subjectstore.model.Triples;
 import systems.intino.datamarts.subjectstore.io.triples.TabularTriples;
 
 import java.io.ByteArrayOutputStream;

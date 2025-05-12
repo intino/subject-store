@@ -1,7 +1,7 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.Journal.Command;
-import systems.intino.datamarts.subjectstore.io.Triples;
+import systems.intino.datamarts.subjectstore.SubjectIndex.Journal.Command;
+import systems.intino.datamarts.subjectstore.model.Triples;
 import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
 import systems.intino.datamarts.subjectstore.model.*;
 import systems.intino.datamarts.subjectstore.model.Subject.Context;
@@ -11,12 +11,16 @@ import systems.intino.datamarts.subjectstore.pools.SubjectPool;
 import systems.intino.datamarts.subjectstore.pools.TermPool;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static systems.intino.datamarts.subjectstore.Journal.CommandType.*;
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static systems.intino.datamarts.subjectstore.SubjectIndex.Journal.CommandType.*;
 
 public class SubjectIndex {
 	private final Journal journal;
@@ -397,5 +401,56 @@ public class SubjectIndex {
 
 	public interface Batch {
 		void put(Triple triple);
+	}
+
+	public static class Journal {
+		private final Path path;
+
+		public Journal(File file) {
+			this.path = file.toPath();
+		}
+
+		public List<Command> commands() {
+			return linesIn().stream()
+					.map(this::command)
+					.toList();
+		}
+
+		private List<String> linesIn() {
+			try {
+				return Files.readAllLines(path);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		private Command command(String s) {
+			String[] split = s.split(" ", 3);
+			return new Command(valueOf(split[0]), new Subject(split[1]), split[2]);
+		}
+
+
+		public void add(Command command) {
+			try {
+				Files.write(path, (command.toString() + "\n").getBytes(), CREATE, APPEND);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		public boolean isEmpty() {
+			return !path.toFile().exists();
+		}
+
+		public record Command(CommandType type, Subject subject, String parameter) {
+			@Override
+			public String toString() {
+				return type + " " + subject + " " + parameter;
+			}
+		}
+
+		public enum CommandType {
+			put, set, del, drop, rename
+		}
 	}
 }

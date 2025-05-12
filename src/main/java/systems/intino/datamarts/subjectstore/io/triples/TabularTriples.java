@@ -1,6 +1,6 @@
 package systems.intino.datamarts.subjectstore.io.triples;
 
-import systems.intino.datamarts.subjectstore.io.Triples;
+import systems.intino.datamarts.subjectstore.model.Triples;
 import systems.intino.datamarts.subjectstore.model.Triple;
 import systems.intino.datamarts.subjectstore.model.Subject;
 import systems.intino.datamarts.subjectstore.model.Term;
@@ -29,7 +29,7 @@ public class TabularTriples implements Triples, AutoCloseable {
 		return header;
 	}
 
-	@Override
+	@Override @SuppressWarnings("NullableProblems")
 	public Iterator<Triple> iterator() {
 		return new Iterator<>() {
 			Iterator<Triple> row = nextRow();

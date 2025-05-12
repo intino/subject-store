@@ -1,13 +1,9 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.io.feeds.DumpFeeds;
 import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
-import systems.intino.datamarts.subjectstore.model.Feed;
 import systems.intino.datamarts.subjectstore.model.Subject;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class SubjectStore implements AutoCloseable {
 	private final File indexFile;
@@ -76,7 +72,7 @@ public class SubjectStore implements AutoCloseable {
 		File recoverFile = new File(journalFile.getAbsolutePath() + ".recovering");
 		journalFile.renameTo(recoverFile);
 		try (InputStream is = inputStream()) {
-			SubjectIndex index = new SubjectIndex(journalFile).restore(new DumpTriples(is)).restore(new Journal(recoverFile));
+			SubjectIndex index = new SubjectIndex(journalFile).restore(new DumpTriples(is)).restore(new SubjectIndex.Journal(recoverFile));
 			recoverFile.delete();
 			return index;
 		}
@@ -96,46 +92,6 @@ public class SubjectStore implements AutoCloseable {
 				.replace("T", "")
 				.substring(0, 14);
 	}
-
-	private void dump(SubjectHistory history, OutputStream os) throws IOException {
-		history.dump(os);
-	}
-	
-	public SubjectStore restoreHistories(InputStream is) throws IOException {
-		DumpFeeds dump = new DumpFeeds(is);
-		List<Feed> feeds = new ArrayList<>();
-		for (Feed feed : dump) {
-			if (isNewSubject(feed, feeds)) consume(feeds);
-			feeds.add(feed);
-		}
-		consume(feeds);
-		return this;
-	}
-
-	public void dumpHistories(OutputStream os) throws IOException {
-		for (Subject subject : subjects().collect()) {
-
-		}
-	}
-
-	private boolean isNewSubject(Feed feed, List<Feed> feeds) {
-		return identifierIn(feed).compareTo(identifierIn(feeds)) != 0;
-	}
-
-	private void consume(List<Feed> feeds) {
-		if (feeds.isEmpty()) return;
-		//TODO open(identifierIn(feeds)).history().consume(feeds);
-		feeds.clear();
-	}
-
-	private String identifierIn(List<Feed> feeds) {
-		return feeds.isEmpty() ? "" : identifierIn(feeds.getFirst());
-	}
-
-	private static String identifierIn(Feed first) {
-		return (String) first.get("id");
-	}
-
 
 	@Override
 	public void close() {
