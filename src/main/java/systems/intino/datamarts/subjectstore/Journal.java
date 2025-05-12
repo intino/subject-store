@@ -45,6 +45,10 @@ public class Journal {
 		}
 	}
 
+	public boolean isEmpty() {
+		return !path.toFile().exists();
+	}
+
 	public record Command(CommandType type, Subject subject, String parameter) {
 		@Override
 		public String toString() {

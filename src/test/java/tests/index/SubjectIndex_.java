@@ -29,7 +29,7 @@ public class SubjectIndex_ {
 		index.open("11", "o").rename("22");
 		assertThat(index.open("11", "o")).isNull();
 		assertThat(index.open("22", "o").terms()).containsOnly(terms("name=jose"));
-		assertThat(Files.readString(file.toPath())).isEqualTo("put 11.o name=jose\nrename 11.o 22.o\n");
+		assertThat(Files.readString(file.toPath())).isEqualTo("put 11.o name=jose\nrename 11.o 22\n");
 	}
 
 	@Test
@@ -285,8 +285,8 @@ public class SubjectIndex_ {
 				put P001.model/E2.experiment dataset=wikipedia
 				put P001.model/E2.experiment status=archived
 				del P001.model/E2.experiment status=archived
-				rename P001.model/E1.experiment P001.model/E001.experiment
-				rename P001.model/E2.experiment P001.model/E002.experiment
+				rename P001.model/E1.experiment E001
+				rename P001.model/E2.experiment E002
 				drop P001.model/E001.experiment -
 				""");
 	}

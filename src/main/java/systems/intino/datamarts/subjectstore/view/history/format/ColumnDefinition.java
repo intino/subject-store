@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.view.history.format.history;
+package systems.intino.datamarts.subjectstore.view.history.format;
 
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 

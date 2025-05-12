@@ -1,8 +1,8 @@
 package tests.history;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.view.history.format.history.HistoryFormat;
-import tests.JdbcUrl;
+import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
+import tests.Jdbc;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectHistoryView;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.MinMaxNormalizationFilter;
@@ -32,7 +32,7 @@ public class SubjectHistoryView_ {
 	@Test
 	public void should_export_to_tabular_report_with_format_as_object() throws IOException {
 		File file = File.createTempFile("xyz", ":patient.oss");
-		SubjectHistory history = new SubjectHistory("map", JdbcUrl.sqlite());
+		SubjectHistory history = new SubjectHistory("map", Jdbc.sqlite());
 		feed(history);
 		HistoryFormat historyFormat = new HistoryFormat(from, to, Duration.ofDays(7))
 			.add("Year","ts.year")
@@ -55,7 +55,7 @@ public class SubjectHistoryView_ {
 	@Test
 	public void should_export_to_tabular_report_with_format_as_string() throws IOException {
 		File file = File.createTempFile("xyz", ":patient.oss");
-		SubjectHistory history = new SubjectHistory("map", JdbcUrl.sqlite());
+		SubjectHistory history = new SubjectHistory("map", Jdbc.sqlite());
 			feed(history);
 			String format = """
 			rows:

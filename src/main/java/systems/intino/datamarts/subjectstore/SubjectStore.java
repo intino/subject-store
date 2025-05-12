@@ -58,6 +58,10 @@ public class SubjectStore implements AutoCloseable {
 		return index.create(name, type);
 	}
 
+	public SubjectHistory historyOf(String subject) {
+		return historyOf(new Subject(subject));
+	}
+
 	public SubjectHistory historyOf(Subject subject) {
 		return new SubjectHistory(subject.identifier(), historyJdbcUrl);
 	}
@@ -71,12 +75,15 @@ public class SubjectStore implements AutoCloseable {
 		File journalFile = journalFile();
 		File recoverFile = new File(journalFile.getAbsolutePath() + ".recovering");
 		journalFile.renameTo(recoverFile);
-		try (InputStream is = new BufferedInputStream(new FileInputStream(indexFile))) {
-			return new SubjectIndex(journalFile).restore(new DumpTriples(is)).restore(new Journal(recoverFile));
-		}
-		finally {
+		try (InputStream is = inputStream()) {
+			SubjectIndex index = new SubjectIndex(journalFile).restore(new DumpTriples(is)).restore(new Journal(recoverFile));
 			recoverFile.delete();
+			return index;
 		}
+	}
+
+	private InputStream inputStream() throws FileNotFoundException {
+		return indexFile.exists() ? new BufferedInputStream(new FileInputStream(indexFile)) : new ByteArrayInputStream(new byte[0]);
 	}
 
 	private File journalFile() {
@@ -127,22 +134,6 @@ public class SubjectStore implements AutoCloseable {
 
 	private static String identifierIn(Feed first) {
 		return (String) first.get("id");
-	}
-
-	public SubjectIndexView.Builder viewOf(List<Subject> subjects) {
-		return SubjectIndexView.of(subjects);
-	}
-
-	public SubjectHistoryView.Builder viewOf(Subject subject) {
-		return SubjectHistoryView.of(null);
-	}
-
-	public SubjectHistoryView.Builder viewOf(String identifier) {
-		return viewOf(open(identifier));
-	}
-
-	public SubjectHistoryView.Builder viewOf(String name, String type) {
-		return viewOf(open(name, type));
 	}
 
 

@@ -55,11 +55,11 @@ public class SubjectPool {
 	private int add(String subject) {
 		int id = id(subject);
 		if (id >= 0) return id;
-		cache.put(subject, put(subject));
+		cache.put(subject, create(subject));
 		return subjects.size()-1;
 	}
 
-	public int put(String subject) {
+	public int create(String subject) {
 		subjects.add(subject);
 		return subjects.size()-1;
 	}

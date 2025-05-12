@@ -10,6 +10,7 @@ import systems.intino.datamarts.subjectstore.io.Triples;
 import systems.intino.datamarts.subjectstore.io.triples.TabularTriples;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -24,22 +25,25 @@ public class SubjectIndexView_ {
 
 	@Test
 	public void should_create_views_including_summary() throws Exception {
-		SubjectIndex index = new SubjectIndex(null).restore(inputStream("subjects.triples"));
+		SubjectIndex index = new SubjectIndex(new File("index.triples")).restore(inputStream("subjects.triples"));
 		SubjectIndexView models = SubjectIndexView.of(index.subjects().type("model").collect())
 				.add("status", Type.Text)
 				.add("name", Type.Text)
 				.build();
+		SubjectIndexView experiments = SubjectIndexView.of(index.subjects().type("model").collect())
+				.add("status", Type.Text)
+				.build();
 		assertThat(models.size()).isEqualTo(25);
-		//TODO assertThat(models.column("status").stats().categories()).containsExactly("active");
-		//TODO assertThat(models.column("name").stats().categories().size()).isEqualTo(25);
-		//TODO assertThat(experiments.size()).isEqualTo(100);
-		//TODO assertThat(experiments.column("status").stats().categories()).containsExactly("running", "queued", "error", "done");
-		//TODO assertThat(experiments.column("status").stats().frequency("running")).isEqualTo(25);}
+		assertThat(models.column("status").stats().categories()).containsExactly("active");
+		assertThat(models.column("name").stats().categories().size()).isEqualTo(25);
+		assertThat(experiments.size()).isEqualTo(100);
+		assertThat(experiments.column("status").stats().categories()).containsExactly("running", "queued", "error", "done");
+		assertThat(experiments.column("status").stats().frequency("running")).isEqualTo(25);
 	}
 
 	@Test
 	public void should_calculate_summary_frequencies_consistently() throws Exception {
-		SubjectIndex index = new SubjectIndex(null).restore(triples());
+		SubjectIndex index = new SubjectIndex(new File("index.triples")).restore(triples());
 		assertThat(index.subjects().isRoot().size()).isEqualTo(435);
 		List<Subject> subjects = index.subjects()
 				.type("port")

@@ -1,11 +1,11 @@
-package systems.intino.datamarts.subjectstore.view.history.format.history.readers;
+package systems.intino.datamarts.subjectstore.view.history.format.readers;
 
 import org.yaml.snakeyaml.Yaml;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.*;
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
-import systems.intino.datamarts.subjectstore.view.history.format.history.ColumnDefinition;
-import systems.intino.datamarts.subjectstore.view.history.format.history.HistoryFormat;
-import systems.intino.datamarts.subjectstore.view.history.format.history.HistoryFormatReader;
+import systems.intino.datamarts.subjectstore.view.history.format.ColumnDefinition;
+import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
+import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormatReader;
 
 import java.io.*;
 import java.time.Instant;

@@ -135,10 +135,6 @@ public record Subject(String identifier) {
 		return context.update(this);
 	}
 
-	private Context context() {
-		return context;
-	}
-
 	private SubjectQuery query() {
 		return new SubjectQuery() {
 			private final SubjectQuery This = this;

@@ -290,8 +290,9 @@ public class SubjectIndex {
 	}
 
 	public SubjectIndex restore(Journal journal) {
+		if (journal.isEmpty()) return this;
 		for (Command command : journal.commands()) {
-			Subject subject = command.subject();
+			Subject subject = create(command.subject());
 			switch (command.type()) {
 				case put -> subject.update().put(Term.of(command.parameter()));
 				case set -> subject.update().set(Term.of(command.parameter()));
@@ -350,7 +351,8 @@ public class SubjectIndex {
 
 			@Override
 			public void rename(Subject subject, String identifier) {
-				journal.add(new Command(rename, subject, identifier));
+				String name = new Subject(identifier).name();
+				journal.add(new Command(rename, subject, name));
 				SubjectIndex.this.rename(subject, identifier);
 			}
 
@@ -364,7 +366,6 @@ public class SubjectIndex {
 				journal.add(new Command(drop, subject, "-"));
 				SubjectIndex.this.drop(subject);
 			}
-
 		};
 	}
 
@@ -384,7 +385,7 @@ public class SubjectIndex {
 			private int id(String subject) {
 				if (subject.equals(last)) return id;
 				this.last = subject;
-				id = subjectPool.put(subject);
+				id = subjectPool.create(subject);
 				return id;
 			}
 

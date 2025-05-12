@@ -3,8 +3,8 @@ package tests.history;
 import org.junit.Test;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.MinMaxNormalizationFilter;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.RollingAverageFilter;
-import systems.intino.datamarts.subjectstore.view.history.format.history.HistoryFormat;
-import systems.intino.datamarts.subjectstore.view.history.format.history.readers.YamlHistoryFormatReader;
+import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
+import systems.intino.datamarts.subjectstore.view.history.format.readers.YamlHistoryFormatReader;
 
 import java.time.Duration;
 import java.time.LocalDate;

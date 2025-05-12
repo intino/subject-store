@@ -10,12 +10,12 @@ import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 import systems.intino.datamarts.subjectstore.view.history.Column;
 import systems.intino.datamarts.subjectstore.view.history.Column.DoubleColumn;
 import systems.intino.datamarts.subjectstore.view.history.Column.StringColumn;
-import systems.intino.datamarts.subjectstore.view.history.format.history.ColumnDefinition;
-import systems.intino.datamarts.subjectstore.view.history.format.history.HistoryFormat;
+import systems.intino.datamarts.subjectstore.view.history.format.ColumnDefinition;
+import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
 import systems.intino.datamarts.subjectstore.model.reducers.TextReducer;
 import systems.intino.datamarts.subjectstore.model.reducers.NumberReducer;
 import systems.intino.datamarts.subjectstore.model.reducers.TimeReducer;
-import systems.intino.datamarts.subjectstore.view.history.format.history.readers.YamlHistoryFormatReader;
+import systems.intino.datamarts.subjectstore.view.history.format.readers.YamlHistoryFormatReader;
 
 import java.io.*;
 import java.time.Instant;

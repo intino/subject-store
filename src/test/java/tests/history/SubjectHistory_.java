@@ -1,7 +1,7 @@
 package tests.history;
 
 import org.junit.Test;
-import tests.JdbcUrl;
+import tests.Jdbc;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.model.Signal;
 
@@ -20,7 +20,7 @@ public class SubjectHistory_ {
 
 	@Test
 	public void should_handle_empty_history() throws Exception {
-		try (SubjectHistory history = new SubjectHistory("123.patient", JdbcUrl.postgresql())) {
+		try (SubjectHistory history = new SubjectHistory("123.patient", Jdbc.postgresql())) {
 			assertThat(history.name()).isEqualTo("123");
 			assertThat(history.type()).isEqualTo("patient");
 			assertThat(history.typedName()).isEqualTo("123.patient");
@@ -33,7 +33,7 @@ public class SubjectHistory_ {
 
 	@Test
 	public void should_ignore_feed_without_data() throws Exception {
-		try (SubjectHistory history = new SubjectHistory("00000", JdbcUrl.postgresql())) {
+		try (SubjectHistory history = new SubjectHistory("00000", Jdbc.postgresql())) {
 			history.on(Instant.now(), "Skip").terminate();
 			assertThat(history.size()).isEqualTo(0);
 		}
@@ -41,7 +41,7 @@ public class SubjectHistory_ {
 
 	@Test
 	public void should_return_most_recent_get_as_current() throws Exception {
-		try (SubjectHistory history = new SubjectHistory("12345.patient", JdbcUrl.postgresql())) {
+		try (SubjectHistory history = new SubjectHistory("12345.patient", Jdbc.postgresql())) {
 			feed_batch(history);
 			test_batch(history);
 		}
@@ -50,14 +50,14 @@ public class SubjectHistory_ {
 	@Test
 	public void should_dump_and_restore_events() throws Exception {
 		OutputStream os = new ByteArrayOutputStream();
-		try (SubjectHistory history = new SubjectHistory("12345.patient", JdbcUrl.postgresql())) {
+		try (SubjectHistory history = new SubjectHistory("12345.patient", Jdbc.postgresql())) {
 			feed_batch(history);
 			history.dump(os);
 		}
 		String dump = os.toString();
 		test_dump(dump);
 		InputStream is = new ByteArrayInputStream(dump.getBytes());
-		try (SubjectHistory history = new SubjectHistory("12345.patient", JdbcUrl.postgresql()).restore(is)) {
+		try (SubjectHistory history = new SubjectHistory("12345.patient", Jdbc.postgresql()).restore(is)) {
 			history.restore(is);
 			test_batch(history);
 		}
@@ -66,7 +66,7 @@ public class SubjectHistory_ {
 
 	@Test
 	public void should_store_features() throws Exception {
-		String store = JdbcUrl.postgresql();
+		String store = Jdbc.postgresql();
 		try (SubjectHistory history = new SubjectHistory("00000", store)) {
 			history.on(now, "UN:all-ports")
 					.put("Country", "China")
@@ -101,7 +101,7 @@ public class SubjectHistory_ {
 
 	@Test
 	public void should_store_time_series() throws Exception {
-		String module = JdbcUrl.postgresql();
+		String module = Jdbc.postgresql();
 		try (SubjectHistory history = new SubjectHistory("00000", module)) {
 			feed_time_series(history);
 			test_stored_time_series(history);
@@ -113,7 +113,7 @@ public class SubjectHistory_ {
 
 	@Test
 	public void should_create_memory_databases() {
-		try (SubjectHistory history = new SubjectHistory("00000", JdbcUrl.memory())) {
+		try (SubjectHistory history = new SubjectHistory("00000", Jdbc.memory())) {
 			feed_time_series(history);
 			test_stored_time_series(history);
 		}
@@ -121,7 +121,7 @@ public class SubjectHistory_ {
 
 	@Test
 	public void should_include_several_subjects() throws Exception {
-		String connection = JdbcUrl.postgresql();
+		String connection = Jdbc.postgresql();
 		SubjectHistory[] histories = new SubjectHistory[]{
 				new SubjectHistory("00001", connection),
 				new SubjectHistory("00002", connection),

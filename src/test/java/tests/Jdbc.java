@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
 
-public class JdbcUrl {
+public class Jdbc {
 
 	// docker run --rm --name mysql-test -e MYSQL_ROOT_PASSWORD=root -e MYSQL_USER=user -e MYSQL_PASSWORD=1234 -p 3306:3306 -d mysql:latest
 	public static String mysql() throws Exception {

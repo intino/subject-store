@@ -3,7 +3,9 @@ package systems.intino.datamarts.subjectstore;
 import systems.intino.datamarts.subjectstore.model.Triple;
 import systems.intino.datamarts.subjectstore.model.Subject;
 import systems.intino.datamarts.subjectstore.model.Term;
+import systems.intino.datamarts.subjectstore.view.Stats;
 import systems.intino.datamarts.subjectstore.view.index.Column;
+import systems.intino.datamarts.subjectstore.view.index.Column.Type;
 
 import java.io.*;
 import java.util.*;
@@ -104,7 +106,7 @@ public class SubjectIndexView implements Iterable<Column>  {
 			this.columns = new ArrayList<>();
 		}
 
-		public Builder add(String tag, Column.Type type) {
+		public Builder add(String tag, Type type) {
 			columns.add(new Column() {
 				@Override
 				public String name() {
@@ -114,6 +116,11 @@ public class SubjectIndexView implements Iterable<Column>  {
 				@Override
 				public Type type() {
 					return type;
+				}
+
+				@Override
+				public Stats stats() {
+					return Stats.of(null);
 				}
 			});
 			return this;
