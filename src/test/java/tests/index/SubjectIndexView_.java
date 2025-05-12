@@ -30,7 +30,7 @@ public class SubjectIndexView_ {
 				.add("status", Type.Text)
 				.add("name", Type.Text)
 				.build();
-		SubjectIndexView experiments = SubjectIndexView.of(index.subjects().type("model").collect())
+		SubjectIndexView experiments = SubjectIndexView.of(index.subjects().type("experiment").collect())
 				.add("status", Type.Text)
 				.build();
 		assertThat(models.size()).isEqualTo(25);

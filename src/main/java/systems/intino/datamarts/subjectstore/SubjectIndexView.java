@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
 
-public class SubjectIndexView implements Iterable<Column>  {
+public class SubjectIndexView  {
 	private final List<Subject> subjects;
 	private final List<Column> columns;
 
@@ -49,11 +49,6 @@ public class SubjectIndexView implements Iterable<Column>  {
 
 	public Column column(String name) {
 		return columns.stream().filter(c->c.name().equals(name)).findFirst().orElse(null);
-	}
-
-	@Override
-	public Iterator<Column> iterator() {
-		return columns.iterator();
 	}
 
 	public void exportTo(OutputStream os) throws IOException {
@@ -120,9 +115,14 @@ public class SubjectIndexView implements Iterable<Column>  {
 
 				@Override
 				public Stats stats() {
-					return Stats.of(null);
-				}
+					List<String> values = subjects.stream()
+							.flatMap(subject -> subject.terms().stream())
+							.filter(term -> term.is(tag))
+							.map(Term::value)
+							.toList();
+					return Stats.of(values.toArray(new String[0]));				}
 			});
+
 			return this;
 		}
 
