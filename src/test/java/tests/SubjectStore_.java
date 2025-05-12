@@ -21,6 +21,7 @@ public class SubjectStore_ {
 		try {
 			try (SubjectStore store = new SubjectStore(index)) {
 				assertThat(store.has("taj-mahal", "building")).isFalse();
+				assertThat(store.has("taj-mahal.building")).isFalse();
 				assertThat(index.exists()).isFalse();
 				assertThat(journal.exists()).isFalse();
 				createSubjects(store);
