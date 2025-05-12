@@ -119,7 +119,7 @@ public class SubjectHistory_ {
 		}
 	}
 
-	@Test
+	@Test @SuppressWarnings("resource")
 	public void should_include_several_subjects() throws Exception {
 		String connection = Jdbc.sqlite();
 		SubjectHistory[] histories = new SubjectHistory[]{

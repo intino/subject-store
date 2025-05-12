@@ -86,13 +86,6 @@ public class SubjectStore implements AutoCloseable {
 		return new File(indexFile.getAbsolutePath() + ".journal");
 	}
 
-	private static String clean(String ts) {
-		return ts.replace("-", "")
-				.replace(":", "")
-				.replace("T", "")
-				.substring(0, 14);
-	}
-
 	@Override
 	public void close() {
 
