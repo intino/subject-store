@@ -31,7 +31,6 @@ public class SubjectHistoryView_ {
 
 	@Test
 	public void should_export_to_tabular_report_with_format_as_object() throws IOException {
-		File file = File.createTempFile("xyz", ":patient.oss");
 		SubjectHistory history = new SubjectHistory("map", Jdbc.sqlite());
 		feed(history);
 		HistoryFormat historyFormat = new HistoryFormat(from, to, Duration.ofDays(7))
@@ -46,15 +45,14 @@ public class SubjectHistoryView_ {
 			.add("SkyMode","sky.mode")
 			.add("SkyCount","sky.count")
 			.add("NewTemp","NormTemp * 100");
-		SubjectHistoryView view = new SubjectHistoryView(history, historyFormat);
+		SubjectHistoryView view = SubjectHistoryView.of(history).with(historyFormat);
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		view.exportTo(os);
+		view.export().to(os);
 		assertThat(os.toString()).isEqualTo(expected);
 	}
 
 	@Test
 	public void should_export_to_tabular_report_with_format_as_string() throws IOException {
-		File file = File.createTempFile("xyz", ":patient.oss");
 		SubjectHistory history = new SubjectHistory("map", Jdbc.sqlite());
 			feed(history);
 			String format = """
@@ -101,7 +99,7 @@ public class SubjectHistoryView_ {
 			""";
 		SubjectHistoryView view = new SubjectHistoryView(history, format);
 			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			view.exportTo(os);
+			view.export().to(os);
 			assertThat(os.toString()).isEqualTo(expected);
 
 	}

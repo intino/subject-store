@@ -139,7 +139,9 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	private List<Point<Double>> readNumbers(Stream<Row> records) {
-		return records.map(this::readNumber).toList();
+		return records.map(this::readNumber)
+				.sorted(Comparator.comparing(Point::instant))
+				.toList();
 	}
 
 	private Point<Double> readNumber(Row row) {
@@ -152,7 +154,10 @@ public class SubjectHistory implements AutoCloseable {
 	}
 
 	private List<Point<String>> readTexts(Stream<Row> records) {
-		return records.map(this::readText).toList();
+		return records
+				.map(this::readText)
+				.sorted(Comparator.comparing(Point::instant))
+				.toList();
 	}
 
 	private Point<String> readText(Row row) {

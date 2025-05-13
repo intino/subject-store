@@ -17,8 +17,8 @@ public class ColumnDefinition {
 		this.filters = new ArrayList<>();
 	}
 
-	public ColumnDefinition add(Filter filter) {
-		filters.add(filter);
+	public ColumnDefinition add(Filter... filters) {
+		this.filters.addAll(List.of(filters));
 		return this;
 	}
 

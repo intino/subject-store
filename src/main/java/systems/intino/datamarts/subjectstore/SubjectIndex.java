@@ -168,6 +168,13 @@ public class SubjectIndex {
 		};
 	}
 
+	public Subject create(Subject subject) {
+		synchronized (journal) {
+			int id = subjectPool.add(subject);
+			return open(id);
+		}
+	}
+
 	public Subject create(String name, String type) {
 		return create(new Subject(name, type));
 	}
@@ -176,14 +183,16 @@ public class SubjectIndex {
 		return create(Subject.of(identifier));
 	}
 
-	private Subject create(Subject subject) {
-		int id = subjectPool.add(subject);
-		return open(id);
-	}
-
 	private void rename(Subject subject, String identifier) {
 		int id = subjectPool.id(subject);
 		subjectPool.fix(id, new Subject(identifier));
+	}
+
+	private void drop(Subject subject) {
+		if (!exists(subject)) return;
+		dropChildrenOf(subject);
+		dropTermsOf(subject);
+		subjectPool.remove(subject);
 	}
 
 	private Updating update(Subject subject) {
@@ -192,23 +201,29 @@ public class SubjectIndex {
 
 			@Override
 			public Updating put(Term term) {
-				if (term.isEmpty() || existsLink(term)) return this;
-				journal.add(new Command(put, subject, term.toString()));
-				return write(term);
+				synchronized (journal) {
+					if (term.isEmpty() || existsLink(term)) return this;
+					journal.add(new Command(put, subject, term.toString()));
+					return write(term);
+				}
 			}
 
 			@Override
 			public Updating set(Term term) {
-				journal.add(new Command(set, subject, term.toString()));
-				termsWith(term.tag()).forEach(this::erase);
-				return write(term);
+				synchronized (journal) {
+					journal.add(new Command(set, subject, term.toString()));
+					termsWith(term.tag()).forEach(this::erase);
+					return write(term);
+				}
 			}
 
 			@Override
 			public Updating del(Term term) {
-				if (!existsTerm(term)) return this;
-				journal.add(new Command(del, subject, term.toString()));
-				return erase(term);
+				synchronized (journal) {
+					if (!existsTerm(term)) return this;
+					journal.add(new Command(del, subject, term.toString()));
+					return erase(term);
+				}
 			}
 
 			@Override
@@ -243,13 +258,6 @@ public class SubjectIndex {
 			}
 
 		};
-	}
-
-	private void drop(Subject subject) {
-		if (!exists(subject)) return;
-		dropChildrenOf(subject);
-		dropTermsOf(subject);
-		subjectPool.remove(subject);
 	}
 
 	private boolean exists(Subject subject) {
@@ -287,8 +295,7 @@ public class SubjectIndex {
 
 	public SubjectIndex restore(Triples triples) {
 		Batch batch = batch();
-		for (Triple triple : triples)
-			batch.put(triple);
+		for (Triple triple : triples) batch.put(triple);
 		System.gc();
 		return this;
 	}
@@ -354,23 +361,30 @@ public class SubjectIndex {
 			}
 
 			@Override
-			public void rename(Subject subject, String identifier) {
-				String name = new Subject(identifier).name();
-				journal.add(new Command(rename, subject, name));
-				SubjectIndex.this.rename(subject, identifier);
-			}
-
-			@Override
 			public Updating update(Subject subject) {
 				return SubjectIndex.this.update(subject);
 			}
 
 			@Override
+			public void rename(Subject subject, String identifier) {
+				synchronized (journal) {
+					journal.add(new Command(rename, subject, nameIn(identifier)));
+					SubjectIndex.this.rename(subject, identifier);
+				}
+			}
+
+			@Override
 			public void drop(Subject subject) {
-				journal.add(new Command(drop, subject, "-"));
-				SubjectIndex.this.drop(subject);
+				synchronized (journal) {
+					journal.add(new Command(drop, subject, "-"));
+					SubjectIndex.this.drop(subject);
+				}
 			}
 		};
+	}
+
+	private String nameIn(String identifier) {
+		return new Subject(identifier).name();
 	}
 
 	private Subject toSubject(int subject) {

@@ -32,17 +32,12 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return new Builder(subjectHistory);
 	}
 
-	public SubjectHistoryView(SubjectHistory history, HistoryFormat historyFormat) {
+	private SubjectHistoryView(SubjectHistory history, HistoryFormat historyFormat) {
 		this.history = history;
 		this.historyFormat = historyFormat;
 		this.instants = instants(historyFormat.from(), historyFormat.to(), historyFormat.duration());
 		this.vectors = new HashMap<>();
 		this.build();
-	}
-
-	public SubjectHistoryView crop(int top, int bottom) {
-		//TODO
-		return this;
 	}
 
 	public SubjectHistoryView(SubjectHistory history, String format) {
@@ -74,7 +69,10 @@ public class SubjectHistoryView implements Iterable<Column> {
 	}
 
 	public List<String> columns() {
-		return historyFormat.columns().stream().map(c->c.name).toList();
+		return historyFormat.columns()
+				.stream()
+				.map(c->c.name)
+				.toList();
 	}
 
 	private Column column(String name) {
@@ -88,10 +86,38 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return vectors.get(name);
 	}
 
-	public void exportTo(OutputStream os) throws IOException {
-		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os))) {
-			writer.write(tsv());
-		}
+	public Exporting export() {
+		return new Exporting() {
+			private int stopOffset = 0;
+			private int startOffset = 0;
+
+			@Override
+			public void to(OutputStream os) throws IOException {
+				try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os))) {
+					writer.write(tsv(startOffset, stopOffset));
+				}
+			}
+
+			@Override
+			public Exporting start(int offset) {
+				this.startOffset = offset;
+				return this;
+			}
+
+			@Override
+			public Exporting stop(int offset) {
+				this.stopOffset = offset;
+				return this;
+			}
+
+		};
+	}
+
+	public interface Exporting {
+		void to(OutputStream os) throws IOException;
+
+		Exporting start(int offset);
+		Exporting stop(int offset);
 	}
 
 	private void build() {
@@ -183,9 +209,9 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return name.split("\\.")[1];
 	}
 
-	private String tsv() {
+	private String tsv(int startOffset, int stopOffset) {
 		StringBuilder sb = new StringBuilder();
-		for (int row = 0; row < size(); row++) {
+		for (int row = startOffset; row < size() - stopOffset; row++) {
 			StringJoiner line = new StringJoiner("\t");
 			for (String column : columns())
 				line.add(String.valueOf(value(row, column)));
@@ -216,7 +242,7 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return "Table(" + historyFormat + ")";
 	}
 
-	@Override
+	@Override @SuppressWarnings("NullableProblems")
 	public Iterator<Column> iterator() {
 		return new Iterator<>() {
 			private final Iterator<String> iterator = columns().iterator();

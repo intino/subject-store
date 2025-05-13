@@ -1,5 +1,8 @@
 package systems.intino.datamarts.subjectstore.helpers;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+
 import java.util.*;
 
 import static java.util.Collections.emptyIterator;
@@ -147,12 +150,12 @@ public class Triskel {
 
 	public static class BlockPool {
 		private final static Block Empty = new Block();
-		private final Map<Long, Block> blocks;
+		private final Long2ObjectMap<Block> blocks;
 		private int rows;
 		private int cols;
 
 		public BlockPool() {
-			this.blocks = new HashMap<>();
+			this.blocks = new Long2ObjectOpenHashMap<>(1_000_000, 0.92f);
 		}
 
 		public boolean contains(int row, int col) {

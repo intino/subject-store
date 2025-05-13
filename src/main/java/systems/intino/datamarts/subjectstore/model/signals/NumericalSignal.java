@@ -12,19 +12,18 @@ import java.util.Map;
 import java.util.Objects;
 
 public interface NumericalSignal extends Signal<Double> {
-	default double[] values() { return stream().mapToDouble(Point::value).toArray(); }
-	default Instant[] instants() { return stream().map(Point::instant).toArray(Instant[]::new); }
+	default double[] values() { return points().stream().mapToDouble(Point::value).toArray(); }
+	default Instant[] instants() { return points().stream().map(Point::instant).toArray(Instant[]::new); }
 	default NumericalSignal[] segments(TemporalAmount duration) { return splitBy(from(), to(), duration); }
 	default NumericalSignal[] segments(int number) { return segments(duration().dividedBy(number)); }
-	default Summary summary() { return Summary.of(this); }
-	default SignalDistribution distribution() { return SignalDistribution.of(this); }
+	default Summary summary() { return Summary.of(points()); }
+	default SignalDistribution distribution() { return SignalDistribution.of(points()); }
 
 	private Segment[] splitBy(Instant from, Instant to, TemporalAmount duration) {
-		return  TimeReferences.iterate(from, to, duration)
+		return TimeReferences.iterate(from, to, duration)
 				.map(current -> new Segment(current, TimeReferences.add(current, duration), this))
 				.toArray(Segment[]::new);
 	}
-
 
 	final class Raw extends Signal.Raw<Double> implements NumericalSignal {
 
@@ -38,7 +37,6 @@ public interface NumericalSignal extends Signal<Double> {
 		public Segment(Instant from, Instant to, NumericalSignal parent) {
 			super(from, to, parent);
 		}
-
 	}
 
 	class SignalDistribution {

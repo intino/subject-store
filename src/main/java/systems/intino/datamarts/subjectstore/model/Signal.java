@@ -2,19 +2,17 @@ package systems.intino.datamarts.subjectstore.model;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Stream;
 
-public interface Signal<T> extends Iterable<Signal.Point<T>> {
+public interface Signal<T>  {
 	Instant from();
 	Instant to();
+	List<Point<T>> points();
 	default Duration duration() { return Duration.between(from(), to()); }
 
 	int count();
 	boolean isEmpty();
-	Stream<Point<T>> stream();
 
 
 	abstract class Raw<X> implements Signal<X> {
@@ -48,16 +46,6 @@ public interface Signal<T> extends Iterable<Signal.Point<T>> {
 			return points.isEmpty();
 		}
 
-		@Override
-		public Stream<Point<X>> stream() {
-			return points.stream();
-		}
-
-		@Override
-		public Iterator<Point<X>> iterator() {
-			return points.iterator();
-		}
-
 		public List<Point<X>> points() {
 			return points;
 		}
@@ -78,12 +66,16 @@ public interface Signal<T> extends Iterable<Signal.Point<T>> {
 	abstract class Segment<X> implements Signal<X> {
 		private final Instant from;
 		private final Instant to;
+		private final int fromIndex;
+		private final int toIndex;
 		protected final Signal<X> parent;
 
 		public Segment(Instant from, Instant to, Signal<X> parent) {
 			this.from = from;
 			this.to = to;
 			this.parent = parent;
+			this.fromIndex = fromIndex();
+			this.toIndex = toIndex();
 		}
 
 		public Instant from() {
@@ -95,27 +87,37 @@ public interface Signal<T> extends Iterable<Signal.Point<T>> {
 		}
 
 		public int count() {
-			return (int) stream().count();
+			return toIndex - fromIndex;
 		}
 
 		public boolean isEmpty() {
-			return stream().findAny().isEmpty();
+			return count() <= 0;
 		}
 
-		public Iterator<Point<X>> iterator() {
-			return stream().iterator();
+		public List<Point<X>> points() {
+			return parent.points().subList(fromIndex, toIndex);
 		}
 
-		public Stream<Point<X>> stream() {
-			return parent.stream().filter(this::contains);
+		private int fromIndex() {
+			return find(from);
 		}
 
-		private boolean contains(Point<X> point) {
-			return contains(point.instant());
+		private int toIndex() {
+			return find(to);
 		}
 
-		private boolean contains(Instant instant) {
-			return !instant.isBefore(from) && instant.isBefore(to);
+		private int find(Instant point) {
+			List<Point<X>> points = parent.points();
+			int low = 0;
+			int high = parent.count();
+			while (low < high) {
+				int mid = (low + high) / 2;
+				if (points.get(mid).instant().isBefore(point))
+					low = mid + 1;
+				else
+					high = mid;
+			}
+			return low;
 		}
 
 		@Override

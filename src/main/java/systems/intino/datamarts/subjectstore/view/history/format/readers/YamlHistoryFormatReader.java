@@ -80,6 +80,7 @@ public class YamlHistoryFormatReader implements HistoryFormatReader {
 			case "CumulativeSum" -> new CumulativeSumFilter();
 			case "Differencing" -> new DifferencingFilter();
 			case "Lag" -> new LagFilter(filter.asInteger(1));
+			case "Lead" -> new LeadFilter(filter.asInteger(1));
 			case "RollingAverage" -> new RollingAverageFilter(filter.asInteger(1));
 			case "RollingSum" -> new RollingSumFilter(filter.asInteger(1));
 			case "RollingMax" -> new RollingMaxFilter(filter.asInteger(1));

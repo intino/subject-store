@@ -61,7 +61,8 @@ public class Parser {
 
 	private void closeBracket() {
 		buildExpression();
-		assert pendingTokens.pop().type() == BRACE_OPEN;
+		Token token = pendingTokens.pop();
+		assert token.type() == BRACE_OPEN;
 	}
 
 	private void createFunction() {

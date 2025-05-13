@@ -9,6 +9,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SuppressWarnings("NewClassNamingConvention")
 public class VectorCalculator_ {
 	@Test
 	public void evaluates_constants_and_builtin_functions() {
@@ -25,7 +26,7 @@ public class VectorCalculator_ {
 
 		map.put("A", calculator.calculate("5"));
 		map.put("B", calculator.calculate("2"));
-		map.put("C", calculator.calculate("A * B"));
+		map.put("C", calculator.calculate("(A * B)"));
 		map.put("D", calculator.calculate("A % 2"));
 		assertThat(map.get("A").values()).containsExactly(5.0, 5.0);
 		assertThat(map.get("B").values()).containsExactly(2.0, 2.0);

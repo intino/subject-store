@@ -15,7 +15,7 @@ public class SubjectIndexLoad_ {
 		SubjectIndex index = new SubjectIndex(file).restore(is);
 		long stop1 = System.nanoTime();
 		System.out.println((stop1 - start)/1e9);
-		Thread.sleep(1000);
+		Thread.sleep(600_000);
 		List<Subject> subjects = index.subjects()
 				.where("genre").equals("Short")
 				.where("startYear").equals("2015")

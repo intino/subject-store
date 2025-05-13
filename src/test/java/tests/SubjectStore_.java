@@ -145,6 +145,7 @@ public class SubjectStore_ {
 		}
 	}
 
+
 	public void should_create_views() throws IOException {
 		File index = new File("index.triples");
 		try (SubjectStore store = new SubjectStore(index, Jdbc.sqlite())) {

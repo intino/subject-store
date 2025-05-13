@@ -13,12 +13,12 @@ import java.util.Objects;
 import static systems.intino.datamarts.subjectstore.TimeReferences.iterate;
 
 public interface CategoricalSignal extends Signal<String> {
-	default String[] values() { return stream().map(Point::value).toArray(String[]::new); }
-	default Instant[] instants() { return stream().map(Point::instant).toArray(Instant[]::new); }
-	default String[] distinct() { return stream().map(Point::value).distinct().toArray(String[]::new); }
+	default String[] values() { return points().stream().map(Point::value).toArray(String[]::new); }
+	default Instant[] instants() { return points().stream().map(Point::instant).toArray(Instant[]::new); }
+	default String[] distinct() { return points().stream().map(Point::value).distinct().toArray(String[]::new); }
 	default CategoricalSignal[] segments(TemporalAmount duration) { return splitBy(from(), to(), duration); }
 	default CategoricalSignal[] segments(int number) { return segments(duration().dividedBy(number)); }
-	default Summary summary() { return Summary.of(this); }
+	default Summary summary() { return Summary.of(points()); }
 
 	private Segment[] splitBy(Instant from, Instant to, TemporalAmount duration) {
 		return iterate(from, to, duration)

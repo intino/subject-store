@@ -14,6 +14,7 @@ public interface TimeReducer extends Function<Instant, Object> {
 
 	static Map<String, TimeReducer> create() {
 		Map<String, TimeReducer> map = new HashMap<>();
+		map.put("hour-of-day", ts-> (double) zdt(ts).getHour());
 		map.put("day-of-week", ts-> (double) zdt(ts).getDayOfWeek().getValue());
 		map.put("day-of-month", ts-> (double) zdt(ts).getDayOfMonth());
 		map.put("month-of-year", ts-> (double) (zdt(ts).getMonthValue()));

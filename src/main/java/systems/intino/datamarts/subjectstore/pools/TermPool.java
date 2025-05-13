@@ -15,7 +15,7 @@ public class TermPool {
 	public TermPool() {
 		this.terms = new ArrayList<>();
 		this.cache = Caffeine.newBuilder()
-				.maximumSize(100_000)
+				.maximumSize(500_000)
 				.build();
 	}
 
@@ -29,7 +29,7 @@ public class TermPool {
 
 	private int id(String term) {
 		Integer id = cache.getIfPresent(term);
-		return id != null ? id : indexOf(term);
+		return id != null ? id : -1;
 	}
 
 	private int indexOf(String term) {

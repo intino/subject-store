@@ -184,27 +184,27 @@ public class SubjectHistory_ {
 
 	private static void test_dump(String dump) {
 		assertThat(dump).isEqualTo("""
-				[patient]
-				ts=2025-03-25T00:00:00Z
-				ss=HMG-2
-				id=12345.patient
-				hemoglobin=145.0
-				[patient]
-				ts=2025-03-20T00:00:00Z
-				ss=HMG-1
-				id=12345.patient
-				hemoglobin=130.0
-				[patient]
-				ts=2025-03-22T00:00:00Z
-				ss=HMG-B
-				id=12345.patient
-				hemoglobin=115.0
-				[patient]
-				ts=2025-03-05T00:00:00Z
-				ss=HMG-L
-				id=12345.patient
-				hemoglobin=110.0
-				"""
+		[patient]
+		ts=2025-03-25T00:00:00Z
+		ss=HMG-2
+		id=12345.patient
+		hemoglobin=145.0
+		[patient]
+		ts=2025-03-20T00:00:00Z
+		ss=HMG-1
+		id=12345.patient
+		hemoglobin=130.0
+		[patient]
+		ts=2025-03-22T00:00:00Z
+		ss=HMG-B
+		id=12345.patient
+		hemoglobin=115.0
+		[patient]
+		ts=2025-03-05T00:00:00Z
+		ss=HMG-L
+		id=12345.patient
+		hemoglobin=110.0
+		"""
 		);
 	}
 
