@@ -56,55 +56,57 @@ Types of variables inside expressions
 
 Tags support field operators to aggregate values within a time segment. Syntax: `tag.field`. Example: `visits.sum`
 
-| Operator     | Type        | Description                         |
-|--------------|-------------|-------------------------------------|
-| `count`      | Any         | Number of observations              |
-| `sum`        | Numeric     | Total sum                           |
-| `average`    | Numeric     | Arithmetic mean                     |
-| `sd`          | Numeric     | Standard deviation                  |
-| `first`      | Numeric     | First observed value                |
-| `last`       | Numeric     | Last observed value                 |
-| `min`        | Numeric     | Minimum value                       |
-| `max`        | Numeric     | Maximum value                       |
-| `mode`       | Categorical | Most frequent value                 |
-| `entropy`    | Categorical | Value diversity (dispersion)        |
+| Operator     | Type        | Description                    |
+|--------------|-------------|--------------------------------|
+| `count`      | Any         | Number of observations         |
+| `sum`        | Numeric     | Total sum                      |
+| `average`    | Numeric     | Arithmetic mean                |
+| `sd`         | Numeric     | Standard deviation             |
+| `first`      | Numeric     | First observed value           |
+| `last`       | Numeric     | Last observed value            |
+| `min`        | Numeric     | Minimum value                  |
+| `max`        | Numeric     | Maximum value                  |
+| `mode`       | Categorical | Most frequent value            |
+| `entropy`    | Categorical | Value diversity (dispersion)   |
 
 ## Time stamps Fields
 
 The `ts` object allows access to temporal markers:
 
-| Field                            | Description                        |
-|----------------------------------|------------------------------------|
-| `day-of-week`                    | Day of the week (1–7)              |
-| `day-of-month`                   | Day of the month (1–31)            |
-| `month-of-year`                  | Month of the year (1–12)           |
-| `quarter-of-year`                | Quarter (1–4)                      |
-| `year`                           | Year                               |
-| `year-quarter`                   | Formatted as `YYYYQX`             |
-| `year-month`                     | Formatted as `YYYYMM`             |
-| `year-month-day`                 | Formatted as `YYYYMMDD`           |
-| `year-month-day-hour`            | Formatted as `YYYYMMDDHH`         |
-| `year-month-day-hour-minute`     | Formatted as `YYYYMMDDHHmm`       |
-| `year-month-day-hour-minute-second` | Formatted as `YYYYMMDDHHmmss`  |
+| Field                               | Description                   |
+|-------------------------------------|-------------------------------|
+| `minute-of-hour`                    | Minute of hour (00–59)        |
+| `hour-of-day`                       | Hour of day (00–23)           |
+| `day-of-week`                       | Day of the week (1–7)         |
+| `day-of-month`                      | Day of the month (1–31)       |
+| `month-of-year`                     | Month of the year (1–12)      |
+| `quarter-of-year`                   | Quarter (1–4)                 |
+| `year`                              | Year                          |
+| `year-quarter`                      | Formatted as `YYYYQX`         |
+| `year-month`                        | Formatted as `YYYYMM`         |
+| `year-month-day`                    | Formatted as `YYYYMMDD`       |
+| `year-month-day-hour`               | Formatted as `YYYYMMDDHH`     |
+| `year-month-day-hour-minute`        | Formatted as `YYYYMMDDHHmm`   |
+| `year-month-day-hour-minute-second` | Formatted as `YYYYMMDDHHmmss` |
 
 ## Functions
 
 Expressions can include mathematical functions:
 
-| Function    | Description         | Function | Description             |
-|-------------|---------------------|----------|-------------------------|
-| `abs`       | Absolute value       | `sin`    | Sine                    |
+| Function    | Description           | Function | Description             |
+|-------------|-----------------------|----------|-------------------------|
+| `abs`       | Absolute value        | `sin`    | Sine                    |
 | `negate`    | Negative value (`-x`) | `cos`    | Cosine                  |
-| `round`     | Round to nearest     | `tan`    | Tangent                 |
-| `floor`     | Round down           | `asin`   | Arcsine                 |
-| `ceil`      | Round up             | `acos`   | Arccosine               |
-| `signum`    | Sign of a number     | `atan`   | Arctangent              |
-| `exp`       | Exponential          | `sinh`   | Hyperbolic sine         |
-| `log`       | Natural log (`ln`)   | `cosh`   | Hyperbolic cosine       |
-| `log10`     | Base-10 log          | `tanh`   | Hyperbolic tangent      |
-| `sqr`       | Square of a number   | `rad`    | Degrees to radians      |
-| `sqrt`      | Square root          | `deg`    | Radians to degrees      |
-| `cbrt`      | Cube root            |          |                         |
+| `round`     | Round to nearest      | `tan`    | Tangent                 |
+| `floor`     | Round down            | `asin`   | Arcsine                 |
+| `ceil`      | Round up              | `acos`   | Arccosine               |
+| `signum`    | Sign of a number      | `atan`   | Arctangent              |
+| `exp`       | Exponential           | `sinh`   | Hyperbolic sine         |
+| `log`       | Natural log (`ln`)    | `cosh`   | Hyperbolic cosine       |
+| `log10`     | Base-10 log           | `tanh`   | Hyperbolic tangent      |
+| `sqr`       | Square of a number    | `rad`    | Degrees to radians      |
+| `sqrt`      | Square root           | `deg`    | Radians to degrees      |
+| `cbrt`      | Cube root             |          |                         |
 
 ## Filters
 
@@ -116,6 +118,7 @@ Filters are transformations applied to numeric columns:
 | `CumulativeSum`            | --             |
 | `Differencing`             | --             |
 | `Lag`                      | `offset`       |
+| `Lead`                     | `offset`       |
 | `MinMaxNormalization`      | --             |
 | `ZScoreNormalization`      | --             |
 | `RollingAverage`           | `window`       |
@@ -123,6 +126,8 @@ Filters are transformations applied to numeric columns:
 | `RollingStandardDeviation` | `window`       |
 | `RollingMax`               | `window`       |
 | `RollingMin`               | `window`       |
+| `Sin`                      | --             |
+| `Cos`                      | --             |
 
 
 

@@ -33,7 +33,7 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 This snippet shows how to use a `SubjectStore`, create a new subject, check for existence, and open it:
 
 ```java
-try (SubjectStore store = new SubjectStore("jdbc:sqlite:buildings.iss")) {
+try (SubjectStore store = new SubjectStore(new File("index.triples"), "jdbc:sqlite:buildings.iss")) {
     Subject eiffel = store.create("eiffel tower", "building");
 
     boolean exists = store.has("taj mahal", "building");
@@ -89,10 +89,10 @@ Subject building = collection.parent().parent();
 
 ### Indexing subjects
 
-Subjects can also be retrieved using flexible queries based on their indexed attributes. To enable this, you can assign indexing attributes using the `index()` method. These attributes are static and optimized for efficient querying — such as names, categories, dates, and locations.
+Subjects can also be retrieved using flexible queries based on their indexed attributes. To enable this, you can assign indexing attributes using the `update()` method. These attributes are static and optimized for efficient querying — such as names, categories, dates, and locations.
 
 ```java
-eiffel.index()
+eiffel.update()
     .set("name", "Eiffel Tower")
     .set("year", 1889)
     .put("city", "Paris")
@@ -131,7 +131,7 @@ List<Term> terms = eiffel.terms(); // List of all index terms
 Each subject in `SubjectStore` can record time-stamped historical data using the `history()` method. This feature allows tracking of evolving metrics, state changes, or temporal observations without altering the subject’s current indexed attributes. Historical records are associated with both a date and a source (e.g.,`"sensor"`, `"website"`, `"manual"`), and can store arbitrary key-value pairs.
 
 ```java
-SubjectHistory history = subject.history();
+SubjectHistory history = store.historyOf(subject);
 history.on("2025-04-17", "website")
     .put("state", "open")
     .put("visitants", 3500)
@@ -144,7 +144,6 @@ history.on("2025-04-17", "website")
 Historical data can later be queried as typed signals and summarized over defined time periods:
 
 ```java
-SubjectHistory history = subject.history();
 NumericalSignal visitants = history.query()
     .number("visitants")
     .get(TimeSpan.LastMonth);
@@ -166,8 +165,8 @@ String state = states.stats().mode();
 Subject Index View generation provides a structured and summarized perspective over a subset of subjects of the same type. These views are built exclusively from indexed fields, and can be used to analyze categorical distributions, value frequencies, and filterable column definitions across your dataset.
 
 ```java
-SubjectIndexView view = store.view()
-    .type("building")
+List<Subject> subjects = store.subjects("building").collect();
+SubjectIndexView view = SubjectIndexView.of(subjects)
     .add("year")
     .add("city")
     .build();
@@ -185,7 +184,7 @@ int parisCount = view.column("city").stats().frequency("Paris");
 Subject History View generation allows transforming the historical data recorded for a subject into aggregated tables organized by time intervals. Each row represents a time segment (e.g., a year), and each column contains the result of an operation evaluated over the data in that interval.
 
 ```java
-SubjectHistoryView buildingView = store.viewOf("taj mahal.building")
+SubjectHistoryView buildingView = SubjectHistoryView.of(history)
     .from("1980")
     .to("2025-04")
     .period("P1M")
@@ -197,7 +196,8 @@ SubjectHistoryView buildingView = store.viewOf("taj mahal.building")
 The historyFormat can also be defined using a YAML string. The following example produces a yearly table of a building’s history, where each row represents one year and each column contains an aggregated, normalized, or derived value based on that building’s data:
 
 ```java
-SubjectHistoryView buildingView = store.viewOf("taj mahal.building").with(historyFormat)
+SubjectHistoryView buildingView = store.viewOf(history)
+    .with(historyFormat)
 ```
 
 ```yaml
