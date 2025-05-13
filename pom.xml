@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--suppress ALL -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -8,10 +7,7 @@
 	<groupId>systems.intino.datamarts</groupId>
 	<artifactId>subject-store</artifactId>
 	<version>2.0.6</version>
-	<description>SubjectStore is a data management library for tracking time-stamped attributes associated with a
-		subject, enabling the integration of partial and dynamic data from multiple sources without enforcing a rigid
-		data schema.
-	</description>
+	<description>SubjectStore is a lightweight Java library for modeling, indexing, and querying hierarchical entities called subjects. It provides a fluent API for defining typed attributes, parent-child relationships, and time-stamped historical data, along with expressive query capabilities. Ideal for knowledge bases, digital twins, simulations, or semantic data layers.</description>
 	<url>https://github.com/intino/subject-store</url>
 	<properties>
 		<maven.compiler.source>21</maven.compiler.source>
