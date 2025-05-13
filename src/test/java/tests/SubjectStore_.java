@@ -19,40 +19,36 @@ public class SubjectStore_ {
 		File index = new File("index.triples");
 		File journal = new File(index.getAbsolutePath() + ".journal");
 		try {
-			try (SubjectStore store = new SubjectStore(index)) {
-				assertThat(store.has("taj-mahal", "building")).isFalse();
-				assertThat(store.has("taj-mahal.building")).isFalse();
-				assertThat(index.exists()).isFalse();
-				assertThat(journal.exists()).isFalse();
-				createSubjects(store);
-				assertThat(index.exists()).isFalse();
-				assertThat(journal.exists()).isTrue();
-				test1(store);
-			}
-			try (SubjectStore store = new SubjectStore(index)) {
-				store.seal();
-				assertThat(index.exists()).isTrue();
-				assertThat(journal.exists()).isFalse();
-				test2(store);
-				store.open("taj_mahal", "building").drop();
-				assertThat(index.exists()).isTrue();
-				assertThat(journal.exists()).isTrue();
-				assertThat(store.subjects().collect().size()).isEqualTo(6);
-				assertThat(store.subjects().isRoot().size()).isEqualTo(2);
-				assertThat(store.subjects().type("building").collect().size()).isEqualTo(2);
-				assertThat(store.subjects().type("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
-				assertThat(store.subjects().type("building").where("continent").equals("Asia").collect().size()).isEqualTo(1);
-				assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(2);
-				assertThat(store.subjects().type("detail").collect().size()).isEqualTo(4);
-				assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
-			}
+			SubjectStore store = new SubjectStore(index);
+			assertThat(store.has("taj-mahal", "building")).isFalse();
+			assertThat(store.has("taj-mahal.building")).isFalse();
+			assertThat(index.exists()).isFalse();
+			assertThat(journal.exists()).isFalse();
+			createSubjects(store);
+			assertThat(index.exists()).isFalse();
+			assertThat(journal.exists()).isTrue();
+			test1(store);
 
-			try (SubjectStore store = new SubjectStore(index)) {
-				store.seal();
-				assertThat(index.exists()).isTrue();
-				assertThat(journal.exists()).isFalse();
-				test3(store);
-			}
+			store.seal();
+			assertThat(index.exists()).isTrue();
+			assertThat(journal.exists()).isFalse();
+			test2(store);
+			store.open("taj_mahal", "building").drop();
+			assertThat(index.exists()).isTrue();
+			assertThat(journal.exists()).isTrue();
+			assertThat(store.subjects().collect().size()).isEqualTo(6);
+			assertThat(store.subjects().isRoot().size()).isEqualTo(2);
+			assertThat(store.subjects().type("building").collect().size()).isEqualTo(2);
+			assertThat(store.subjects().type("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
+			assertThat(store.subjects().type("building").where("continent").equals("Asia").collect().size()).isEqualTo(1);
+			assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(2);
+			assertThat(store.subjects().type("detail").collect().size()).isEqualTo(4);
+			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
+
+			store.seal();
+			assertThat(index.exists()).isTrue();
+			assertThat(journal.exists()).isFalse();
+			test3(store);
 		}
 		finally {
 			index.delete();
@@ -63,7 +59,8 @@ public class SubjectStore_ {
 	@Test
 	public void should_create_histories() throws IOException {
 		File index = new File("index.triples");
-		try (SubjectStore store = new SubjectStore(index, Jdbc.sqlite())) {
+		try {
+			SubjectStore store = new SubjectStore(index).historiesDatabase(Jdbc.sqlite());
 			createSubjects(store);
 			createHistory(store);
 			store.seal();
@@ -148,25 +145,24 @@ public class SubjectStore_ {
 
 	public void should_create_views() throws IOException {
 		File index = new File("index.triples");
-		try (SubjectStore store = new SubjectStore(index, Jdbc.sqlite())) {
-			createSubjects(store);
-			SubjectIndexView view = SubjectIndexView
-					.of(store.subjects().type("building").collect())
-					.add("year", Type.Number)
-					.add("city", Type.Text)
-					.add("country", Type.Text)
-					.build();
-			SubjectHistoryView tajMahalHistory = SubjectHistoryView
-					.of(store.historyOf("taj_mahal.building"))
-					.with(new File("format.yaml"));
-			SubjectHistoryView historyView = SubjectHistoryView
-					.of(store.historyOf("taj_mahal.building"))
-					.from("2010")
-					.to("2025-04")
-					.duration("P1Y")
-					.add("","")
-					.build();
-		}
+		SubjectStore store = new SubjectStore(index, Jdbc.sqlite());
+		createSubjects(store);
+		SubjectIndexView view = SubjectIndexView
+				.of(store.subjects().type("building").collect())
+				.add("year", Type.Number)
+				.add("city", Type.Text)
+				.add("country", Type.Text)
+				.build();
+		SubjectHistoryView tajMahalHistory = SubjectHistoryView
+				.of(store.historyOf("taj_mahal.building"))
+				.with(new File("format.yaml"));
+		SubjectHistoryView historyView = SubjectHistoryView
+				.of(store.historyOf("taj_mahal.building"))
+				.from("2010")
+				.to("2025-04")
+				.duration("P1Y")
+				.add("","")
+				.build();
 	}
 
 	private static void createSubjects(SubjectStore store) {

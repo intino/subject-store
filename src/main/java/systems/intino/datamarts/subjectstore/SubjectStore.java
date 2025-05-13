@@ -5,29 +5,26 @@ import systems.intino.datamarts.subjectstore.model.Subject;
 
 import java.io.*;
 
-public class SubjectStore implements AutoCloseable {
+public class SubjectStore {
 	private final File indexFile;
 	private final SubjectIndex index;
-	private final String historyJdbcUrl;
+	private String historyJdbcUrl;
 
 	public SubjectStore(File indexFile) throws IOException {
 		this.indexFile = indexFile;
-		this.index = createIndex();
+		this.index = initIndex();
 		this.historyJdbcUrl = null;
 	}
 
 	public SubjectStore(File indexFile, String historyJdbcUrl) throws IOException {
 		this.indexFile = indexFile;
-		this.index = createIndex();
+		this.index = initIndex();
 		this.historyJdbcUrl = historyJdbcUrl;
 	}
 
-	@SuppressWarnings("ResultOfMethodCallIgnored")
-	public void seal() throws IOException {
-		try (OutputStream os = new BufferedOutputStream(new FileOutputStream(indexFile))) {
-			index.dump(os);
-			journalFile().delete();
-		}
+	public SubjectStore historiesDatabase(String historyJdbcUrl) {
+		this.historyJdbcUrl = historyJdbcUrl;
+		return this;
 	}
 
 	public boolean has(String identifier) {
@@ -58,16 +55,25 @@ public class SubjectStore implements AutoCloseable {
 		return historyOf(new Subject(subject));
 	}
 
-	public SubjectHistory historyOf(Subject subject) {
-		return new SubjectHistory(subject.identifier(), historyJdbcUrl);
+	@SuppressWarnings("ResultOfMethodCallIgnored")
+	public void seal() throws IOException {
+		try (OutputStream os = new BufferedOutputStream(new FileOutputStream(indexFile))) {
+			index.dump(os);
+			journalFile().delete();
+		}
 	}
 
 	public SubjectQuery subjects() {
 		return index.subjects();
 	}
 
+	public SubjectHistory historyOf(Subject subject) {
+		if (historyJdbcUrl == null) throw new IllegalStateException("Historical database is not configured. Define historiesDatabase(...) before using history().");
+		return new SubjectHistory(subject.identifier(), historyJdbcUrl);
+	}
+
 	@SuppressWarnings("ResultOfMethodCallIgnored")
-	private SubjectIndex createIndex() throws IOException {
+	private SubjectIndex initIndex() throws IOException {
 		File journalFile = journalFile();
 		File recoverFile = new File(journalFile.getAbsolutePath() + ".recovering");
 		journalFile.renameTo(recoverFile);
@@ -86,8 +92,4 @@ public class SubjectStore implements AutoCloseable {
 		return new File(indexFile.getAbsolutePath() + ".journal");
 	}
 
-	@Override
-	public void close() {
-
-	}
 }

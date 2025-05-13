@@ -33,22 +33,20 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 This snippet shows how to use a `SubjectStore`, create a new subject, check for existence, and open it:
 
 ```java
-try (SubjectStore store = new SubjectStore(new File("index.triples")) {
-    Subject eiffel = store.create("eiffel tower", "building");
-    eiffel.update()
-        .set("name", "Eiffel Tower")
-        .set("year", 1889)
-        .put("city", "Paris")
-        .put("country", "France")
-        .put("continent", "Europe");
+SubjectStore store = new SubjectStore(new File("index.triples"));
+Subject eiffel = store.create("eiffel tower", "building");
+eiffel.update()
+    .set("name", "Eiffel Tower")
+    .set("year", 1889)
+    .put("city", "Paris")
+    .put("country", "France")
+    .put("continent", "Europe");
 
-    boolean exists = store.has("taj mahal", "building");
+boolean exists = store.has("taj mahal", "building");
 
-    Subject building = store.open("eiffel tower", "building");
-	
-    store.seal()
+Subject building = store.open("eiffel tower", "building");
 
-}
+store.seal()
 ```
 The index.triples file acts as an inverted index that enables fast retrieval of Subject entries stored in the SubjectStore. It stores static key-value pairs that have been assigned via the update() method. These attributes are internally optimized for efficient lookup and filtering.
 
@@ -129,14 +127,20 @@ List<Subject> modernBuildings = store.subjects("building")
 
 ### Tracking historical data
 
-Each Subject in the SubjectStore can record time-stamped historical data using the history() or historyOf() method. This mechanism allows tracking dynamic attributes such as changing states, evolving metrics, or periodic observations, without altering the subject’s current indexed attributes.
+Each Subject in the SubjectStore can record time-stamped historical data. This mechanism allows tracking dynamic attributes such as changing states, evolving metrics, or periodic observations, without altering the subject’s current indexed attributes.
 
 Historical entries are associated with a specific date, a source identifier (e.g. "sensor", "website", "manual"), and a set of arbitrary key-value pairs representing the observed data. This makes it possible to capture the temporal evolution of a subject over time. Historical data is stored separately from the main index file. While static attributes are indexed in index.triples, time-stamped entries are persisted in a dedicated SQL database configured via JDBC. This design ensures high performance for both real-time queries and historical analysis.
 
+To insert historical data into a Subject, you use the historyOf(subject) method provided by the SubjectStore. This gives you access to the subject’s historical timeline, where you can record time-stamped observations. Each record is created with the .on(date, source) method, followed by one or more .put(key, value) calls to define the observed attributes.
+
+Once all data for that timestamp is added, you must call .terminate() to commit the entry.
+
+Here is a complete example:
 
 ```java
-try (SubjectStore store = new SubjectStore(new File("index.triples")).historiesDatabase("jdbc:sqlite:buildings.iss") {
-    SubjectHistory history = store.historyOf(subject);
+SubjectStore store = new SubjectStore(new File("index.triples")).historiesDatabase("jdbc:sqlite:buildings.iss");
+Subject subject = store.open("eiffel tower", "building");
+try (SubjectHistory history = store.historyOf(subject)) {
     history.on("2025-04-17", "website")
         .put("state", "open")
         .put("visitants", 3500)
