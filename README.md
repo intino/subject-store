@@ -33,13 +33,36 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 This snippet shows how to use a `SubjectStore`, create a new subject, check for existence, and open it:
 
 ```java
-try (SubjectStore store = new SubjectStore(new File("index.triples"), "jdbc:sqlite:buildings.iss")) {
+try (SubjectStore store = new SubjectStore(new File("index.triples")) {
     Subject eiffel = store.create("eiffel tower", "building");
+    eiffel.update()
+        .set("name", "Eiffel Tower")
+        .set("year", 1889)
+        .put("city", "Paris")
+        .put("country", "France")
+        .put("continent", "Europe");
 
     boolean exists = store.has("taj mahal", "building");
 
-    Subject eiffel = store.open("eiffel tower", "building");
+    Subject building = store.open("eiffel tower", "building");
+	
+    store.seal()
+
 }
+```
+The index.triples file acts as an inverted index that enables fast retrieval of Subject entries stored in the SubjectStore. It stores static key-value pairs that have been assigned via the update() method. These attributes are internally optimized for efficient lookup and filtering.
+
+The update() method allows you to assign static, queryable attributes to a Subject. These attributes are stored in the inverted index (index.triples).  To keep the index efficient and up to date, it is necessary to periodically consolidate the indexed data using the seal() method.
+
+Once a subject has been added, the associated attributes can be retrieved programmatically. The get() method retrieves a string representation of the values assigned to a specific indexed attribute. If multiple values are present, they are joined using a configurable separator (default is ", ").
+
+```java
+String city = eiffel.get("city"); // "Paris"
+```
+
+To access all indexed values of a subject, you can use the terms() method:
+```java
+List<Term> terms = eiffel.terms(); // List of all index terms
 ```
 
 ### Managing hierarchical structures
@@ -68,7 +91,6 @@ Subject museum = store.create("national-museum", "building");
 
 ### Accessing hierarchical subjects
 
-
 For nested subjects, you can use hierarchical paths in the form ```parent.type/child.type/grandchild.type```.
 
 ```java
@@ -87,19 +109,11 @@ Additionally, you can navigate upwards in the hierarchy:
 Subject building = collection.parent().parent();
 ```
 
-### Indexing subjects
+### Querying subjects
 
-Subjects can also be retrieved using flexible queries based on their indexed attributes. To enable this, you can assign indexing attributes using the `update()` method. These attributes are static and optimized for efficient querying — such as names, categories, dates, and locations.
+Subjects can also be retrieved using flexible queries based on their indexed attributes. To enable this, you can assign indexing attributes. 
 
 ```java
-eiffel.update()
-    .set("name", "Eiffel Tower")
-    .set("year", 1889)
-    .put("city", "Paris")
-    .put("country", "France")
-    .put("continent", "Europe")
-    .terminate();
-
 Subject eiffel = store.subjects("building")
 		.with("city", "Paris")
 		.first();
@@ -113,31 +127,25 @@ List<Subject> modernBuildings = store.subjects("building")
 		.collect();
 ```
 
-Once a subject has been indexed, the associated attributes can be retrieved programmatically.
-
-The get() method retrieves a string representation of the values assigned to a specific indexed attribute. If multiple values are present, they are joined using a configurable separator (default is ", ").
-
-```java
-String city = eiffel.get("city"); // "Paris"
-```
-
-To access all indexed values, you can use the terms() method:
-```java
-List<Term> terms = eiffel.terms(); // List of all index terms
-```
-
 ### Tracking historical data
 
-Each subject in `SubjectStore` can record time-stamped historical data using the `history()` method. This feature allows tracking of evolving metrics, state changes, or temporal observations without altering the subject’s current indexed attributes. Historical records are associated with both a date and a source (e.g.,`"sensor"`, `"website"`, `"manual"`), and can store arbitrary key-value pairs.
+Each Subject in the SubjectStore can record time-stamped historical data using the history() or historyOf() method. This mechanism allows tracking dynamic attributes such as changing states, evolving metrics, or periodic observations, without altering the subject’s current indexed attributes.
+
+Historical entries are associated with a specific date, a source identifier (e.g. "sensor", "website", "manual"), and a set of arbitrary key-value pairs representing the observed data. This makes it possible to capture the temporal evolution of a subject over time. Historical data is stored separately from the main index file. While static attributes are indexed in index.triples, time-stamped entries are persisted in a dedicated SQL database configured via JDBC. This design ensures high performance for both real-time queries and historical analysis.
+
 
 ```java
-SubjectHistory history = store.historyOf(subject);
-history.on("2025-04-17", "website")
-    .put("state", "open")
-    .put("visitants", 3500)
-    .put("income", 42000)
-    .terminate();
+try (SubjectStore store = new SubjectStore(new File("index.triples")).historiesDatabase("jdbc:sqlite:buildings.iss") {
+    SubjectHistory history = store.historyOf(subject);
+    history.on("2025-04-17", "website")
+        .put("state", "open")
+        .put("visitants", 3500)
+        .put("income", 42000)
+        .terminate();
+}
 ```
+
+In this case, historical entries are saved in a SQLite database file named buildings.iss. The system supports any JDBC-compatible database, such as SQLite, PostgreSQL, MySQL or MariaDB, allowing you to scale or integrate according to your needs.
 
 ### Analyzing subject history
 
