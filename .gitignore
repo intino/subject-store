@@ -38,3 +38,4 @@ build/
 .DS_Store
 *.iss
 /title.basics.triples
+title.basics.tsv
