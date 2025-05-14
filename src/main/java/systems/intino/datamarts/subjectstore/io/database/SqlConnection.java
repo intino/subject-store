@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.io.registries;
+package systems.intino.datamarts.subjectstore.io.database;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -23,10 +23,10 @@ public class SqlConnection {
 	}
 
 	private static Connection create(String url) throws SQLException {
-		Connection connection = DriverManager.getConnection(url);
-		connection.setAutoCommit(false);
-		connections.put(url, connection);
-		return connection;
+				Connection connection = DriverManager.getConnection(url);
+				connection.setAutoCommit(false);
+				connections.put(url, connection);
+				return connection;
 	}
 
 	private static boolean isValid(Connection connection) throws SQLException {

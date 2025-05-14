@@ -3,7 +3,7 @@ package systems.intino.datamarts.subjectstore.io;
 import java.time.Instant;
 import java.util.stream.Stream;
 
-public interface HistoryRegistry extends AutoCloseable {
+public interface HistoryRegistry {
 
 	int size();
 

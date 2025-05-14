@@ -1,6 +1,6 @@
-package systems.intino.datamarts.subjectstore.io.registries.dialects;
+package systems.intino.datamarts.subjectstore.io.database.dialects;
 
-import systems.intino.datamarts.subjectstore.io.registries.SqlStatementProvider;
+import systems.intino.datamarts.subjectstore.io.database.SqlStatementProvider;
 
 public class Sqlite implements SqlStatementProvider.SqlDialect {
 	@Override

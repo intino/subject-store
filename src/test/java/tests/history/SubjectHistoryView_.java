@@ -1,5 +1,7 @@
 package tests.history;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
 import tests.Jdbc;
@@ -9,8 +11,9 @@ import systems.intino.datamarts.subjectstore.calculator.model.filters.MinMaxNorm
 import systems.intino.datamarts.subjectstore.calculator.model.filters.RollingAverageFilter;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.time.Duration;
 import java.time.Instant;
 
@@ -29,9 +32,23 @@ public class SubjectHistoryView_ {
 		2025.0	1.0	-0.12333157834482777	18.0	18.0	0.375	6.0	18.0	rain	1.0	37.5
 		""";
 
+	private Connection connection;
+
+	@Before
+	public void setUp() throws Exception {
+		String url = Jdbc.sqlite();
+		this.connection = DriverManager.getConnection(url);
+		this.connection.setAutoCommit(false);
+
+	}
+
+	@After
+	public void tearDown() throws Exception {
+		this.connection.close();
+	}
 	@Test
 	public void should_export_to_tabular_report_with_format_as_object() throws IOException {
-		SubjectHistory history = new SubjectHistory("map", Jdbc.sqlite());
+		SubjectHistory history = new SubjectHistory("map", connection);
 		feed(history);
 		HistoryFormat historyFormat = new HistoryFormat(from, to, Duration.ofDays(7))
 			.add("Year","ts.year")
@@ -53,7 +70,7 @@ public class SubjectHistoryView_ {
 
 	@Test
 	public void should_export_to_tabular_report_with_format_as_string() throws IOException {
-		SubjectHistory history = new SubjectHistory("map", Jdbc.sqlite());
+		SubjectHistory history = new SubjectHistory("map", connection);
 			feed(history);
 			String format = """
 			rows:

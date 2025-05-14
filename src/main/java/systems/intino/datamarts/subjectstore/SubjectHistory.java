@@ -4,13 +4,14 @@ import systems.intino.datamarts.subjectstore.io.feeds.RegistryFeeds;
 import systems.intino.datamarts.subjectstore.io.HistoryRegistry.Row;
 import systems.intino.datamarts.subjectstore.io.feeds.DumpFeeds;
 import systems.intino.datamarts.subjectstore.io.HistoryRegistry;
-import systems.intino.datamarts.subjectstore.io.registries.SqlHistoryRegistry;
+import systems.intino.datamarts.subjectstore.io.database.SqlHistoryRegistry;
 import systems.intino.datamarts.subjectstore.model.*;
 import systems.intino.datamarts.subjectstore.model.Signal.Point;
 import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 
 import java.io.*;
+import java.sql.Connection;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,15 +20,15 @@ import java.util.stream.Stream;
 import static java.util.Comparator.comparingInt;
 import static systems.intino.datamarts.subjectstore.TimeParser.parseInstant;
 
-public class SubjectHistory implements AutoCloseable {
+public class SubjectHistory {
 	private final String subject;
 	private final HistoryRegistry registry;
 	private final TagSet tagSet;
 	private final Timeline timeline;
 
-	public SubjectHistory(String subject, String jdbcUrl) {
+	public SubjectHistory(String subject, Connection connection) {
 		this.subject = subject;
-		this.registry = new SqlHistoryRegistry(subject, jdbcUrl);
+		this.registry = new SqlHistoryRegistry(subject, connection);
 		this.tagSet = new TagSet(registry.tags());
 		this.timeline = new Timeline(registry.instants());
 	}
@@ -209,16 +210,6 @@ public class SubjectHistory implements AutoCloseable {
 	public void drop() {
 		registry.drop();
 	}
-
-	@Override
-	public void close()  {
-		try {
-			registry.close();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 
 	public class NumericalQuery {
 		private final String tag;
