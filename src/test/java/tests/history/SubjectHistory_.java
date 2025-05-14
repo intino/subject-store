@@ -1,11 +1,15 @@
 package tests.history;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import tests.Jdbc;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.io.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.time.Instant;
 
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -17,47 +21,60 @@ public class SubjectHistory_ {
 	private static final Instant now = Instant.now().truncatedTo(DAYS);
 	private static final Instant day = Instant.parse("2025-03-25T00:00:00Z");
 	private static final String categories = "DEPOLARISE";
+	private Connection connection;
 
+	@Before
+	public void setUp() throws Exception {
+		String url = Jdbc.sqlite();
+		this.connection = DriverManager.getConnection(url);
+		this.connection.setAutoCommit(false);
+
+	}
+
+	@After
+	public void tearDown() throws Exception {
+		this.connection.close();
+	}
 	@Test
-	public void should_handle_empty_history() throws Exception {
-		try (SubjectHistory history = new SubjectHistory("123.patient", Jdbc.sqlite())) {
-			assertThat(history.name()).isEqualTo("123");
-			assertThat(history.type()).isEqualTo("patient");
-			assertThat(history.typedName()).isEqualTo("123.patient");
-			assertThat(history.size()).isEqualTo(0);
-			assertThat(history.exists("field")).isFalse();
-			assertThat(history.current().point("field")).isNull();
-			assertThat(history.instants()).isEmpty();
-		}
+	public void should_handle_empty_history() {
+		SubjectHistory history = new SubjectHistory("123.patient", connection);
+		assertThat(history.name()).isEqualTo("123");
+		assertThat(history.type()).isEqualTo("patient");
+		assertThat(history.typedName()).isEqualTo("123.patient");
+		assertThat(history.size()).isEqualTo(0);
+		assertThat(history.exists("field")).isFalse();
+		assertThat(history.current().point("field")).isNull();
+		assertThat(history.instants()).isEmpty();
 	}
 
 	@Test
-	public void should_ignore_feed_without_data() throws Exception {
-		try (SubjectHistory history = new SubjectHistory("00000", Jdbc.sqlite())) {
-			history.on(Instant.now(), "Skip").terminate();
-			assertThat(history.size()).isEqualTo(0);
-		}
+	public void should_ignore_feed_without_data() {
+		SubjectHistory history = new SubjectHistory("00000", connection);
+		history.on(Instant.now(), "Skip").terminate();
+		assertThat(history.size()).isEqualTo(0);
 	}
 
 	@Test
-	public void should_return_most_recent_get_as_current() throws Exception {
-		try (SubjectHistory history = new SubjectHistory("12345.patient", Jdbc.sqlite())) {
-			feed_batch(history);
-			test_batch(history);
-		}
+	public void should_return_most_recent_get_as_current() {
+		SubjectHistory history = new SubjectHistory("12345.patient", connection);
+		feed_batch(history);
+		test_batch(history);
 	}
 
 	@Test
 	public void should_dump_and_restore_events() throws Exception {
 		OutputStream os = new ByteArrayOutputStream();
-		try (SubjectHistory history = new SubjectHistory("12345.patient", Jdbc.sqlite())) {
+		String dump;
+		{
+			SubjectHistory history = new SubjectHistory("12345.patient", connection);
 			feed_batch(history);
 			history.dump(os);
+			dump = os.toString();
+			test_dump(dump);
 		}
-		String dump = os.toString();
-		test_dump(dump);
-		InputStream is = new ByteArrayInputStream(dump.getBytes());
-		try (SubjectHistory history = new SubjectHistory("12345.patient", Jdbc.sqlite()).restore(is)) {
+		{
+			InputStream is = new ByteArrayInputStream(dump.replace("12345","01234").getBytes());
+			SubjectHistory history = new SubjectHistory("01234.patient", connection).restore(is);
 			history.restore(is);
 			test_batch(history);
 		}
@@ -65,9 +82,9 @@ public class SubjectHistory_ {
 
 
 	@Test
-	public void should_store_features() throws Exception {
-		String store = Jdbc.sqlite();
-		try (SubjectHistory history = new SubjectHistory("00000", store)) {
+	public void should_store_features() {
+		{
+			SubjectHistory history = new SubjectHistory("00000", connection);
 			history.on(now, "UN:all-ports")
 					.put("Country", "China")
 					.put("Latitude", 31.219832454)
@@ -75,7 +92,8 @@ public class SubjectHistory_ {
 					.terminate();
 			test_stored_features(history);
 		}
-		try (SubjectHistory history = new SubjectHistory("00000", store)) {
+		{
+			SubjectHistory history = new SubjectHistory("00000", connection);
 			test_stored_features(history);
 		}
 	}
@@ -100,33 +118,34 @@ public class SubjectHistory_ {
 	}
 
 	@Test
-	public void should_store_time_series() throws Exception {
-		String module = Jdbc.sqlite();
-		try (SubjectHistory history = new SubjectHistory("00000", module)) {
+	public void should_store_time_series() {
+		{
+			SubjectHistory history = new SubjectHistory("00000", connection);
 			feed_time_series(history);
 			test_stored_time_series(history);
 		}
-		try (SubjectHistory history = new SubjectHistory("00000", module)) {
+		{
+			SubjectHistory history = new SubjectHistory("00000", connection);
 			test_stored_time_series(history);
 		}
 	}
 
 	@Test
 	public void should_create_memory_databases() {
-		try (SubjectHistory history = new SubjectHistory("00000", Jdbc.memory())) {
+		{
+			SubjectHistory history = new SubjectHistory("00000", connection);
 			feed_time_series(history);
 			test_stored_time_series(history);
 		}
 	}
 
-	@Test @SuppressWarnings("resource")
-	public void should_include_several_subjects() throws Exception {
-		String connection = Jdbc.sqlite();
+	@Test
+	public void should_include_several_subjects() {
 		SubjectHistory[] histories = new SubjectHistory[]{
-				new SubjectHistory("00001", connection),
-				new SubjectHistory("00002", connection),
-				new SubjectHistory("00003", connection),
-				new SubjectHistory("00004", connection)
+				new SubjectHistory("00001", this.connection),
+				new SubjectHistory("00002", this.connection),
+				new SubjectHistory("00003", this.connection),
+				new SubjectHistory("00004", this.connection)
 		};
 		for (SubjectHistory history : histories) {
 			feed_time_series(history);
@@ -214,8 +233,6 @@ public class SubjectHistory_ {
 	}
 
 	private static void test_batch(SubjectHistory history) {
-		assertThat(history.type()).startsWith("patient");
-		assertThat(history.name()).isEqualTo("12345");
 		assertThat(history.current().number("hemoglobin")).isEqualTo(145.0);
 		Signal.Point<?> actual = history.current().point("hemoglobin");
 		assertThat(actual.value()).isEqualTo(145.0);

@@ -1,14 +1,14 @@
-package systems.intino.datamarts.subjectstore.io.registries;
+package systems.intino.datamarts.subjectstore.io.database;
 
-import systems.intino.datamarts.subjectstore.io.registries.dialects.MySql;
-import systems.intino.datamarts.subjectstore.io.registries.dialects.Postgresql;
-import systems.intino.datamarts.subjectstore.io.registries.dialects.Sqlite;
+import systems.intino.datamarts.subjectstore.io.database.dialects.MySql;
+import systems.intino.datamarts.subjectstore.io.database.dialects.Postgresql;
+import systems.intino.datamarts.subjectstore.io.database.dialects.Sqlite;
 
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
-import static systems.intino.datamarts.subjectstore.io.registries.SqlStatementProvider.StatementType.*;
+import static systems.intino.datamarts.subjectstore.io.database.SqlStatementProvider.StatementType.*;
 
 @SuppressWarnings("SqlSourceToSinkFlow")
 public class SqlStatementProvider {

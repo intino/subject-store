@@ -4,26 +4,21 @@ import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
 import systems.intino.datamarts.subjectstore.model.Subject;
 
 import java.io.*;
+import java.sql.Connection;
 
 public class SubjectStore {
 	private final File indexFile;
 	private final SubjectIndex index;
-	private String historyJdbcUrl;
+	private Connection connection;
 
 	public SubjectStore(File indexFile) throws IOException {
 		this.indexFile = indexFile;
 		this.index = initIndex();
-		this.historyJdbcUrl = null;
+		this.connection = null;
 	}
 
-	public SubjectStore(File indexFile, String historyJdbcUrl) throws IOException {
-		this.indexFile = indexFile;
-		this.index = initIndex();
-		this.historyJdbcUrl = historyJdbcUrl;
-	}
-
-	public SubjectStore historiesDatabase(String historyJdbcUrl) {
-		this.historyJdbcUrl = historyJdbcUrl;
+	public SubjectStore connection(Connection connection) {
+		this.connection = connection;
 		return this;
 	}
 
@@ -68,8 +63,8 @@ public class SubjectStore {
 	}
 
 	public SubjectHistory historyOf(Subject subject) {
-		if (historyJdbcUrl == null) throw new IllegalStateException("Historical database is not configured. Define historiesDatabase(...) before using history().");
-		return new SubjectHistory(subject.identifier(), historyJdbcUrl);
+		if (connection == null) throw new IllegalStateException("Historical database is not configured. Define store.connection(...) before using historyOf().");
+		return new SubjectHistory(subject.identifier(), connection);
 	}
 
 	@SuppressWarnings("ResultOfMethodCallIgnored")

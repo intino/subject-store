@@ -1,4 +1,4 @@
-package systems.intino.datamarts.subjectstore.io.registries;
+package systems.intino.datamarts.subjectstore.io.database;
 
 
 import systems.intino.datamarts.subjectstore.SubjectHistory.RegistryException;
@@ -18,10 +18,10 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 	private int feedCount;
 	private int current;
 
-	public SqlHistoryRegistry(String identifier, String jdbcUrl) {
+	public SqlHistoryRegistry(String identifier, Connection connection) {
 		try {
 			this.identifier = identifier;
-			this.connection = SqlConnection.get(jdbcUrl);
+			this.connection = connection;
 			this.statements = new SqlStatementProvider(connection).of(identifier).statements();
 			this.feedCount = readFeedCount();
 		} catch (SQLException e) {
@@ -358,12 +358,6 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 			throw new RuntimeException(e);
 		}
 	}
-
-	@Override
-	public void close() throws Exception {
-		connection.close();
-	}
-
 
 	@Override
 	public String toString() {

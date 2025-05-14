@@ -1,5 +1,7 @@
 package tests;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectHistoryView;
@@ -9,11 +11,28 @@ import systems.intino.datamarts.subjectstore.model.Subject;
 import systems.intino.datamarts.subjectstore.view.index.Column.Type;
 
 import java.io.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 @SuppressWarnings({"ResultOfMethodCallIgnored", "NewClassNamingConvention"})
 public class SubjectStore_ {
+	private Connection connection;
+
+	@Before
+	public void setUp() throws Exception {
+		String url = Jdbc.sqlite();
+		this.connection = DriverManager.getConnection(url);
+		this.connection.setAutoCommit(false);
+
+	}
+
+	@After
+	public void tearDown() throws Exception {
+		this.connection.close();
+	}
+
 	@Test
 	public void should_create_and_persist_subjects_with_hierarchy_and_history() throws IOException {
 		File index = new File("index.triples");
@@ -60,7 +79,7 @@ public class SubjectStore_ {
 	public void should_create_histories() throws IOException {
 		File index = new File("index.triples");
 		try {
-			SubjectStore store = new SubjectStore(index).historiesDatabase(Jdbc.sqlite());
+			SubjectStore store = new SubjectStore(index).connection(connection);
 			createSubjects(store);
 			createHistory(store);
 			store.seal();
@@ -127,25 +146,23 @@ public class SubjectStore_ {
 
 	private void createHistory(SubjectStore store) {
 		for (Subject subject : store.subjects().collect()) {
-			try (SubjectHistory history = store.historyOf(subject)) {
-				history.on("2025", "test").put("visits", 10).terminate();
-			}
+			SubjectHistory history = store.historyOf(subject);
+			history.on("2025", "test").put("visits", 10).terminate();
 		}
 	}
 
 	private void testHistory(SubjectStore store) {
 		for (Subject subject : store.subjects().collect()) {
-			try (SubjectHistory history = store.historyOf(subject)) {
-				assertThat(history.query().number("visits").all().summary().count()).isEqualTo(1);
-				assertThat(history.query().number("visits").all().summary().sum()).isEqualTo(10.0);
-			}
+			SubjectHistory history = store.historyOf(subject);
+			assertThat(history.query().number("visits").all().summary().count()).isEqualTo(1);
+			assertThat(history.query().number("visits").all().summary().sum()).isEqualTo(10.0);
 		}
 	}
 
 
 	public void should_create_views() throws IOException {
 		File index = new File("index.triples");
-		SubjectStore store = new SubjectStore(index, Jdbc.sqlite());
+		SubjectStore store = new SubjectStore(index).connection(connection);
 		createSubjects(store);
 		SubjectIndexView view = SubjectIndexView
 				.of(store.subjects().type("building").collect())
