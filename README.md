@@ -113,7 +113,7 @@ Subjects can also be retrieved using flexible queries based on their indexed att
 
 ```java
 Subject eiffel = store.subjects("building")
-		.with("city", "Paris")
+		.where("city").equals("Paris")
 		.first();
 
 List<Subject> towers = store.subjects("building")
@@ -121,7 +121,7 @@ List<Subject> towers = store.subjects("building")
 		.collect();
 
 List<Subject> modernBuildings = store.subjects("building")
-		.where("year").that(v -> toNumber(v) > 1900)
+		.where("year").satisfy(v -> toNumber(v) > 1900)
 		.collect();
 ```
 

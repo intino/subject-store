@@ -12,7 +12,7 @@ public class SubjectHistoryVault implements Closeable {
 		this.connection = connection(jdbcUrl);
 	}
 
-	public SubjectHistory get(String subject) {
+	public SubjectHistory open(String subject) {
 		return new SubjectHistory(subject, connection);
 	}
 
