@@ -24,7 +24,7 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 <dependency>
     <groupId>systems.intino.datamarts</groupId>
     <artifactId>subject-store</artifactId>
-    <version>2.0.6</version>
+    <version>2.0.7</version>
 </dependency>
 ```
 
@@ -138,8 +138,9 @@ Once all data for that timestamp is added, you must call .terminate() to commit 
 Here is a complete example:
 
 ```java
+Connection connection = DriverManager.getConnection("jdbc:sqlite:buildings.iss")
 SubjectStore store = new SubjectStore(new File("index.triples"))
-        .historiesDatabase("jdbc:sqlite:buildings.iss");
+        .connection(connection);
 
 Subject subject = store.open("eiffel tower", "building");
 try (SubjectHistory history = store.historyOf(subject)) {
