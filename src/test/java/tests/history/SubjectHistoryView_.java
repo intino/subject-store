@@ -3,7 +3,6 @@ package tests.history;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.LagFilter;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.LeadFilter;
 import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
@@ -25,7 +24,6 @@ import static java.lang.Math.sin;
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.HOURS;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.InstanceOfAssertFactories.PERIOD;
 
 @SuppressWarnings("NewClassNamingConvention")
 public class SubjectHistoryView_ {
