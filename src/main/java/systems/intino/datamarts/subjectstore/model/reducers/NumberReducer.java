@@ -17,7 +17,9 @@ public interface NumberReducer extends Function<Signal<?>, Double> {
 		Map<String, NumberReducer> map = new HashMap<>();
 		map.put("count", s -> (double) s.count());
 		map.put("sum", s -> isNumerical(s) ? numerical(s).summary().sum() : NaN);
-		map.put("average", s -> isNumerical(s) ? numerical(s).summary().mean() : NaN);
+		map.put("total", map.get("sum"));
+		map.put("mean", s -> isNumerical(s) ? numerical(s).summary().mean() : NaN);
+		map.put("average", map.get("mean"));
 		map.put("sd", s -> hasNumericalContent(s) ? numerical(s).summary().sd() : NaN);
 		map.put("first", s -> hasNumericalContent(s) ? numerical(s).summary().first().value() : NaN);
 		map.put("last", s -> hasNumericalContent(s) ? numerical(s).summary().last().value() : NaN);

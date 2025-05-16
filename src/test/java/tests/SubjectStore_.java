@@ -177,7 +177,7 @@ public class SubjectStore_ {
 				.of(store.historyOf("taj_mahal.building"))
 				.from("2010")
 				.to("2025-04")
-				.duration("P1Y")
+				.period("P1Y")
 				.add("","")
 				.build();
 	}

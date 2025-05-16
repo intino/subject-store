@@ -1,7 +1,7 @@
 package tests.calculator;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.calculator.VectorCalculator;
+import systems.intino.datamarts.subjectstore.calculator.DoubleVectorCalculator;
 import systems.intino.datamarts.subjectstore.calculator.model.vectors.DoubleVector;
 
 import java.util.HashMap;
@@ -10,10 +10,10 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("NewClassNamingConvention")
-public class VectorCalculator_ {
+public class DoubleVectorCalculator_ {
 	@Test
 	public void evaluates_constants_and_builtin_functions() {
-		VectorCalculator calculator = new VectorCalculator(2, n->null);
+		DoubleVectorCalculator calculator = new DoubleVectorCalculator(2, n->null);
 		assertThat(calculator.calculate("5").values()).containsExactly(5.0, 5.0);
 		assertThat(calculator.calculate("PI").values()).containsExactly(Math.PI, Math.PI);
 		assertThat(calculator.calculate("SIN(2)").values()).containsExactly(Math.sin(2), Math.sin(2));
@@ -22,7 +22,7 @@ public class VectorCalculator_ {
 	@Test
 	public void supports_variable_definition_and_arithmetic() {
 		Map<String, DoubleVector> map = new HashMap<>();
-		VectorCalculator calculator = new VectorCalculator(2, map::get);
+		DoubleVectorCalculator calculator = new DoubleVectorCalculator(2, map::get);
 
 		map.put("A", calculator.calculate("5"));
 		map.put("B", calculator.calculate("2"));
@@ -37,7 +37,7 @@ public class VectorCalculator_ {
 	@Test
 	public void supports_functions_on_variables() {
 		Map<String, DoubleVector> map = new HashMap<>();
-		VectorCalculator calculator = new VectorCalculator(2, map::get);
+		DoubleVectorCalculator calculator = new DoubleVectorCalculator(2, map::get);
 
 		map.put("A", calculator.calculate("5"));
 		map.put("F", calculator.calculate("sin(A)"));

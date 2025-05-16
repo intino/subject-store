@@ -11,11 +11,11 @@ import systems.intino.datamarts.subjectstore.calculator.model.vectors.DoubleVect
 import java.util.Arrays;
 import java.util.function.Function;
 
-public class VectorCalculator {
+public class DoubleVectorCalculator {
 	private final int size;
 	private final Function<String, DoubleVector> variable;
 
-	public VectorCalculator(int size, Function<String, DoubleVector> variable) {
+	public DoubleVectorCalculator(int size, Function<String, DoubleVector> variable) {
 		this.size = size;
 		this.variable = variable;
 	}

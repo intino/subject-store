@@ -30,8 +30,8 @@ public interface TimeReducer extends Function<Instant, Object> {
 	}
 
 
-	static TimeReducer of(String function) {
-		return map.containsKey(function) ? map.get(function) : ts-> "Unknown function: " + function;
+	static TimeReducer of(String field) {
+		return map.getOrDefault(field, ts-> "Unknown field: " + field);
 	}
 
 	static boolean contains(String function) {

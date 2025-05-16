@@ -337,6 +337,7 @@ public class SubjectIndex {
 	private Context createContext() {
 		return new Context() {
 
+
 			@Override
 			public List<Subject> children(Subject subject) {
 				return subjectPool.stream()

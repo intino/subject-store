@@ -1,6 +1,6 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.calculator.VectorCalculator;
+import systems.intino.datamarts.subjectstore.calculator.DoubleVectorCalculator;
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 import systems.intino.datamarts.subjectstore.calculator.model.Vector;
 import systems.intino.datamarts.subjectstore.calculator.model.vectors.DoubleVector;
@@ -21,6 +21,8 @@ import java.io.*;
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class SubjectHistoryView implements Iterable<Column> {
 	private final SubjectHistory history;
@@ -125,20 +127,47 @@ public class SubjectHistoryView implements Iterable<Column> {
 	}
 
 	private void build(ColumnDefinition columnDefinition) {
-		vectors.put(columnDefinition.name, calculate(columnDefinition));
+		vectors.put(columnDefinition.name, vectorIn(columnDefinition));
 	}
 
-	private Vector<?> calculate(ColumnDefinition columnDefinition) {
-		if (columnDefinition.isAlphanumeric()) {
-			return get(tagIn(columnDefinition.expression), TextReducer.of(fieldIn(columnDefinition.expression)));
-		}
-		else {
-			return filter(calculate(columnDefinition.expression), columnDefinition.filters);
-		}
+	private Vector<?> vectorIn(ColumnDefinition columnDefinition) {
+		return isAlphanumeric(columnDefinition.expression) ?
+				textVectorIn(columnDefinition) :
+				numericVectorIn(columnDefinition);
 	}
 
-	private DoubleVector calculate(String definition) {
-		return vectorCalculator().calculate(definition);
+	private static final List<Pattern> alphanumericExpressions = Stream.of("ts.year-quarter", "ts.year-month.*", ".*\\.mode").map(Pattern::compile).toList();
+	private boolean isAlphanumeric(String expression) {
+		return alphanumericExpressions.stream().anyMatch(p->p.matcher(expression).matches());
+	}
+
+	private Vector<?> textVectorIn(ColumnDefinition columnDefinition) {
+		String tag = tagIn(columnDefinition.expression);
+		String field = fieldIn(columnDefinition.expression);
+		return tag.equals("ts") ? vectorOf(TimeReducer.of(field)) : vectorOf(tag, TextReducer.of(field));
+	}
+
+	private Vector<?> vectorOf(TimeReducer timeReducer) {
+		String[] values = instants.stream().map(timeReducer)
+				.map(Object::toString)
+				.toArray(String[]::new);
+		return new StringVector(values);
+	}
+
+	private Vector<?> numericVectorIn(ColumnDefinition columnDefinition) {
+		DoubleVector vector = vectorOf(columnDefinition.expression);
+		return filter(vector, columnDefinition.filters);
+	}
+
+	private Vector<?> vectorOf(String attribute, TextReducer reducer) {
+		CategoricalSignal categoricalSignal = history.query().text(attribute).get(from(), to());
+		CategoricalSignal[] segments = categoricalSignal.segments(duration());
+		String[] values = Arrays.stream(segments).map(reducer).toArray(String[]::new);
+		return new StringVector(values);
+	}
+
+	private DoubleVector vectorOf(String definition) {
+		return calculator().calculate(definition);
 	}
 
 	private Vector<?> filter(Vector<?> input, List<Filter> filters) {
@@ -153,8 +182,8 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return new DoubleVector(values);
 	}
 
-	private VectorCalculator vectorCalculator() {
-		return new VectorCalculator(size(), this::variable);
+	private DoubleVectorCalculator calculator() {
+		return new DoubleVectorCalculator(size(), this::variable);
 	}
 
 	private DoubleVector variable(String name) {
@@ -162,15 +191,16 @@ public class SubjectHistoryView implements Iterable<Column> {
 		try {
 			String tag = tagIn(name);
 			String field = fieldIn(name);
-			if (isTemporal(tag) && TimeReducer.contains(field)) return calculate(TimeReducer.of(field));
-			if (NumberReducer.contains(field)) {
+			if (TimeReducer.contains(field) && isTemporal(tag))
+				return calculate(TimeReducer.of(field));
+			if (NumberReducer.contains(field))
 				return calculate(NumberReducer.of(field), history.query().number(tag).get(from(), to()));
-			}
-			if (TextReducer.contains(field)) return calculate(NumberReducer.of(field), history.query().text(tag).get(from(), to()));
+			if (TextReducer.contains(field))
+				return calculate(NumberReducer.of(field), history.query().text(tag).get(from(), to()));
 		}
 		catch (Exception ignored) {
 		}
-		throw new IllegalArgumentException("Variable not found: " + name);
+		throw new IllegalArgumentException("SubjectHistoryView: field not exists: " + name);
 	}
 
 	private DoubleVector calculate(TimeReducer reducer) {
@@ -190,13 +220,6 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return new DoubleVector(values);
 	}
 
-	private Vector<?> get(String attribute, TextReducer reducer) {
-		CategoricalSignal categoricalSignal = history.query().text(attribute).get(from(), to());
-		CategoricalSignal[] segments = categoricalSignal.segments(duration());
-		String[] values = Arrays.stream(segments).map(reducer).toArray(String[]::new);
-		return new StringVector(values);
-	}
-
 	private boolean isTemporal(String tag) {
 		return tag.equals("ts");
 	}
@@ -211,13 +234,23 @@ public class SubjectHistoryView implements Iterable<Column> {
 
 	private String tsv(int startOffset, int stopOffset) {
 		StringBuilder sb = new StringBuilder();
-		for (int row = startOffset; row < size() - stopOffset; row++) {
-			StringJoiner line = new StringJoiner("\t");
-			for (String column : columns())
-				line.add(String.valueOf(value(row, column)));
-			sb.append(line).append('\n');
-		}
+		sb.append(header()).append('\n');
+		for (int row = startOffset; row < size() - stopOffset; row++)
+			sb.append(lineOf(row)).append('\n');
 		return sb.toString();
+	}
+
+	private String header() {
+		StringJoiner joiner = new StringJoiner("\t");
+		for (String column : columns()) joiner.add(column);
+		return joiner.toString();
+	}
+
+	private StringJoiner lineOf(int row) {
+		StringJoiner joiner = new StringJoiner("\t");
+		for (String column : columns())
+			joiner.add(String.valueOf(value(row, column)));
+		return joiner;
 	}
 
 	private Object value(int row, String name) {
@@ -263,7 +296,7 @@ public class SubjectHistoryView implements Iterable<Column> {
 		private final List<ColumnDefinition> columnDefinitions;
 		private Instant from;
 		private Instant to;
-		private TemporalAmount duration;
+		private TemporalAmount period;
 
 		public Builder(SubjectHistory history) {
 			this.history = history;
@@ -300,19 +333,29 @@ public class SubjectHistoryView implements Iterable<Column> {
 			return this;
 		}
 
-		public Builder duration(String duration) {
-			return duration(TimeParser.parseDuration(duration));
+		public Builder period(String duration) {
+			return period(TimeParser.parseDuration(duration));
 		}
 
-		public Builder duration(TemporalAmount duration) {
-			this.duration = duration;
+		public Builder period(TemporalAmount duration) {
+			this.period = duration;
 			return this;
 		}
 
 		public Builder add(String name, String definition, Filter... filters) {
+			if (exists(name)) throw new IllegalArgumentException("SubjectHistoryView: column already exists: " + name);
 			ColumnDefinition columnDefinition = new ColumnDefinition(name, definition);
 			Arrays.stream(filters).forEach(columnDefinition::add);
 			this.columnDefinitions.add(columnDefinition);
+			return this;
+		}
+
+		private boolean exists(String name) {
+			return columnDefinitions.stream().anyMatch(c->c.name.equals(name));
+		}
+
+		public Builder add(ColumnDefinition... columnDefinitions) {
+			this.columnDefinitions.addAll(List.of(columnDefinitions));
 			return this;
 		}
 
@@ -322,7 +365,11 @@ public class SubjectHistoryView implements Iterable<Column> {
 		}
 
 		public SubjectHistoryView build() {
-			return new SubjectHistoryView(history, new HistoryFormat(from, to, duration, columnDefinitions));
+			if (from == null) throw new IllegalArgumentException("SubjectHistoryView: from not set");
+			if (to == null) throw new IllegalArgumentException("SubjectHistoryView: to not set");
+			if (period == null) throw new IllegalArgumentException("SubjectHistoryView: period not set");
+			if (columnDefinitions.isEmpty()) throw new IllegalArgumentException("SubjectHistoryView: no column is added");
+			return new SubjectHistoryView(history, new HistoryFormat(from, to, period, columnDefinitions));
 		}
 
 	}
