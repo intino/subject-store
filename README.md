@@ -24,7 +24,7 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 <dependency>
     <groupId>systems.intino.datamarts</groupId>
     <artifactId>subject-store</artifactId>
-    <version>2.0.9</version>
+    <version>2.0.10</version>
 </dependency>
 ```
 
@@ -181,10 +181,10 @@ Subject Index View generation provides a structured and summarized perspective o
 
 ```java
 List<Subject> subjects = store.subjects("building").collect();
-SubjectIndexView view = SubjectIndexView.of(subjects)
+SubjectIndexView.of(subjects)
     .add("year")
     .add("city")
-    .build();
+    .export().to(new FileOutputStream("view.tsv"));
 ```
 
 Each column in a view offers a stats, including unique categories and their frequencies:
@@ -199,20 +199,21 @@ int parisCount = view.column("city").stats().frequency("Paris");
 Subject History View generation allows transforming the historical data recorded for a subject into aggregated tables organized by time intervals. Each row represents a time segment (e.g., a year), and each column contains the result of an operation evaluated over the data in that interval.
 
 ```java
-SubjectHistoryView buildingView = SubjectHistoryView.of(history)
-    .from("1980")
-    .to("2025-04")
-    .period("P1M")
-    .add("tourist-visits", "visits.count")
-    .add("average-temperature", "temperature.average")
-    .build();
+SubjectHistoryView.of(history)
+		.from("1980")
+		.to("2025-04")
+		.duration("P1M")
+		.add("tourist-visits", "visits.count")
+		.add("average-temperature", "temperature.average")
+		.export().to(...);
 ```
 
 The historyFormat can also be defined using a YAML string. The following example produces a yearly table of a building’s history, where each row represents one year and each column contains an aggregated, normalized, or derived value based on that building’s data:
 
 ```java
-SubjectHistoryView buildingView = store.viewOf(history)
+SubjectHistoryView.of(history)
     .with(historyFormat)
+    .export().onlyCompleteRows().to(...)
 ```
 
 ```yaml

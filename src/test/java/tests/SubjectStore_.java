@@ -4,11 +4,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
-import systems.intino.datamarts.subjectstore.SubjectHistoryView;
-import systems.intino.datamarts.subjectstore.SubjectIndexView;
 import systems.intino.datamarts.subjectstore.SubjectStore;
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.view.index.Column.Type;
 
 import java.io.*;
 import java.sql.Connection;
@@ -160,27 +157,7 @@ public class SubjectStore_ {
 	}
 
 
-	public void should_create_views() throws IOException {
-		File index = new File("index.triples");
-		SubjectStore store = new SubjectStore(index).connection(connection);
-		createSubjects(store);
-		SubjectIndexView view = SubjectIndexView
-				.of(store.subjects().type("building").collect())
-				.add("year", Type.Number)
-				.add("city", Type.Text)
-				.add("country", Type.Text)
-				.build();
-		SubjectHistoryView tajMahalHistory = SubjectHistoryView
-				.of(store.historyOf("taj_mahal.building"))
-				.with(new File("format.yaml"));
-		SubjectHistoryView historyView = SubjectHistoryView
-				.of(store.historyOf("taj_mahal.building"))
-				.from("2010")
-				.to("2025-04")
-				.period("P1Y")
-				.add("","")
-				.build();
-	}
+
 
 	private static void createSubjects(SubjectStore store) {
 		Subject s = store.create("taj-mahal", "building");

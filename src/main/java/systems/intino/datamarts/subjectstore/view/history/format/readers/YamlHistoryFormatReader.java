@@ -5,6 +5,7 @@ import systems.intino.datamarts.subjectstore.calculator.model.filters.*;
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 import systems.intino.datamarts.subjectstore.view.history.format.ColumnDefinition;
 import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
+import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat.RowDefinition;
 import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormatReader;
 
 import java.io.*;
@@ -45,7 +46,7 @@ public class YamlHistoryFormatReader implements HistoryFormatReader {
 		Instant from = parseInstant(format.rows.from);
 		Instant to = parseInstant(format.rows.to);
 		TemporalAmount period = parseDuration(format.rows.period);
-		return new HistoryFormat(from, to, period)
+		return new HistoryFormat(new RowDefinition(from, to, period))
 				.add(map(format.columns));
 	}
 

@@ -6,36 +6,31 @@ import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
-public class HistoryFormat implements Iterable<ColumnDefinition> {
+public class HistoryFormat {
+	private final RowDefinition rowDefinition;
 	private final List<ColumnDefinition> columnDefinitions;
-	private final Instant from;
-	private final Instant to;
-	private final TemporalAmount duration;
 
-	public HistoryFormat(Instant from, Instant to, TemporalAmount duration) {
-		this(from, to, duration, new ArrayList<>());
+	public HistoryFormat(RowDefinition rowDefinition) {
+		this(rowDefinition, new ArrayList<>());
 	}
 
-	public HistoryFormat(Instant from, Instant to, TemporalAmount duration, List<ColumnDefinition> columnDefinitions) {
-		this.from = from;
-		this.to = to;
-		this.duration = duration;
+	public HistoryFormat(RowDefinition rowDefinition, List<ColumnDefinition> columnDefinitions) {
+		this.rowDefinition = rowDefinition;
 		this.columnDefinitions = columnDefinitions;
 	}
 
 	public Instant from() {
-		return from;
+		return rowDefinition.from;
 	}
 
 	public Instant to() {
-		return to;
+		return rowDefinition.to;
 	}
 
-	public TemporalAmount duration() {
-		return duration;
+	public TemporalAmount period() {
+		return rowDefinition.period;
 	}
 
 	public List<ColumnDefinition> columns() {
@@ -60,12 +55,14 @@ public class HistoryFormat implements Iterable<ColumnDefinition> {
 	}
 
 	@Override
-	public Iterator<ColumnDefinition> iterator() {
-		return columnDefinitions.iterator();
+	public String toString() {
+		return "Format(" + rowDefinition + ")";
 	}
 
-	@Override
-	public String toString() {
-		return "Format(" + from + ", " + to + ")";
+	public record RowDefinition(Instant from, Instant to, TemporalAmount period) {
+		@Override
+		public String toString() {
+			return from + "," + to;
+		}
 	}
 }

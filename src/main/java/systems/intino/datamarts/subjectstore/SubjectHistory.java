@@ -13,6 +13,7 @@ import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 import java.io.*;
 import java.sql.Connection;
 import java.time.Instant;
+import java.time.temporal.TemporalAmount;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -76,6 +77,15 @@ public class SubjectHistory {
 
 	public boolean exists(String tag) {
 		return tags().contains(tag);
+	}
+
+	public boolean exists(Instant from, Instant to) {
+		return timeline.instants().stream()
+				.anyMatch(i -> !i.isBefore(from) && i.isBefore(to));
+	}
+
+	public boolean exists(Instant from, TemporalAmount period) {
+		return exists(from, from.plus(period));
 	}
 
 	public String ss(int feed) {

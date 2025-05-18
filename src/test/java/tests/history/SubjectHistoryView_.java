@@ -6,6 +6,7 @@ import org.junit.Test;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.LagFilter;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.LeadFilter;
 import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
+import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat.RowDefinition;
 import tests.Jdbc;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.SubjectHistoryView;
@@ -30,14 +31,23 @@ public class SubjectHistoryView_ {
 	private final static Instant from = Instant.parse("2025-01-01T00:00:00Z");
 	private final static Instant to = Instant.parse("2025-02-01T00:00:00Z");
 	private final static String expected = """
-		date	month	day-formula	temp-total	temp-average	temp-norm	temp-trend	temp-last	sky-mode	sky-count	temp-norm%
-		20250101	1.0	1.3817732906760363	0.0	0.0	0.0				0.0	0.0
-		20250108	1.0	1.5296605524915217	48.0	24.0	1.0		28.0	cloudy	1.0	100.0
-		20250115	1.0	1.1905901460252566	0.0	0.0	0.0	8.0			0.0	0.0
-		20250122	1.0	0.5314509965777359	0.0	0.0	0.0	8.0			0.0	0.0
-		20250129	1.0	-0.12333157834482777	18.0	18.0	0.375	6.0	18.0	rain	1.0	37.5
+		year	month	day-formula	temp-total	temp-average	temp-norm	temp-trend	temp-last	sky-mode	sky-count	temp-norm%			
+		2025.0	1.0	1.3817732906760363	0.0	0.0	0.0				0.0	0.0
+		2025.0	1.0	1.5296605524915217	48.0	24.0	1.0		28.0	cloudy	1.0	100.0
+		2025.0	1.0	1.1905901460252566	0.0	0.0	0.0	8.0			0.0	0.0
+		2025.0	1.0	0.5314509965777359	0.0	0.0	0.0	8.0			0.0	0.0
+		2025.0	1.0	-0.12333157834482777	18.0	18.0	0.375	6.0	18.0	rain	1.0	37.5
 		""";
 
+	private final static String expected2 = """
+	temperature	temperature-1	temperature-2	temperature-3	temperature+1
+	19.981418044991337	19.999720499055897	20.018309616178414	20.01811993961657	19.982173702028604
+	19.982173702028604	19.981418044991337	19.999720499055897	20.018309616178414	20.00121244968331
+	20.00121244968331	19.982173702028604	19.981418044991337	19.999720499055897	20.019007679055946
+	20.019007679055946	20.00121244968331	19.982173702028604	19.981418044991337	20.017308164249776
+	20.017308164249776	20.019007679055946	20.00121244968331	19.982173702028604	19.99785696954303
+	19.99785696954303	20.017308164249776	20.019007679055946	20.00121244968331	19.980603719698617
+	""";
 	private Connection connection;
 
 	@Before
@@ -55,8 +65,8 @@ public class SubjectHistoryView_ {
 	public void should_export_to_tabular_report_with_format_as_object() throws IOException {
 		SubjectHistory history = new SubjectHistory("map", connection);
 		feed(history);
-		HistoryFormat historyFormat = new HistoryFormat(from, to, Duration.ofDays(7))
-			.add("date","ts.year-month-day")
+		HistoryFormat historyFormat = new HistoryFormat(new RowDefinition(from, to, Duration.ofDays(7)))
+			.add("year","ts.year")
 			.add("month","ts.month-of-year")
 			.add("day-formula","sin(ts.day-of-month)+cos(ts.month-of-year)")
 			.add("temp-total","temperature.sum")
@@ -67,14 +77,15 @@ public class SubjectHistoryView_ {
 			.add("sky-mode","sky.mode")
 			.add("sky-count","sky.count")
 			.add("temp-norm%","temp-norm * 100");
-		SubjectHistoryView view = SubjectHistoryView.of(history).with(historyFormat);
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		view.export().to(os);
+		SubjectHistoryView.of(history)
+				.with(historyFormat)
+				.export().to(os);
 		assertThat(os.toString()).isEqualTo(expected);
 	}
 
 	@Test
-	public void name() throws IOException {
+	public void test_subject_history_view_with_lag_and_lead_filters() throws IOException {
 		SubjectHistory history = new SubjectHistory("map", connection);
 		for (int i = 0; i < 2000; i++) {
 			SubjectHistory.Batch batch = history.batch();
@@ -83,7 +94,8 @@ public class SubjectHistoryView_ {
 					.terminate();
 			batch.terminate();
 		}
-		SubjectHistoryView view = SubjectHistoryView.of(history)
+		OutputStream os = new ByteArrayOutputStream();
+		SubjectHistoryView.of(history)
 				.from(from)
 				.to(from.plus(2000, HOURS))
 				.period(Duration.ofHours(200))
@@ -92,10 +104,9 @@ public class SubjectHistoryView_ {
 				.add("temperature-2", "temperature", new LagFilter(2))
 				.add("temperature-3", "temperature", new LagFilter(3))
 				.add("temperature+1", "temperature", new LeadFilter(1))
-				.build();
-		OutputStream os = new ByteArrayOutputStream();
-		view.export().start(3).stop(1).to(os);
-		System.out.println(os);
+				.export().start(3).stop(1)
+				.to(os);
+		assertThat(os.toString()).isEqualTo(expected2);
 
 	}
 
@@ -110,45 +121,45 @@ public class SubjectHistoryView_ {
 			  period: P7D
 			
 			columns:
-			  - name: "Year"
+			  - name: "year"
 			    calc: "ts.year"
 			
-			  - name: "Month"
+			  - name: "month"
 			    calc: "ts.month-of-year"
 			
-			  - name: "Day"
+			  - name: "day-formula"
 			    calc: "sin(ts.day-of-month)+cos(ts.month-of-year)"
 			
-			  - name: "TotalTemp"
+			  - name: "temp-total"
 			    calc: "temperature.sum"
 			
-			  - name: "AvgTemp"
+			  - name: "temp-average"
 			    calc: "temperature.average"
 			
-			  - name: "NormTemp"
-			    calc: "TotalTemp"
+			  - name: "temp-norm"
+			    calc: "temp-total"
 			    filters: ["MinMaxNormalization"]
 			
-			  - name: "Trend"
-			    calc: "AvgTemp"
+			  - name: "temp-trend"
+			    calc: "temp-average"
 			    filters: ["RollingAverage:3"]
 			
-			  - name: "LastTemp"
+			  - name: "temp-last"
 			    calc: "temperature.last"
 			
-			  - name: "SkyMode"
+			  - name: "sky-mode"
 			    calc: "sky.mode"
 			
-			  - name: "SkyCount"
+			  - name: "sky-count"
 			    calc: "sky.count"
 			
-			  - name: "NewTemp"
-			    calc: "NormTemp * 100"
+			  - name: "temp-norm%"
+			    calc: "temp-norm * 100"
 			""";
 		SubjectHistoryView view = new SubjectHistoryView(history, format);
-			ByteArrayOutputStream os = new ByteArrayOutputStream();
-			view.export().to(os);
-			assertThat(os.toString()).isEqualTo(expected);
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		view.export().to(os);
+		assertThat(os.toString()).isEqualTo(expected);
 
 	}
 

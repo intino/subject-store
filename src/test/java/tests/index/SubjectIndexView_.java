@@ -50,16 +50,15 @@ public class SubjectIndexView_ {
 				.orderBy("draft", NumericAscending)
 				.orderBy("cost-per-full", NumericDescending)
 				.collect();
-		SubjectIndexView view = SubjectIndexView.of(subjects)
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		SubjectIndexView.of(subjects)
 				.add("name", Text)
 				.add("country", Text)
 				.add("cabotage-region", Type.Text)
 				.add("draft", Type.Number)
 				.add("cost-per-full", Type.Number)
 				.add("cost-per-full-transfer", Type.Number)
-				.build();
-		ByteArrayOutputStream os = new ByteArrayOutputStream();
-		view.exportTo(os);
+				.export().to(os);
 		assertThat(os.toString().trim()).isEqualTo(content());
 	}
 

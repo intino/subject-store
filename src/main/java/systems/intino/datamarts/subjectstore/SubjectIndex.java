@@ -1,6 +1,6 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.SubjectIndex.Journal.Command;
+import systems.intino.datamarts.subjectstore.SubjectIndex.Journal.Transaction;
 import systems.intino.datamarts.subjectstore.model.Triples;
 import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
 import systems.intino.datamarts.subjectstore.model.*;
@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
-import static systems.intino.datamarts.subjectstore.SubjectIndex.Journal.CommandType.*;
+import static systems.intino.datamarts.subjectstore.SubjectIndex.Journal.Type.*;
 
 public class SubjectIndex {
 	private final Journal journal;
@@ -203,7 +203,7 @@ public class SubjectIndex {
 			public Updating put(Term term) {
 				synchronized (journal) {
 					if (term.isEmpty() || existsLink(term)) return this;
-					journal.add(new Command(put, subject, term.toString()));
+					journal.add(new Transaction(put, subject, term.toString()));
 					return write(term);
 				}
 			}
@@ -211,7 +211,7 @@ public class SubjectIndex {
 			@Override
 			public Updating set(Term term) {
 				synchronized (journal) {
-					journal.add(new Command(set, subject, term.toString()));
+					journal.add(new Transaction(set, subject, term.toString()));
 					termsWith(term.tag()).forEach(this::erase);
 					return write(term);
 				}
@@ -221,7 +221,7 @@ public class SubjectIndex {
 			public Updating del(Term term) {
 				synchronized (journal) {
 					if (!existsTerm(term)) return this;
-					journal.add(new Command(del, subject, term.toString()));
+					journal.add(new Transaction(del, subject, term.toString()));
 					return erase(term);
 				}
 			}
@@ -279,7 +279,6 @@ public class SubjectIndex {
 		return this::tripleIterator;
 	}
 
-
 	public void dump(OutputStream os) throws IOException {
 		for (Triple triple : triples()) {
 			String str = triple.toString() + '\n';
@@ -302,14 +301,14 @@ public class SubjectIndex {
 
 	public SubjectIndex restore(Journal journal) {
 		if (journal.isEmpty()) return this;
-		for (Command command : journal.commands()) {
-			Subject subject = create(command.subject());
-			switch (command.type()) {
-				case put -> subject.update().put(Term.of(command.parameter()));
-				case set -> subject.update().set(Term.of(command.parameter()));
-				case del -> subject.update().del(Term.of(command.parameter()));
+		for (Transaction transaction : journal.statements()) {
+			Subject subject = create(transaction.subject());
+			switch (transaction.type()) {
+				case put -> subject.update().put(Term.of(transaction.parameter()));
+				case set -> subject.update().set(Term.of(transaction.parameter()));
+				case del -> subject.update().del(Term.of(transaction.parameter()));
 				case drop -> subject.drop();
-				case rename -> subject.rename(command.parameter());
+				case rename -> subject.rename(transaction.parameter());
 			}
 		}
 		return this;
@@ -369,7 +368,7 @@ public class SubjectIndex {
 			@Override
 			public void rename(Subject subject, String identifier) {
 				synchronized (journal) {
-					journal.add(new Command(rename, subject, nameIn(identifier)));
+					journal.add(new Transaction(rename, subject, nameIn(identifier)));
 					SubjectIndex.this.rename(subject, identifier);
 				}
 			}
@@ -377,7 +376,7 @@ public class SubjectIndex {
 			@Override
 			public void drop(Subject subject) {
 				synchronized (journal) {
-					journal.add(new Command(drop, subject, "-"));
+					journal.add(new Transaction(drop, subject, "-"));
 					SubjectIndex.this.drop(subject);
 				}
 			}
@@ -412,8 +411,6 @@ public class SubjectIndex {
 	}
 
 
-
-
 	public interface Batch {
 		void put(Triple triple);
 	}
@@ -425,9 +422,9 @@ public class SubjectIndex {
 			this.path = file.toPath();
 		}
 
-		public List<Command> commands() {
+		public List<Transaction> statements() {
 			return linesIn().stream()
-					.map(this::command)
+					.map(this::transaction)
 					.toList();
 		}
 
@@ -439,15 +436,15 @@ public class SubjectIndex {
 			}
 		}
 
-		private Command command(String s) {
+		private Transaction transaction(String s) {
 			String[] split = s.split(" ", 3);
-			return new Command(valueOf(split[0]), new Subject(split[1]), split[2]);
+			return new Transaction(valueOf(split[0]), new Subject(split[1]), split[2]);
 		}
 
 
-		public void add(Command command) {
+		public void add(Transaction transaction) {
 			try {
-				Files.write(path, (command.toString() + "\n").getBytes(), CREATE, APPEND);
+				Files.write(path, (transaction.toString() + "\n").getBytes(), CREATE, APPEND);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -457,14 +454,14 @@ public class SubjectIndex {
 			return !path.toFile().exists();
 		}
 
-		public record Command(CommandType type, Subject subject, String parameter) {
+		public record Transaction(Type type, Subject subject, String parameter) {
 			@Override
 			public String toString() {
 				return type + " " + subject + " " + parameter;
 			}
 		}
 
-		public enum CommandType {
+		public enum Type {
 			put, set, del, drop, rename
 		}
 	}
