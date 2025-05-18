@@ -39,3 +39,5 @@ build/
 *.iss
 /title.basics.triples
 title.basics.tsv
+infecar.ddb
+infecar.tsv
