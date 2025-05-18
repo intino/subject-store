@@ -29,7 +29,7 @@ public class YamlFileHistoryHistoryFormatReader_ {
 		assertThat(historyFormat).isNotNull();
 		assertThat(historyFormat.from()).isEqualTo(LocalDate.of(2025, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
 		assertThat(historyFormat.to()).isEqualTo(LocalDate.of(2025, 3, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
-		assertThat(historyFormat.duration()).isEqualTo(Period.ofDays(7));
+		assertThat(historyFormat.period()).isEqualTo(Period.ofDays(7));
 		assertThat(historyFormat.columns()).hasSize(0);
 	}
 
@@ -46,7 +46,7 @@ public class YamlFileHistoryHistoryFormatReader_ {
 		assertThat(historyFormat).isNotNull();
 		assertThat(historyFormat.from()).isEqualTo(LocalDate.of(2025, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
 		assertThat(historyFormat.to()).isEqualTo(LocalDate.of(2025, 3, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
-		assertThat(historyFormat.duration()).isEqualTo(Duration.ofHours(2));
+		assertThat(historyFormat.period()).isEqualTo(Duration.ofHours(2));
 		assertThat(historyFormat.columns()).hasSize(0);
 	}
 
@@ -63,7 +63,7 @@ public class YamlFileHistoryHistoryFormatReader_ {
 		assertThat(historyFormat).isNotNull();
 		assertThat(historyFormat.from()).isEqualTo(LocalDate.of(2025, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
 		assertThat(historyFormat.to()).isEqualTo(LocalDate.of(2025, 3, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
-		assertThat(historyFormat.duration()).isEqualTo(Period.ofMonths(4));
+		assertThat(historyFormat.period()).isEqualTo(Period.ofMonths(4));
 		assertThat(historyFormat.columns()).hasSize(0);
 	}
 
@@ -80,7 +80,7 @@ public class YamlFileHistoryHistoryFormatReader_ {
 		assertThat(historyFormat).isNotNull();
 		assertThat(historyFormat.from()).isEqualTo(LocalDate.of(2025, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
 		assertThat(historyFormat.to()).isEqualTo(LocalDate.of(2028, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
-		assertThat(historyFormat.duration()).isEqualTo(Period.ofYears(1));
+		assertThat(historyFormat.period()).isEqualTo(Period.ofYears(1));
 		assertThat(historyFormat.columns()).hasSize(0);
 	}
 
@@ -102,7 +102,7 @@ public class YamlFileHistoryHistoryFormatReader_ {
 		assertThat(historyFormat).isNotNull();
 		assertThat(historyFormat.from()).isEqualTo(LocalDate.of(2025, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
 		assertThat(historyFormat.to()).isEqualTo(LocalDate.of(2028, 1, 1).atStartOfDay(ZoneOffset.UTC).toInstant());
-		assertThat(historyFormat.duration()).isEqualTo(Period.ofYears(1));
+		assertThat(historyFormat.period()).isEqualTo(Period.ofYears(1));
 		assertThat(historyFormat.columns()).hasSize(1);
 		assertThat(historyFormat.columns().getFirst().name).isEqualTo("weight");
 		assertThat(historyFormat.columns().getFirst().expression).isEqualTo("weight / 100");

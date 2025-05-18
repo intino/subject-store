@@ -15,6 +15,7 @@ import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
 import systems.intino.datamarts.subjectstore.model.reducers.TextReducer;
 import systems.intino.datamarts.subjectstore.model.reducers.NumberReducer;
 import systems.intino.datamarts.subjectstore.model.reducers.TimeReducer;
+import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat.RowDefinition;
 import systems.intino.datamarts.subjectstore.view.history.format.readers.YamlHistoryFormatReader;
 
 import java.io.*;
@@ -37,7 +38,7 @@ public class SubjectHistoryView implements Iterable<Column> {
 	private SubjectHistoryView(SubjectHistory history, HistoryFormat historyFormat) {
 		this.history = history;
 		this.historyFormat = historyFormat;
-		this.instants = instants(historyFormat.from(), historyFormat.to(), historyFormat.duration());
+		this.instants = instants(historyFormat.from(), historyFormat.to(), historyFormat.period());
 		this.vectors = new HashMap<>();
 		this.build();
 	}
@@ -59,7 +60,7 @@ public class SubjectHistoryView implements Iterable<Column> {
 	}
 
 	public TemporalAmount duration() {
-		return historyFormat.duration();
+		return historyFormat.period();
 	}
 
 	public int size() {
@@ -90,14 +91,21 @@ public class SubjectHistoryView implements Iterable<Column> {
 
 	public Exporting export() {
 		return new Exporting() {
+			private boolean onlyCompleteRows = false;
 			private int stopOffset = 0;
 			private int startOffset = 0;
 
 			@Override
 			public void to(OutputStream os) throws IOException {
 				try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os))) {
-					writer.write(tsv(startOffset, stopOffset));
+					writer.write(tsv(startOffset, stopOffset, onlyCompleteRows));
 				}
+			}
+
+			@Override
+			public Exporting onlyCompleteRows() {
+				this.onlyCompleteRows = true;
+				return this;
 			}
 
 			@Override
@@ -118,8 +126,10 @@ public class SubjectHistoryView implements Iterable<Column> {
 	public interface Exporting {
 		void to(OutputStream os) throws IOException;
 
+		Exporting onlyCompleteRows();
 		Exporting start(int offset);
 		Exporting stop(int offset);
+
 	}
 
 	private void build() {
@@ -232,12 +242,19 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return name.split("\\.")[1];
 	}
 
-	private String tsv(int startOffset, int stopOffset) {
+	private String tsv(int startOffset, int stopOffset, boolean onlyCompleteRows) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(header()).append('\n');
-		for (int row = startOffset; row < size() - stopOffset; row++)
-			sb.append(lineOf(row)).append('\n');
+		for (int row = startOffset; row < size() - stopOffset; row++) {
+			String line = lineOf(row) + "\n";
+			if (onlyCompleteRows && isIncomplete(line)) continue;
+			sb.append(line);
+		}
 		return sb.toString();
+	}
+
+	private boolean isIncomplete(String line) {
+		return line.contains("\t\t") || line.contains("\t\n");
 	}
 
 	private String header() {
@@ -246,22 +263,18 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return joiner.toString();
 	}
 
-	private StringJoiner lineOf(int row) {
+	private String lineOf(int row) {
 		StringJoiner joiner = new StringJoiner("\t");
 		for (String column : columns())
 			joiner.add(String.valueOf(value(row, column)));
-		return joiner;
+		return joiner.toString();
 	}
 
 	private Object value(int row, String name) {
 		Object o = vector(name).get(row);
-		return isEmpty(o) ? "" : o;
-	}
-
-	private boolean isEmpty(Object o) {
-		if (o == null) return true;
-		if (o instanceof Double d) return Double.isNaN(d);
-		return false;
+		if (o == null) return "";
+		if (o instanceof Double d && Double.isNaN(d)) return "";
+		return o;
 	}
 
 	private static List<Instant> instants(Instant from, Instant instant, TemporalAmount duration) {
@@ -364,12 +377,14 @@ public class SubjectHistoryView implements Iterable<Column> {
 			return this;
 		}
 
-		public SubjectHistoryView build() {
+		public Exporting export() {
 			if (from == null) throw new IllegalArgumentException("SubjectHistoryView: from not set");
 			if (to == null) throw new IllegalArgumentException("SubjectHistoryView: to not set");
 			if (period == null) throw new IllegalArgumentException("SubjectHistoryView: period not set");
 			if (columnDefinitions.isEmpty()) throw new IllegalArgumentException("SubjectHistoryView: no column is added");
-			return new SubjectHistoryView(history, new HistoryFormat(from, to, period, columnDefinitions));
+			RowDefinition rowDefinition = new RowDefinition(from, to, period);
+			HistoryFormat format = new HistoryFormat(rowDefinition, columnDefinitions);
+			return new SubjectHistoryView(history, format).export();
 		}
 
 	}

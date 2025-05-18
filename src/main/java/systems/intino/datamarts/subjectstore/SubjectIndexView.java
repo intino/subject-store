@@ -51,10 +51,21 @@ public class SubjectIndexView  {
 		return columns.stream().filter(c->c.name().equals(name)).findFirst().orElse(null);
 	}
 
-	public void exportTo(OutputStream os) throws IOException {
-		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os))) {
-			writer.write(tsv());
-		}
+	public Exporting export() {
+		return new Exporting() {
+			@Override
+			public void to(OutputStream os) {
+				try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os))) {
+					writer.write(tsv());
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		};
+	}
+
+	public interface Exporting {
+		void to(OutputStream os);
 	}
 
 	private String tsv() {
@@ -128,6 +139,10 @@ public class SubjectIndexView  {
 
 		public SubjectIndexView build() {
 			return new SubjectIndexView(subjects, columns);
+		}
+
+		public SubjectIndexView.Exporting export() {
+			return build().export();
 		}
 	}
 
