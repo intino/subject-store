@@ -6,10 +6,7 @@ import systems.intino.datamarts.subjectstore.model.Term;
 import systems.intino.datamarts.subjectstore.SubjectIndex;
 import systems.intino.datamarts.subjectstore.model.Subject;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.util.Arrays;
 
@@ -65,7 +62,7 @@ public class SubjectIndex_ {
 		assertThat(subject.terms()).isEmpty();
 		subject.update().put("name", "pablo");
 		subject.update().put("name", "pedro");
-		assertThat(subject.terms()).containsOnly(terms("name=pablo\nname=pedro"));
+		assertThat(subject.terms()).containsOnly(terms("name=pablo","name=pedro"));
 		subject.update().del("name");
 		assertThat(subject.terms()).isEmpty();
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
@@ -81,7 +78,39 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_support_restore_and_update_journal() throws IOException, InterruptedException {
+	public void should_handle_special_characters_and_export_cleanly() throws IOException {
+		byte[] bytes;
+		{
+			File file = File.createTempFile("index", ".journal");
+			SubjectIndex index = new SubjectIndex(file);
+			index.create("11", "o").update().set("name", "jose\tjuan");
+			index.create("11", "o").update().set("info", "this is\na description");
+			assertThat(index.open("11", "o").terms()).containsOnly(terms("name=jose\tjuan", "info=this is\na description"));
+			Subject subject = index.open("11", "o");
+			subject.update().set("info", "");
+			assertThat(subject.terms()).containsOnly(terms("name=jose\tjuan"));
+			subject.update().put("memo", "\na\nb\n");
+			assertThat(Files.readString(file.toPath())).isEqualTo("""
+					set 11.o name=jose␉juan
+					set 11.o info=this is␤a description
+					del 11.o info=this is␤a description
+					put 11.o memo=a␤b
+					""");
+			ByteArrayOutputStream os = new ByteArrayOutputStream();
+			index.dump(os);
+			bytes = os.toByteArray();
+			assertThat(new String(bytes).trim()).isEqualTo("11.o\tname\tjose␉juan\n11.o\tmemo\ta␤b");
+		}
+		{
+			SubjectIndex index = new SubjectIndex(new File("")).restore(new ByteArrayInputStream(bytes));
+			Subject subject = index.open("11", "o");
+			subject.update().set("info", "");
+			assertThat(subject.terms()).containsOnly(terms("name=jose\tjuan", "memo=a␤b"));
+		}
+	}
+
+	@Test
+	public void should_support_restore_and_update_journal() throws IOException {
 		File file = File.createTempFile("index",".journal");
 		SubjectIndex index = new SubjectIndex(file).restore(triples("theaters.triples"));
 		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("1020151.theater"),subject("1020152.theater"),subject("1020393.theater"));
@@ -148,7 +177,7 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_support_sorting() throws IOException, InterruptedException {
+	public void should_support_sorting() throws IOException {
 		File file = File.createTempFile("index",".journal");
 		SubjectIndex index = new SubjectIndex(file).restore(triples("theaters.triples"));
 		assertThat(index.subjects().type("theater").orderBy("email").collect()).containsOnly(subject("1020151.theater"), subject("1020152.theater"),subject("1020393.theater"));
@@ -202,7 +231,7 @@ public class SubjectIndex_ {
 		index.create("123456", "model").update()
 				.del("team", "ulpgc");
 		assertThat(index.open("11","o").terms()).containsOnly(new Term("name","jose"));
-		assertThat(index.open("123456", "model").terms()).containsOnly(terms("t=simulation\nuser=mcaballero@gmail.com\nuser=josejuan@gmail.com\nproject=ulpgc"));
+		assertThat(index.open("123456", "model").terms()).containsOnly(terms("t=simulation","user=mcaballero@gmail.com","user=josejuan@gmail.com","project=ulpgc"));
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 				put 11.o name=jose
 				put 123456.model t=simulation
@@ -292,7 +321,7 @@ public class SubjectIndex_ {
 	}
 
 	@Test
-	public void should_restore_from_triples() throws IOException, InterruptedException {
+	public void should_restore_from_triples() throws IOException {
 		File file = File.createTempFile("index", ".journal");
 		SubjectIndex index = new SubjectIndex(file).restore(triples("subjects.triples"));
 		index.open("P001.model").update().set("status", "running").set("lead", "alice@example.com");
@@ -329,6 +358,7 @@ public class SubjectIndex_ {
 				""");
 	}
 
+	@SuppressWarnings("resource")
 	@Test
 	public void should_dump_index() throws Exception {
 		File file = File.createTempFile("index",".journal");
@@ -339,9 +369,8 @@ public class SubjectIndex_ {
 		assertThat(os.toString()).isEqualTo(string);
 	}
 
-	private Term[] terms(String str) {
-		if (str.isEmpty()) return new Term[0];
-		return Arrays.stream(str.split("\n")).map(s->term(s.split("="))).toArray(Term[]::new);
+	private Term[] terms(String... strings) {
+		return Arrays.stream(strings).map(s->term(s.split("="))).toArray(Term[]::new);
 	}
 
 	private static Term term(String[] s) {

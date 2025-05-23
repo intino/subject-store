@@ -58,6 +58,14 @@ public class SubjectStore {
 		}
 	}
 
+	public SubjectIndex restore(SubjectIndex.Journal journal) {
+		return index.restore(journal);
+	}
+
+	public SubjectIndex.Batch batch() {
+		return index.batch();
+	}
+
 	public SubjectQuery subjects() {
 		return index.subjects();
 	}
@@ -73,7 +81,7 @@ public class SubjectStore {
 		File recoverFile = new File(journalFile.getAbsolutePath() + ".recovering");
 		journalFile.renameTo(recoverFile);
 		try (InputStream is = inputStream()) {
-			SubjectIndex index = new SubjectIndex(journalFile).restore(new DumpTriples(is)).restore(new SubjectIndex.Journal(recoverFile));
+			SubjectIndex index = new SubjectIndex(journalFile).restore(new DumpTriples(is)).restore(new SubjectIndex.FileJournal(recoverFile));
 			recoverFile.delete();
 			return index;
 		}

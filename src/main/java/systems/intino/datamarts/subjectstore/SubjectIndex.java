@@ -1,6 +1,6 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.SubjectIndex.Journal.Transaction;
+import systems.intino.datamarts.subjectstore.helpers.EscapeSymbol;
 import systems.intino.datamarts.subjectstore.model.Triples;
 import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
 import systems.intino.datamarts.subjectstore.model.*;
@@ -20,16 +20,16 @@ import java.util.stream.Stream;
 
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
-import static systems.intino.datamarts.subjectstore.SubjectIndex.Journal.Type.*;
+import static systems.intino.datamarts.subjectstore.SubjectIndex.Type.*;
 
 public class SubjectIndex {
-	private final Journal journal;
+	private final FileJournal journal;
 	private final SubjectPool subjectPool;
 	private final LinkPool linkPool;
 	private final TermPool termPool;
 
 	public SubjectIndex(File journal) {
-		this.journal = new Journal(journal);
+		this.journal = new FileJournal(journal);
 		this.subjectPool = new SubjectPool();
 		this.linkPool = new LinkPool();
 		this.termPool = new TermPool();
@@ -210,6 +210,7 @@ public class SubjectIndex {
 
 			@Override
 			public Updating set(Term term) {
+				if (term.value().isEmpty()) return del(term.tag());
 				synchronized (journal) {
 					journal.add(new Transaction(set, subject, term.toString()));
 					termsWith(term.tag()).forEach(this::erase);
@@ -301,7 +302,7 @@ public class SubjectIndex {
 
 	public SubjectIndex restore(Journal journal) {
 		if (journal.isEmpty()) return this;
-		for (Transaction transaction : journal.statements()) {
+		for (Transaction transaction : journal.transactions()) {
 			Subject subject = create(transaction.subject());
 			switch (transaction.type()) {
 				case put -> subject.update().put(Term.of(transaction.parameter()));
@@ -335,7 +336,6 @@ public class SubjectIndex {
 
 	private Context createContext() {
 		return new Context() {
-
 
 			@Override
 			public List<Subject> children(Subject subject) {
@@ -415,16 +415,41 @@ public class SubjectIndex {
 		void put(Triple triple);
 	}
 
-	public static class Journal {
+	public interface Journal {
+		boolean isEmpty();
+		List<Transaction> transactions();
+	}
+
+	public static class StringJournal implements Journal {
+		private final List<String> lines;
+
+		public StringJournal(String content) {
+			this.lines = Arrays.stream(content.split("\n")).toList();
+		}
+
+		@Override
+		public boolean isEmpty() {
+			return lines.isEmpty();
+		}
+
+		@Override
+		public List<Transaction> transactions() {
+			return lines.stream()
+					.map(SubjectIndex::transaction)
+					.toList();
+		}
+	}
+
+	public static class FileJournal implements Journal {
 		private final Path path;
 
-		public Journal(File file) {
+		public FileJournal(File file) {
 			this.path = file.toPath();
 		}
 
-		public List<Transaction> statements() {
+		public List<Transaction> transactions() {
 			return linesIn().stream()
-					.map(this::transaction)
+					.map(SubjectIndex::transaction)
 					.toList();
 		}
 
@@ -434,11 +459,6 @@ public class SubjectIndex {
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
-		}
-
-		private Transaction transaction(String s) {
-			String[] split = s.split(" ", 3);
-			return new Transaction(valueOf(split[0]), new Subject(split[1]), split[2]);
 		}
 
 
@@ -454,15 +474,33 @@ public class SubjectIndex {
 			return !path.toFile().exists();
 		}
 
-		public record Transaction(Type type, Subject subject, String parameter) {
-			@Override
-			public String toString() {
-				return type + " " + subject + " " + parameter;
-			}
+	}
+	public record Transaction(Type type, Subject subject, String parameter) {
+		public Transaction {
+			parameter = escape(parameter);
 		}
 
-		public enum Type {
-			put, set, del, drop, rename
+		@Override
+		public String toString() {
+			return type + " " + subject + " " + parameter;
 		}
+
+		private static String escape(String str) {
+			return str.trim()
+					.replace('\n', EscapeSymbol.NL)
+					.replace('\t', EscapeSymbol.HT);
+		}
+
 	}
+
+	public enum Type {
+		put, set, del, drop, rename
+	}
+
+	private static Transaction transaction(String line) {
+		String[] split = line.split(" ", 3);
+		return new Transaction(valueOf(split[0]), new Subject(split[1]), split[2]);
+	}
+
+
 }

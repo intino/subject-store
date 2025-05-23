@@ -1,10 +1,12 @@
 package systems.intino.datamarts.subjectstore.model;
 
+import systems.intino.datamarts.subjectstore.helpers.EscapeSymbol;
+
 public record Term(String tag, String value) implements Comparable<Term> {
 
 	public Term {
 		tag = tag.trim().intern();
-		value = value.trim();
+		value = normalize(value);
 	}
 
 	public static Term of(String str) {
@@ -30,4 +32,12 @@ public record Term(String tag, String value) implements Comparable<Term> {
 	public int compareTo(Term term) {
 		return toString().compareTo(term.toString());
 	}
+
+	private static String normalize(String value) {
+		return value.trim()
+				.replace(EscapeSymbol.NL, '\n')
+				.replace(EscapeSymbol.HT, '\t');
+	}
+
+
 }
