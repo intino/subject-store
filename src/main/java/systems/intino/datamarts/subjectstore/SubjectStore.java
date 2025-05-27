@@ -5,6 +5,7 @@ import systems.intino.datamarts.subjectstore.model.Subject;
 
 import java.io.*;
 import java.sql.Connection;
+import java.sql.SQLException;
 
 public class SubjectStore {
 	private final File indexFile;
@@ -19,7 +20,15 @@ public class SubjectStore {
 
 	public SubjectStore connection(Connection connection) {
 		this.connection = connection;
+		tryDisableAutoCommit();
 		return this;
+	}
+
+	private void tryDisableAutoCommit() {
+		try {
+			if(connection != null) connection.setAutoCommit(false);
+		} catch (SQLException ignored) {
+		}
 	}
 
 	public boolean has(String identifier) {
