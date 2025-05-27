@@ -64,7 +64,7 @@ public class SubjectIndexView_ {
 
 	private static String content() throws IOException {
 		try (InputStream is = inputStream("ports-filtered-sorted.tsv")) {
-			return new String(is.readAllBytes()).trim();
+			return new String(is.readAllBytes()).replace("\r", "").trim();
 		}
 	}
 
