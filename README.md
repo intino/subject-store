@@ -138,21 +138,50 @@ Once all data for that timestamp is added, you must call .terminate() to commit 
 Here is a complete example:
 
 ```java
-Connection connection = DriverManager.getConnection("jdbc:sqlite:buildings.iss")
+Connection connection = DriverManager.getConnection("jdbc:sqlite:buildings.iss");
+connection.setAutoCommit(false);
+
 SubjectStore store = new SubjectStore(new File("index.triples"))
         .connection(connection);
 
 Subject subject = store.open("eiffel tower", "building");
-try (SubjectHistory history = store.historyOf(subject)) {
-    history.on("2025-04-17", "website")
-        .put("state", "open")
-        .put("visitants", 3500)
-        .put("income", 42000)
-        .terminate();
-}
+
+SubjectHistory history = store.historyOf(subject);
+
+history.on("2025-04-17", "website")
+    .put("state", "open")
+    .put("visitants", 3500)
+    .put("income", 42000)
+    .terminate();
 ```
 
 In this case, historical entries are saved in a SQLite database file named buildings.iss. The system supports any JDBC-compatible database, such as SQLite, PostgreSQL, MySQL or MariaDB, allowing you to scale or integrate according to your needs.
+
+
+### Batch update history
+
+Inserting lots of historical data with transactions can be very slow, because each time `Transaction.terminate()` is called, it commits to the underlying connection.
+
+For those cases, use batch mode to commit multiple transactions at once. For example:
+
+```java
+SubjectHistory history = store.historyOf(subject);
+
+SubjectHistory.Batch batch = history.batch();
+
+Instant from = Instant.parse("2025-05-01T00:00:00Z");
+
+for(int i = 0;i < 1000;i++) {
+    Instant ts = from.plusSeconds(i);
+    history.on(ts, "sensor")
+        .put("state", stateAt(ts))
+        .put("temperature", temperatureAt(ts))
+        .terminate();
+}
+
+batch.terminate();
+```
+
 
 ### Analyzing subject history
 
@@ -164,14 +193,17 @@ NumericalSignal visitants = history.query()
     .get(TimeSpan.LastMonth);
 
 // Average visitants in the last month
-double average = visitants.stats().mean();
+double average = visitants.summary().mean();
 
 CategoricalSignal states = history.query()
     .text("state")
     .get("2020", "2024");
     
 // Most frequent state from first day of 2020 to first day of 2024
-String state = states.stats().mode();
+String state = states.summary().mode();
+
+// Count the appearances of the state 'closed'
+int timesClosed = states.summary().frequency("closed");
 ```
 ---
 
@@ -187,7 +219,7 @@ SubjectIndexView.of(subjects)
     .export().to(new FileOutputStream("view.tsv"));
 ```
 
-Each column in a view offers a stats, including unique categories and their frequencies:
+Each column in a view offers stats, including unique categories and their frequencies:
 
 ```java
 List<String> statuses = view.column("city").stats().categories();
