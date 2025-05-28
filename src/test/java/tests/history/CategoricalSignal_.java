@@ -46,6 +46,32 @@ public class CategoricalSignal_ {
 	}
 
 	@Test
+	public void should_calculate_highest_and_lowest() {
+		CategoricalSignal.Raw sequence = new CategoricalSignal.Raw(today(0), today(35), List.of(
+				new Signal.Point<>(0, Instant.now(), "A"),
+				new Signal.Point<>(1, Instant.now(), "B"),
+				new Signal.Point<>(2, Instant.now(), "B"),
+				new Signal.Point<>(3, Instant.now(), "A"),
+				new Signal.Point<>(4, Instant.now(), "A"),
+				new Signal.Point<>(5, Instant.now(), "C"),
+				new Signal.Point<>(6, Instant.now(), "A")
+		));
+
+		assertThat(sequence.count()).isEqualTo(7);
+
+		assertThat(sequence.summary().frequency("A")).isEqualTo(4);
+		assertThat(sequence.summary().frequency("B")).isEqualTo(2);
+		assertThat(sequence.summary().frequency("C")).isEqualTo(1);
+		assertThat(sequence.summary().frequency("D")).isEqualTo(0);
+
+		assertThat(sequence.summary().highest().getKey()).isEqualTo("A");
+		assertThat(sequence.summary().highest().getValue()).isEqualTo(4);
+
+		assertThat(sequence.summary().lowest().getKey()).isEqualTo("C");
+		assertThat(sequence.summary().lowest().getValue()).isEqualTo(1);
+	}
+
+	@Test
 	public void should_return_identical_summary_for_sequences_with_same_points() {
 		CategoricalSignal.Raw signal1 = new CategoricalSignal.Raw(today(-15), today(15), points(-5, 5));
 		CategoricalSignal.Raw signal2 = new CategoricalSignal.Raw(today(-10), today(10), points(-5,5));

@@ -115,10 +115,10 @@ public interface NumericalSignal extends Signal<Double> {
 			this.sum = calculator.sum;
 			this.mean = calculator.mean;
 			this.sd = calculator.sd();
-			this.first = calculator.get("first");
-			this.last = calculator.get("last");
-			this.min = calculator.get("min");
-			this.max = calculator.get("max");
+			this.first = calculator.firstPoint;
+			this.last = calculator.lastPoint;
+			this.min = calculator.minPoint;
+			this.max = calculator.maxPoint;
 		}
 
 		public Point<Double> first() {
@@ -172,7 +172,10 @@ public interface NumericalSignal extends Signal<Double> {
 
 
 		private static class Calculator {
-			final Map<String, Point<Double>> points;
+			Point<Double> maxPoint;
+			Point<Double> minPoint;
+			Point<Double> firstPoint;
+			Point<Double> lastPoint;
 			double sum = 0;
 			double min = Double.MAX_VALUE;
 			double max = Double.MIN_VALUE;
@@ -181,7 +184,6 @@ public interface NumericalSignal extends Signal<Double> {
 			double m2 = 0;
 
 			public Calculator() {
-				this.points = new HashMap<>();
 			}
 
 			private Calculator calculate(Iterable<Point<Double>> points) {
@@ -193,10 +195,10 @@ public interface NumericalSignal extends Signal<Double> {
 			private void calculate(Point<Double> point) {
 				double value = point.value();
 				calculate(value);
-				if (!points.containsKey("first")) points.put("first", point);
-				if (min(value)) points.put("min", point);
-				if (max(value)) points.put("max", point);
-				points.put("last", point);
+				if (firstPoint == null) firstPoint = point;
+				if (min(value)) minPoint = point;
+				if (max(value)) maxPoint = point;
+				lastPoint = point;
 			}
 
 			private void calculate(double value) {
@@ -221,10 +223,6 @@ public interface NumericalSignal extends Signal<Double> {
 
 			public double sd() {
 				return count > 1 ? Math.sqrt(m2 / (count - 1)) : Double.NaN;
-			}
-
-			public Point<Double> get(String name) {
-				return points.get(name);
 			}
 		}
 	}

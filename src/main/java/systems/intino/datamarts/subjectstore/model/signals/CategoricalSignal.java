@@ -5,10 +5,8 @@ import systems.intino.datamarts.subjectstore.model.Signal;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static systems.intino.datamarts.subjectstore.TimeReferences.iterate;
 
@@ -42,15 +40,15 @@ public interface CategoricalSignal extends Signal<String> {
 
 	class Summary {
 		private final int count;
-		private final Map<String, Integer> frequencies;
+		private final SequencedMap<String, Integer> frequencies;
 
 		public static Summary of(Iterable<Point<String>> points) {
 			return new Calculator().calculate(points);
 		}
 
-		private Summary(int count, Map<String, Integer> frequencies) {
+		private Summary(int count, SequencedMap<String, Integer> frequencies) {
 			this.count = count;
-			this.frequencies = Map.copyOf(frequencies);
+			this.frequencies = frequencies;
 		}
 
 		public int count() {
@@ -68,8 +66,24 @@ public interface CategoricalSignal extends Signal<String> {
 			return e2.getValue().compareTo(e1.getValue());
 		}
 
+		public boolean has(String category) {
+			return frequency(category) > 0;
+		}
+
 		public int frequency(String category) {
-			return frequencies.get(category);
+			return frequencies.getOrDefault(category, 0);
+		}
+
+		public SequencedMap<String, Integer> frequencies() {
+			return frequencies;
+		}
+
+		public Map.Entry<String, Integer> highest() {
+			return count == 0 ? null : frequencies.sequencedEntrySet().getFirst();
+		}
+
+		public Map.Entry<String, Integer> lowest() {
+			return count == 0 ? null : frequencies.sequencedEntrySet().getLast();
 		}
 
 		public String mode() {
@@ -77,13 +91,13 @@ public interface CategoricalSignal extends Signal<String> {
 		}
 
 		public double entropy() {
-			return frequencies.values().stream()
+			return count == 0 ? 0 : frequencies.values().stream()
 					.mapToDouble(this::entropy)
 					.sum();
 		}
 
 		private double entropy(long f) {
-			return entropy((double) f / count);
+			return count == 0 ? 0 : entropy((double) f / count);
 		}
 
 		private double entropy(double p) {
@@ -111,7 +125,13 @@ public interface CategoricalSignal extends Signal<String> {
 					frequencies.merge(point.value(), 1, Integer::sum);
 					count++;
 				}
-				return new Summary(count, frequencies);
+				return new Summary(count, sortedByValue());
+			}
+
+			private SequencedMap<String, Integer> sortedByValue() {
+				return frequencies.entrySet().stream()
+						.sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+						.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
 			}
 		}
 	}
@@ -127,5 +147,4 @@ public interface CategoricalSignal extends Signal<String> {
 	static CategoricalSignal categorical(Signal<?> signal) {
 		return signal instanceof CategoricalSignal s ? s : null;
 	}
-
 }

@@ -368,7 +368,7 @@ public class SubjectIndex_ {
 		SubjectIndex index = new SubjectIndex(file).restore(triples("movies.triples"));
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		index.dump(os);
-		String string = new String(triples("movies.triples").readAllBytes());
+		String string = new String(triples("movies.triples").readAllBytes()).replace("\r", "");
 		assertThat(os.toString()).isEqualTo(string);
 	}
 
