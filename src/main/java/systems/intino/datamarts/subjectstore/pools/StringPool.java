@@ -4,13 +4,15 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class SubjectPool {
+public class StringPool {
 	private final List<String> values;
 	private final Cache<String, Integer> cache;
 
-	public SubjectPool() {
+	public StringPool() {
 		this.values = new ArrayList<>();
 		this.cache = Caffeine.newBuilder()
 				.maximumSize(10_000)
@@ -32,6 +34,15 @@ public class SubjectPool {
 	public String get(int id) {
 		return values.get(id);
 	}
+
+	public List<Integer> ids(Predicate<String> predicate) {
+		return IntStream.range(0, values.size())
+				.filter(i -> get(i) != null)
+				.filter(id->predicate.test(get(id)))
+				.boxed()
+				.toList();
+	}
+
 
 	public int id(String value) {
 		return cache.get(value, this::indexOf);
@@ -60,13 +71,19 @@ public class SubjectPool {
 		fix(id, null);
 	}
 
+	public void remove(int id) {
+		fix(id, null);
+	}
+
 	public void fix(int id, String value) {
 		cache.invalidate(values.get(id));
 		values.set(id, value);
 	}
 
 	public Stream<String> stream() {
-		return values.stream()
-				.filter(Objects::nonNull);
+		return values.stream().filter(Objects::nonNull);
 	}
+
+
+
 }

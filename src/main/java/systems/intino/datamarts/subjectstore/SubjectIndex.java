@@ -7,8 +7,7 @@ import systems.intino.datamarts.subjectstore.model.*;
 import systems.intino.datamarts.subjectstore.model.Subject.Context;
 import systems.intino.datamarts.subjectstore.model.Subject.Updating;
 import systems.intino.datamarts.subjectstore.pools.LinkPool;
-import systems.intino.datamarts.subjectstore.pools.SubjectPool;
-import systems.intino.datamarts.subjectstore.pools.TermPool;
+import systems.intino.datamarts.subjectstore.pools.StringPool;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -24,16 +23,16 @@ import static systems.intino.datamarts.subjectstore.SubjectIndex.Type.*;
 
 public class SubjectIndex {
 	private final FileJournal journal;
-	private final SubjectPool subjectPool;
+	private final StringPool subjectPool;
+	private final StringPool termPool;
 	private final LinkPool linkPool;
-	private final TermPool termPool;
 	private final Context context;
 
 	public SubjectIndex(File journal) {
 		this.journal = new FileJournal(journal);
-		this.subjectPool = new SubjectPool();
+		this.subjectPool = new StringPool();
+		this.termPool = new StringPool();
 		this.linkPool = new LinkPool();
-		this.termPool = new TermPool();
 		this.context = createContext();
 	}
 
@@ -58,7 +57,13 @@ public class SubjectIndex {
 	}
 
 	private Subject open(int id) {
-		return subjectPool.contains(id) ? Subject.of(subjectPool.get(id), context) : null;
+		String value = subjectPool.get(id);
+		return value != null ? Subject.of(value, context) : null;
+	}
+
+	private Term term(int id) {
+		String value = termPool.get(id);
+		return value != null ? Term.of(value) : Term.Null;
 	}
 
 	public SubjectQuery subjects() {
@@ -124,7 +129,11 @@ public class SubjectIndex {
 
 			@Override
 			public AttributeFilter where(String tag) {
-				return where(termPool.pull(tag));
+				return where(termHas(tag));
+			}
+
+			private List<Integer> termHas(String tag) {
+				return termPool.ids(s -> Term.of(s).is(tag));
 			}
 
 			private AttributeFilter where(List<Integer> terms) {
@@ -154,9 +163,6 @@ public class SubjectIndex {
 						return subjects;
 					}
 
-					private Term term(int id) {
-						return termPool.term(id);
-					}
 				};
 			}
 
@@ -198,7 +204,7 @@ public class SubjectIndex {
 	}
 
 	private void drop(Subject subject) {
-		if (!exists(subject)) return;
+		if (!has(subject.identifier())) return;
 		dropChildrenOf(subject);
 		dropTermsOf(subject);
 		subjectPool.remove(subject.identifier());
@@ -243,23 +249,23 @@ public class SubjectIndex {
 			}
 
 			private boolean existsTerm(Term term) {
-				return termPool.id(term) >= 0;
+				return termPool.id(term.serialize()) >= 0;
 			}
 
 			private boolean existsLink(Term term) {
-				int id = termPool.id(term);
+				int id = termPool.id(term.serialize());
 				return id >= 0 && linkPool.exists(this.id, id);
 			}
 
 			private Updating write(Term term) {
-				linkPool.add(id, termPool.add(term));
+				linkPool.add(id, termPool.add(term.serialize()));
 				return this;
 			}
 
 			private Updating erase(Term term) {
-				int id = termPool.id(term);
+				int id = termPool.id(term.serialize());
 				linkPool.remove(this.id, id);
-				if (!linkPool.termIsUsed(id)) termPool.remove(term);
+				if (!linkPool.termIsUsed(id)) termPool.remove(term.serialize());
 				return this;
 			}
 
@@ -268,10 +274,6 @@ public class SubjectIndex {
 			}
 
 		};
-	}
-
-	private boolean exists(Subject subject) {
-		return !subject.isNull() && has(subject.identifier());
 	}
 
 	private void dropChildrenOf(Subject subject) {
@@ -336,9 +338,9 @@ public class SubjectIndex {
 			@Override
 			public Triple next() {
 				int[] id = iterator.next();
-				String subject = subjectPool.get(id[0]);
-				Term term = termPool.term(id[1]);
-				return new Triple(subject, term.tag(), term.value());
+				String identifier = subjectPool.get(id[0]);
+				Term term = term(id[1]);
+				return new Triple(identifier, term.tag(), term.value());
 			}
 		};
 	}
@@ -358,7 +360,7 @@ public class SubjectIndex {
 			@Override
 			public List<Term> terms(Subject subject) {
 				int id = subjectPool.id(subject.identifier());
-				return id < 0 ? List.of() : termPool.terms(linkPool.termsOf(id));
+				return id < 0 ? List.of() : linkPool.termsOf(id).stream().map(i->term(i)).toList();
 			}
 
 			@Override

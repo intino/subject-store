@@ -4,6 +4,8 @@ import systems.intino.datamarts.subjectstore.helpers.EscapeSymbol;
 
 public record Term(String tag, String value) implements Comparable<Term> {
 
+	public static final Term Null = new Term("","");
+
 	public Term {
 		tag = tag.trim().intern();
 		value = normalize(value);
@@ -17,7 +19,7 @@ public record Term(String tag, String value) implements Comparable<Term> {
 
 	@Override
 	public String toString() {
-		return tag + "=" + value;
+		return serialize();
 	}
 
 	public boolean is(String tag) {
@@ -40,4 +42,7 @@ public record Term(String tag, String value) implements Comparable<Term> {
 	}
 
 
+	public String serialize() {
+		return tag + "=" + value;
+	}
 }

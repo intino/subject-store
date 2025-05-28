@@ -16,6 +16,10 @@ public interface SubjectQuery {
 	int size();
 	boolean isEmpty();
 	Subject first();
+	default Subject last() {
+		List<Subject> list = collect();
+		return list.isEmpty() ? null : list.getLast();
+	}
 	Stream<Subject> stream();
 	List<Subject> collect();
 	SubjectQuery type(String type);

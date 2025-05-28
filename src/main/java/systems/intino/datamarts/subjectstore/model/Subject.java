@@ -163,6 +163,7 @@ public record Subject(String identifier, Context context) {
 				return subjects().findFirst().orElse(null);
 			}
 
+
 			@Override
 			public Stream<Subject> stream() {
 				return subjects().sorted(sorting::sort);
