@@ -27,35 +27,38 @@ public class SubjectIndex {
 	private final SubjectPool subjectPool;
 	private final LinkPool linkPool;
 	private final TermPool termPool;
+	private final Context context;
 
 	public SubjectIndex(File journal) {
 		this.journal = new FileJournal(journal);
 		this.subjectPool = new SubjectPool();
 		this.linkPool = new LinkPool();
 		this.termPool = new TermPool();
-		Subject.context = createContext();
+		this.context = createContext();
 	}
 
 	public boolean has(String name, String type) {
-		return subjectPool.contains(new Subject(name, type));
+		return has(Subject.of(name, type).identifier());
 	}
 
 	public boolean has(String identifier) {
-		return subjectPool.contains(new Subject(identifier));
+		return subjectPool.contains(identifier);
+	}
+
+	private boolean has(int identifier) {
+		return subjectPool.contains(identifier);
 	}
 
 	public Subject open(String name, String type) {
-		Subject subject = new Subject(name, type);
-		return subjectPool.contains(subject) ? subject : null;
+		return open(Subject.of(name, type).identifier()) ;
 	}
 
 	public Subject open(String identifier) {
-		Subject subject = Subject.of(identifier);
-		return subjectPool.contains(subject) ? subject : null;
+		return has(identifier) ? new Subject(identifier, context) : null;
 	}
 
-	private Subject open(int subject) {
-		return subjectPool.contains(subject) ? subjectPool.subject(subject) : null;
+	private Subject open(int id) {
+		return subjectPool.contains(id) ? Subject.of(subjectPool.get(id), context) : null;
 	}
 
 	public SubjectQuery subjects() {
@@ -82,7 +85,7 @@ public class SubjectIndex {
 			@Override
 			public Stream<Subject> stream() {
 				return candidates()
-						.mapToObj(i->toSubject(i))
+						.mapToObj(i-> open(i))
 						.sorted(sorting::sort);
 			}
 
@@ -93,14 +96,24 @@ public class SubjectIndex {
 
 			@Override
 			public SubjectQuery type(String type) {
-				conditions.add(s->subject(s).is(type));
+				conditions.add(id-> is(type, id));
 				return this;
 			}
 
 			@Override
 			public SubjectQuery isRoot() {
-				conditions.add(s->subject(s).isRoot());
+				conditions.add(this::isRoot);
 				return this;
+			}
+
+			private boolean isRoot(int id) {
+				Subject subject = open(id);
+				return subject != null && subject.isRoot();
+			}
+
+			private boolean is(String type, int id) {
+				Subject subject = open(id);
+				return subject != null && subject.is(type);
 			}
 
 			@Override
@@ -153,7 +166,7 @@ public class SubjectIndex {
 
 			private IntStream subjectsWith(Predicate<Integer> conditions) {
 				return IntStream.range(0, subjectPool.size())
-						.filter(s -> subjectPool.subject(s) != null)
+						.filter(s -> subjectPool.get(s) != null)
 						.filter(conditions::test);
 			}
 
@@ -161,49 +174,45 @@ public class SubjectIndex {
 				return conditions.stream().reduce(x -> true, Predicate::and);
 			}
 
-			private Subject subject(int id) {
-				return subjectPool.subject(id);
-			}
-
 		};
 	}
 
-	public Subject create(Subject subject) {
-		synchronized (journal) {
-			int id = subjectPool.add(subject);
-			return open(id);
-		}
-	}
-
 	public Subject create(String name, String type) {
-		return create(new Subject(name, type));
+		return create(Subject.of(name, type));
 	}
 
 	public Subject create(String identifier) {
 		return create(Subject.of(identifier));
 	}
 
+	public Subject create(Subject subject) {
+		synchronized (journal) {
+			int id = subjectPool.add(subject.identifier());
+			return open(id);
+		}
+	}
+
 	private void rename(Subject subject, String identifier) {
-		int id = subjectPool.id(subject);
-		subjectPool.fix(id, new Subject(identifier));
+		int id = subjectPool.id(subject.identifier());
+		subjectPool.fix(id, identifier);
 	}
 
 	private void drop(Subject subject) {
 		if (!exists(subject)) return;
 		dropChildrenOf(subject);
 		dropTermsOf(subject);
-		subjectPool.remove(subject);
+		subjectPool.remove(subject.identifier());
 	}
 
 	private Updating update(Subject subject) {
 		return new Updating() {
-			private final int id = subjectPool.id(subject);
+			private final int id = subjectPool.id(subject.identifier());
 
 			@Override
 			public Updating put(Term term) {
 				synchronized (journal) {
 					if (term.isEmpty() || existsLink(term)) return this;
-					journal.add(new Transaction(put, subject, term.toString()));
+					journal.add(new Transaction(put, subject.identifier(), term.toString()));
 					return write(term);
 				}
 			}
@@ -212,7 +221,7 @@ public class SubjectIndex {
 			public Updating set(Term term) {
 				if (term.value().isEmpty()) return del(term.tag());
 				synchronized (journal) {
-					journal.add(new Transaction(set, subject, term.toString()));
+					journal.add(new Transaction(set, subject.identifier(), term.toString()));
 					termsWith(term.tag()).forEach(this::erase);
 					return write(term);
 				}
@@ -222,7 +231,7 @@ public class SubjectIndex {
 			public Updating del(Term term) {
 				synchronized (journal) {
 					if (!existsTerm(term)) return this;
-					journal.add(new Transaction(del, subject, term.toString()));
+					journal.add(new Transaction(del, subject.identifier(), term.toString()));
 					return erase(term);
 				}
 			}
@@ -262,7 +271,7 @@ public class SubjectIndex {
 	}
 
 	private boolean exists(Subject subject) {
-		return !subject.isNull() && subjectPool.contains(subject);
+		return !subject.isNull() && has(subject.identifier());
 	}
 
 	private void dropChildrenOf(Subject subject) {
@@ -270,7 +279,7 @@ public class SubjectIndex {
 	}
 
 	private void dropTermsOf(Subject subject) {
-		List<Integer> usedTerms = linkPool.remove(subjectPool.id(subject));
+		List<Integer> usedTerms = linkPool.remove(subjectPool.id(subject.identifier()));
 		usedTerms.stream()
 				.filter(term -> linkPool.subjectsWith(term).isEmpty())
 				.forEach(termPool::remove);
@@ -327,9 +336,9 @@ public class SubjectIndex {
 			@Override
 			public Triple next() {
 				int[] id = iterator.next();
-				Subject subject = subjectPool.subject(id[0]);
+				String subject = subjectPool.get(id[0]);
 				Term term = termPool.term(id[1]);
-				return new Triple(subject.identifier(), term.tag(), term.value());
+				return new Triple(subject, term.tag(), term.value());
 			}
 		};
 	}
@@ -340,13 +349,15 @@ public class SubjectIndex {
 			@Override
 			public List<Subject> children(Subject subject) {
 				return subjectPool.stream()
+						.filter(s -> s.startsWith(subject.identifier()))
+						.map(s -> open(s))
 						.filter(s -> s.parent().equals(subject))
 						.toList();
 			}
 
 			@Override
 			public List<Term> terms(Subject subject) {
-				int id = subjectPool.id(subject);
+				int id = subjectPool.id(subject.identifier());
 				return id < 0 ? List.of() : termPool.terms(linkPool.termsOf(id));
 			}
 
@@ -368,7 +379,7 @@ public class SubjectIndex {
 			@Override
 			public void rename(Subject subject, String identifier) {
 				synchronized (journal) {
-					journal.add(new Transaction(rename, subject, nameIn(identifier)));
+					journal.add(new Transaction(rename, subject.identifier(), nameIn(identifier)));
 					SubjectIndex.this.rename(subject, identifier);
 				}
 			}
@@ -376,7 +387,7 @@ public class SubjectIndex {
 			@Override
 			public void drop(Subject subject) {
 				synchronized (journal) {
-					journal.add(new Transaction(drop, subject, "-"));
+					journal.add(new Transaction(drop, subject.identifier(), "-"));
 					SubjectIndex.this.drop(subject);
 				}
 			}
@@ -384,11 +395,7 @@ public class SubjectIndex {
 	}
 
 	private String nameIn(String identifier) {
-		return new Subject(identifier).name();
-	}
-
-	private Subject toSubject(int subject) {
-		return subjectPool.subject(subject);
+		return Subject.of(identifier).name();
 	}
 
 	public Batch batch() {
@@ -406,10 +413,12 @@ public class SubjectIndex {
 				id = subjectPool.create(subject);
 				return id;
 			}
-
 		};
 	}
 
+	public Context context() {
+		return context;
+	}
 
 	public interface Batch {
 		void put(Triple triple);
@@ -475,7 +484,7 @@ public class SubjectIndex {
 		}
 
 	}
-	public record Transaction(Type type, Subject subject, String parameter) {
+	public record Transaction(Type type, String subject, String parameter) {
 		public Transaction {
 			parameter = escape(parameter);
 		}
@@ -499,7 +508,7 @@ public class SubjectIndex {
 
 	private static Transaction transaction(String line) {
 		String[] split = line.split(" ", 3);
-		return new Transaction(valueOf(split[0]), new Subject(split[1]), split[2]);
+		return new Transaction(Type.valueOf(split[0]), split[1], split[2]);
 	}
 
 

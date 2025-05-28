@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class Subject_ {
 	@Test
 	public void should_navigate_to_parent() {
-		Subject subject = Subject.of(" a / english.b.release  ");
+		Subject subject = Subject.of(" a / english .b.release  ");
 		assertThat(subject.identifier()).isEqualTo("a/english.b.release");
 		assertThat(subject.typedName()).isEqualTo("english.b.release");
 		assertThat(subject.name()).isEqualTo("english.b");
@@ -29,8 +29,7 @@ public class Subject_ {
 
 	@Test
 	public void should_create_children_without_context() {
-		Subject.context = context();
-		Subject subject = new Subject("a", "model");
+		Subject subject = Subject.of("a", "model", context());
 		Subject child = subject.create("b", "release");
 		Subject grandson = child.create("c", "properties");
 
@@ -41,8 +40,7 @@ public class Subject_ {
 
 	@Test
 	public void should_create_children_with_context() {
-		Subject.context = context();
-		Subject subject = new Subject(" a.model ");
+		Subject subject = Subject.of(" a.model ", context());
 		Subject child = subject.create("b", "release");
 		Subject grandson = child.create("c", "properties");
 
@@ -56,7 +54,6 @@ public class Subject_ {
 
 	@Test
 	public void should_write_in_system_error_when_subject_context_is_not_defined() {
-		Subject.context = Subject.Context.Null;
 		PrintStream originalErr = System.err;
 		ByteArrayOutputStream errContent = new ByteArrayOutputStream();
 		System.setErr(new PrintStream(errContent));

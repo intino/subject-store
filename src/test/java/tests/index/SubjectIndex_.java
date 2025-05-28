@@ -158,7 +158,7 @@ public class SubjectIndex_ {
 		assertThat(index.open("1.o").open("12.p").open("123.q").identifier()).isEqualTo("1.o/12.p/123.q");
 		assertThat(index.open("1.o").open("12.p/123.q").identifier()).isEqualTo("1.o/12.p/123.q");
 		assertThat(index.open("1.o/12.p").parent()).isEqualTo(index.open("1","o"));
-		assertThat(index.open("1.o/12.p").children().collect()).containsOnly(new Subject("1.o/12.p/123.q"));
+		assertThat(index.open("1.o/12.p").children().collect()).containsOnly(Subject.of("1.o/12.p/123.q"));
 		assertThat(index.open("1.o/12.p").children().first().identifier()).isEqualTo("1.o/12.p/123.q");
 		assertThat(index.open("1.o/12.p/123.q").parent().parent()).isEqualTo(Subject.of("1.o"));
 		assertThat(index.subjects().where("class").equals("a").isRoot().collect().size()).isEqualTo(1);
@@ -205,7 +205,10 @@ public class SubjectIndex_ {
 		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
 		assertThat(index.subjects().where("user").equals("mcaballero@gmail.com").isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
 		assertThat(index.subjects().where("description").equals("simulation").isRoot().collect()).containsOnly(subject("123456.model"));
-		assertThat(index.subjects().where("user").equals("josejuan@gmail.com").isRoot().collect()).containsOnly(subject("654321.model"));
+		Subject result;
+		String s = "654321.model";
+		result = Subject.of("654321.model");
+		assertThat(index.subjects().where("user").equals("josejuan@gmail.com").isRoot().collect()).containsOnly(result);
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 				put 123456.model description=simulation
 				put 123456.model user=mcaballero@gmail.com
@@ -259,14 +262,14 @@ public class SubjectIndex_ {
 				.put("user", "mcaballero@gmail.com")
 				.put("project", "ulpgc");
 		index.create("123456", "model").update().del("team", "ulpgc");
-		assertThat(index.subjects().where("project").equals("ulpgc").collect()).containsOnly(subject("654321.model"), subject("123456.model"));
-		assertThat(index.subjects().where("team").equals("ulpgc.es").collect()).containsOnly(subject("123456.model"));
-		assertThat(index.subjects().where("team").contains("ulpgc").collect()).containsOnly(subject("123456.model"));
-		assertThat(index.subjects().where("team").contains("ulpgc", "es").collect()).containsOnly(subject("123456.model"));
-		assertThat(index.subjects().where("description").contains("sim").collect()).containsOnly(subject("123456.model"), subject("654321.model"));
+		assertThat(index.subjects().where("project").equals("ulpgc").collect()).containsOnly(Subject.of("654321.model"), Subject.of("123456.model"));
+		assertThat(index.subjects().where("team").equals("ulpgc.es").collect()).containsOnly(Subject.of("123456.model"));
+		assertThat(index.subjects().where("team").contains("ulpgc").collect()).containsOnly(Subject.of("123456.model"));
+		assertThat(index.subjects().where("team").contains("ulpgc", "es").collect()).containsOnly(Subject.of("123456.model"));
+		assertThat(index.subjects().where("description").contains("sim").collect()).containsOnly(Subject.of("123456.model"), Subject.of("654321.model"));
 		assertThat(index.subjects().where("description").contains("xxx").collect()).isEmpty();
 		assertThat(index.subjects().where("access").accepts("jose@gmail.com").collect()).isEmpty();
-		assertThat(index.subjects().where("access").accepts("jose@ulpgc.es").collect()).containsOnly(subject("123456.model"));
+		assertThat(index.subjects().where("access").accepts("jose@ulpgc.es").collect()).containsOnly(Subject.of("123456.model"));
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 				put 123456.model description=simulation
 				put 123456.model user=josejuan@gmail.com
@@ -303,7 +306,7 @@ public class SubjectIndex_ {
 		assertThat(index.open("P001.model/E002.experiment").terms()).doesNotContain(terms("status=archived"));
 		assertThat(index.open("P001.model").children().collect()).hasSize(1);
 		assertThat(index.open("P001.model").children().first().name()).isEqualTo("E002");
-		assertThat(index.subjects().type("model").where("name").equals("AI Research").collect()).contains(subject("P001.model"));
+		assertThat(index.subjects().type("model").where("name").equals("AI Research").collect()).contains(Subject.of("P001.model"));
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 				put P001.model name=AI Research
 				put P001.model lead=alice@example.com
@@ -378,7 +381,7 @@ public class SubjectIndex_ {
 	}
 
 	private static Subject subject(String s) {
-		return new Subject(s);
+		return Subject.of(s);
 	}
 
 	private static InputStream triples(String name) {

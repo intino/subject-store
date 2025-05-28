@@ -7,15 +7,26 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public record Subject(String identifier) {
-	public static Context context = Context.Null;
+public record Subject(String identifier, Context context) {
 
 	public Subject {
 		identifier = clean(identifier);
 	}
 
+	public static Subject of(String identifier, Context context) {
+		return identifier != null ? new Subject(identifier, context) : null;
+	}
+
+	public static Subject of(String name, String type) {
+		return new Subject(identifier(name, type), Context.Null);
+	}
+
+	public static Subject of(String name, String type, Context context) {
+		return of(identifier(name, type), context);
+	}
+
 	public static Subject of(String identifier) {
-		return identifier != null ? new Subject(identifier) : null;
+		return identifier != null ? new Subject(identifier, Context.Null) : null;
 	}
 
 	private static String clean(String identifier) {
@@ -29,16 +40,12 @@ public record Subject(String identifier) {
 		return sb.toString();
 	}
 
-	public Subject(String name, String type) {
-		this(name + "." + type);
-	}
-
 	public Subject(Subject parent, String identifier) {
-		this(parent.identifier + "/" + identifier);
+		this(parent.identifier + "/" + identifier, parent.context);
 	}
 
 	public Subject(Subject parent, String name, String type) {
-		this(parent, name + "." + type);
+		this(parent, identifier(name, type));
 	}
 
 	public String identifier() {
@@ -63,7 +70,7 @@ public record Subject(String identifier) {
 	}
 
 	public boolean is(String type) {
-		return type.equals("*") || type.equals(this.type());
+		return type.equals(this.type());
 	}
 
 	public boolean isNull() {
@@ -75,7 +82,7 @@ public record Subject(String identifier) {
 	}
 
 	public Subject parent() {
-		return new Subject(parentIdentifier());
+		return new Subject(parentIdentifier(), context);
 	}
 
 	public SubjectQuery children() {
@@ -120,7 +127,7 @@ public record Subject(String identifier) {
 	}
 
 	public Subject rename(String name) {
-		Subject subject = new Subject(path() + name + "." + type());
+		Subject subject = new Subject(path() + name + "." + type(), context);
 		context.rename(this, subject.identifier);
 		return subject;
 	}
@@ -195,9 +202,13 @@ public record Subject(String identifier) {
 			}
 
 			private Stream<Subject> subjects() {
+				return subjectsWith(conditions());
+			}
+
+			private Stream<Subject> subjectsWith(Predicate<Subject> conditions) {
 				return context.children(Subject.this)
 						.stream()
-						.filter(c->conditions().test(c));
+						.filter(conditions);
 			}
 
 			private Predicate<Subject> conditions() {
@@ -313,7 +324,7 @@ public record Subject(String identifier) {
 
 			@Override
 			public Subject get(String identifier) {
-				return new Subject(identifier);
+				return new Subject(identifier, Context.Null);
 			}
 
 			@Override
@@ -354,5 +365,8 @@ public record Subject(String identifier) {
 		};
 	}
 
+	private static String identifier(String name, String type) {
+		return name + "." + type;
+	}
 
 }

@@ -2,86 +2,71 @@ package systems.intino.datamarts.subjectstore.pools;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import systems.intino.datamarts.subjectstore.model.Subject;
 
 import java.util.*;
 import java.util.stream.Stream;
 
 public class SubjectPool {
-	private final List<String> subjects;
+	private final List<String> values;
 	private final Cache<String, Integer> cache;
 
 	public SubjectPool() {
-		this.subjects = new ArrayList<>();
+		this.values = new ArrayList<>();
 		this.cache = Caffeine.newBuilder()
 				.maximumSize(10_000)
 				.build();
 	}
 
 	public int size() {
-		return subjects.size();
+		return values.size();
 	}
 
-	public boolean contains(Subject subject) {
-		return id(subject) >= 0;
+	public boolean contains(String value) {
+		return id(value) >= 0;
 	}
 
 	public boolean contains(int id) {
-		return id >= 0 && id < subjects.size() && subject(id) != null;
+		return id >= 0 && id < values.size() && get(id) != null;
 	}
 
-	public int id(Subject subject) {
-		return id(subject.identifier());
+	public String get(int id) {
+		return values.get(id);
 	}
 
-	private int id(String subject) {
-		return cache.get(subject, this::indexOf);
+	public int id(String value) {
+		return cache.get(value, this::indexOf);
 	}
 
-	private int indexOf(String subject) {
-		int index = subjects.indexOf(subject);
+	private int indexOf(String value) {
+		int index = values.indexOf(value);
 		return (index >= 0) ? index : -1;
 	}
 
-	public Subject subject(int id) {
-		String identifier = subjects.get(id);
-		return identifier != null ? new Subject(identifier) : null;
-	}
-
-	public int add(Subject subject) {
-		return add(subject.identifier());
-	}
-
-	private int add(String subject) {
-		int id = id(subject);
+	public int add(String value) {
+		int id = id(value);
 		if (id >= 0) return id;
-		cache.put(subject, create(subject));
-		return subjects.size()-1;
+		cache.put(value, create(value));
+		return values.size() - 1;
 	}
 
-	public int create(String subject) {
-		subjects.add(subject);
-		return subjects.size()-1;
+	public int create(String value) {
+		values.add(value);
+		return values.size() - 1;
 	}
 
-	public void remove(Subject subject) {
-		int id = id(subject);
+	public void remove(String value) {
+		int id = id(value);
 		if (id < 0) return;
-		fix(id, (String) null);
+		fix(id, null);
 	}
 
-	public void fix(int id, Subject subject) {
-		fix(id, subject.identifier());
+	public void fix(int id, String value) {
+		cache.invalidate(values.get(id));
+		values.set(id, value);
 	}
 
-	private void fix(int id, String subject) {
-		cache.invalidate(subjects.get(id));
-		subjects.set(id, subject);
-	}
-
-	public Stream<Subject> stream() {
-		return subjects.stream()
-				.filter(Objects::nonNull)
-				.map(Subject::new);
+	public Stream<String> stream() {
+		return values.stream()
+				.filter(Objects::nonNull);
 	}
 }

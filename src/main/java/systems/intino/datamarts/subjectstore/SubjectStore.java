@@ -46,8 +46,8 @@ public class SubjectStore {
 		return index.create(name, type);
 	}
 
-	public SubjectHistory historyOf(String subject) {
-		return historyOf(new Subject(subject));
+	public SubjectHistory historyOf(String identifier) {
+		return historyOf(new Subject(identifier, index.context()));
 	}
 
 	@SuppressWarnings("ResultOfMethodCallIgnored")

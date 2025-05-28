@@ -90,11 +90,11 @@ public class SubjectStore_ {
 	}
 
 	private static void test1(SubjectStore store) {
-		Subject building = store.open("burj khalifa", "building");
+		Subject building = store.open("burj_khalifa", "building");
 
-		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj khalifa.building/observation deck.detail"));
-		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj khalifa.building/observation deck.detail"));
-		assertThat(building.children().type("detail").where("name").equals("At the Top").collect()).containsOnly(store.open("burj khalifa.building/observation deck.detail"));
+		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().type("detail").where("name").equals("At the Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
 		assertThat(building.children().type("detail").where("name").equals("At the Top").isRoot().collect()).isEmpty();
 		assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
 
@@ -122,9 +122,9 @@ public class SubjectStore_ {
 		assertThat(store.subjects().type("patient").collect().size()).isEqualTo(0);
 
 		Subject building = store.subjects().type("building").where("city").equals("Dubai").first();
-		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj khalifa.building/observation deck.detail"));
-		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj khalifa.building/observation deck.detail"));
-		assertThat(building.children().type("detail").where("name").equals("At the Top").collect()).containsOnly(store.open("burj khalifa.building/observation deck.detail"));
+		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().type("detail").where("name").equals("At the Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
 		assertThat(building.children().type("detail").where("name").equals("At the Top").isRoot().collect()).isEmpty();
 		assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
 	}
@@ -160,8 +160,8 @@ public class SubjectStore_ {
 
 
 	private static void createSubjects(SubjectStore store) {
-		Subject s = store.create("taj-mahal", "building");
-		Subject taj = s.rename("taj_mahal");
+		Subject subject = store.create("taj-mahal", "building");
+		Subject taj = subject.rename("taj_mahal");
 		taj.update()
 				.set("name", "taj_mahal")
 				.set("year", 1648)
@@ -194,7 +194,7 @@ public class SubjectStore_ {
 				.set("height", 26)
 				.set("function", "Watchtower");
 
-		Subject building = store.create("burj khalifa", "building");
+		Subject building = store.create("burj_khalifa", "building");
 		building.update()
 				.set("name", "Burj khalifa")
 				.set("year", 2010)
@@ -206,7 +206,7 @@ public class SubjectStore_ {
 				.set("height", 829.8)
 				.set("function", "Aesthetic and communication");
 
-		building.create("observation deck", "detail").update()
+		building.create("observation_deck", "detail").update()
 				.set("name", "At the Top")
 				.set("floor", 148)
 				.set("height", 555);
