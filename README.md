@@ -24,7 +24,7 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 <dependency>
     <groupId>systems.intino.datamarts</groupId>
     <artifactId>subject-store</artifactId>
-    <version>2.0.13</version>
+    <version>2.0.14</version>
 </dependency>
 ```
 
@@ -112,18 +112,56 @@ Subject building = collection.parent().parent();
 Subjects can also be retrieved using flexible queries based on their indexed attributes. To enable this, you can assign indexing attributes. 
 
 ```java
-Subject eiffel = store.subjects("building")
+Subject eiffel = store.subjects()
+        .type("building")
 		.where("city").equals("Paris")
 		.first();
 
-List<Subject> towers = store.subjects("building")
+List<Subject> towers = store.subjects()
+        .type("building")
 		.where("name").contains("tower")
 		.collect();
 
-List<Subject> modernBuildings = store.subjects("building")
+List<Subject> modernBuildings = store.subjects()
+		.type("building")
 		.where("year").satisfy(v -> toNumber(v) > 1900)
+        .orderBy("year", NumericAscending)
 		.collect();
 ```
+
+### Querying Subjects
+
+Subjects can be queried using a DSL that combines filters and sorting instructions.
+
+```java
+Subject newestBuilding = store.subjects("type:building root order:year?num&desc").first();
+```
+
+A query string consists of space-separated clauses:
+```
+type:TYPE [root] [parent:SUBJECT] [under:SUBJECT] [where:TAG=VALUE] [order:TAG?MODE&DIRECTION]
+
+where
+- MODE (optional): `text`, `num`, or `time` (default is `text`)
+- DIRECTION (optional): `asc` or `desc` (default is `asc`)
+```
+
+| Clause    | Description                                     | Example                |
+|-----------|-------------------------------------------------|------------------------|
+| `type:`   | Filters subjects by type                        | `type:building`        |
+| `root`    | Selects only top-level (root) subjects          | `root`                 |
+| `parent:` | Selects subjects contained a given parent       | `parent:001.zone`      |
+| `under:`  | Selects subjects nested under a given parent    | `under:a.module`       |
+| `where:`  | Filters by a tag's exact value                  | `where:location=Spain` |
+| `order:`  | Sorts by a tag with optional mode and direction | `order:year?num&desc`  |
+
+
+| Order                     | Description                                 |
+|---------------------------|---------------------------------------------|
+| `order:name`              | Sorts alphabetically by name (ascending)    |
+| `order:height?num`        | Sorts numerically by height (ascending)     |
+| `order:year?num&desc`     | Sorts by year, newest first                 |
+| `order:created?time&desc` | Sorts by creation time, newest first        |
 
 ### Tracking historical data
 
