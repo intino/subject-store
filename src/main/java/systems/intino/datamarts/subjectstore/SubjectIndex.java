@@ -1,25 +1,22 @@
 package systems.intino.datamarts.subjectstore;
 
-import systems.intino.datamarts.subjectstore.helpers.EscapeSymbol;
+import systems.intino.datamarts.subjectstore.helpers.SubjectQueryParser;
 import systems.intino.datamarts.subjectstore.model.Triples;
 import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
 import systems.intino.datamarts.subjectstore.model.*;
 import systems.intino.datamarts.subjectstore.model.Subject.Context;
 import systems.intino.datamarts.subjectstore.model.Subject.Updating;
+import systems.intino.datamarts.subjectstore.model.journals.FileJournal;
 import systems.intino.datamarts.subjectstore.pools.LinkPool;
 import systems.intino.datamarts.subjectstore.pools.StringPool;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static java.nio.file.StandardOpenOption.APPEND;
-import static java.nio.file.StandardOpenOption.CREATE;
-import static systems.intino.datamarts.subjectstore.SubjectIndex.Type.*;
+import static systems.intino.datamarts.subjectstore.model.Journal.Transaction.Type.*;
 
 public class SubjectIndex {
 	private final FileJournal journal;
@@ -66,6 +63,10 @@ public class SubjectIndex {
 		return value != null ? Term.of(value) : Term.Null;
 	}
 
+	public SubjectQuery subjects(String query) {
+		return new SubjectQueryParser(this).parse(query);
+	}
+
 	public SubjectQuery subjects() {
 		return new SubjectQuery() {
 			private final SubjectQuery This = this;
@@ -100,7 +101,7 @@ public class SubjectIndex {
 			}
 
 			@Override
-			public SubjectQuery type(String type) {
+			public SubjectQuery isType(String type) {
 				conditions.add(id-> is(type, id));
 				return this;
 			}
@@ -111,9 +112,31 @@ public class SubjectIndex {
 				return this;
 			}
 
+			@Override
+			public SubjectQuery isChildOf(String identifier) {
+				conditions.add(id -> isChildOf(id, identifier));
+				return this;
+			}
+
+			@Override
+			public SubjectQuery isUnderOf(String identifier) {
+				conditions.add(id -> isUnderOf(id, identifier));
+				return this;
+			}
+
 			private boolean isRoot(int id) {
 				Subject subject = open(id);
 				return subject != null && subject.isRoot();
+			}
+
+			private boolean isChildOf(Integer id, String identifier) {
+				Subject subject = open(id);
+				return subject != null && subject.isChildOf(identifier);
+			}
+
+			private boolean isUnderOf(Integer id, String identifier) {
+				Subject subject = open(id);
+				return subject != null && subject.isUnderOf(identifier);
 			}
 
 			private boolean is(String type, int id) {
@@ -218,7 +241,7 @@ public class SubjectIndex {
 			public Updating put(Term term) {
 				synchronized (journal) {
 					if (term.isEmpty() || existsLink(term)) return this;
-					journal.add(new Transaction(put, subject.identifier(), term.toString()));
+					journal.add(new Journal.Transaction(put, subject.identifier(), term.toString()));
 					return write(term);
 				}
 			}
@@ -227,7 +250,7 @@ public class SubjectIndex {
 			public Updating set(Term term) {
 				if (term.value().isEmpty()) return del(term.tag());
 				synchronized (journal) {
-					journal.add(new Transaction(set, subject.identifier(), term.toString()));
+					journal.add(new Journal.Transaction(set, subject.identifier(), term.toString()));
 					termsWith(term.tag()).forEach(this::erase);
 					return write(term);
 				}
@@ -237,7 +260,7 @@ public class SubjectIndex {
 			public Updating del(Term term) {
 				synchronized (journal) {
 					if (!existsTerm(term)) return this;
-					journal.add(new Transaction(del, subject.identifier(), term.toString()));
+					journal.add(new Journal.Transaction(del, subject.identifier(), term.toString()));
 					return erase(term);
 				}
 			}
@@ -313,7 +336,7 @@ public class SubjectIndex {
 
 	public SubjectIndex restore(Journal journal) {
 		if (journal.isEmpty()) return this;
-		for (Transaction transaction : journal.transactions()) {
+		for (Journal.Transaction transaction : journal.transactions()) {
 			Subject subject = create(transaction.subject());
 			switch (transaction.type()) {
 				case put -> subject.update().put(Term.of(transaction.parameter()));
@@ -381,7 +404,7 @@ public class SubjectIndex {
 			@Override
 			public void rename(Subject subject, String identifier) {
 				synchronized (journal) {
-					journal.add(new Transaction(rename, subject.identifier(), nameIn(identifier)));
+					journal.add(new Journal.Transaction(rename, subject.identifier(), nameIn(identifier)));
 					SubjectIndex.this.rename(subject, identifier);
 				}
 			}
@@ -389,7 +412,7 @@ public class SubjectIndex {
 			@Override
 			public void drop(Subject subject) {
 				synchronized (journal) {
-					journal.add(new Transaction(drop, subject.identifier(), "-"));
+					journal.add(new Journal.Transaction(drop, subject.identifier(), "-"));
 					SubjectIndex.this.drop(subject);
 				}
 			}
@@ -426,92 +449,6 @@ public class SubjectIndex {
 		void put(Triple triple);
 	}
 
-	public interface Journal {
-		boolean isEmpty();
-		List<Transaction> transactions();
-	}
-
-	public static class StringJournal implements Journal {
-		private final List<String> lines;
-
-		public StringJournal(String content) {
-			this.lines = Arrays.stream(content.split("\n")).toList();
-		}
-
-		@Override
-		public boolean isEmpty() {
-			return lines.isEmpty();
-		}
-
-		@Override
-		public List<Transaction> transactions() {
-			return lines.stream()
-					.map(SubjectIndex::transaction)
-					.toList();
-		}
-	}
-
-	public static class FileJournal implements Journal {
-		private final Path path;
-
-		public FileJournal(File file) {
-			this.path = file.toPath();
-		}
-
-		public List<Transaction> transactions() {
-			return linesIn().stream()
-					.map(SubjectIndex::transaction)
-					.toList();
-		}
-
-		private List<String> linesIn() {
-			try {
-				return Files.readAllLines(path);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-
-		public void add(Transaction transaction) {
-			try {
-				Files.write(path, (transaction.toString() + "\n").getBytes(), CREATE, APPEND);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		public boolean isEmpty() {
-			return !path.toFile().exists();
-		}
-
-	}
-	public record Transaction(Type type, String subject, String parameter) {
-		public Transaction {
-			parameter = escape(parameter);
-		}
-
-		@Override
-		public String toString() {
-			return type + " " + subject + " " + parameter;
-		}
-
-		private static String escape(String str) {
-			return str.trim()
-					.replace('\n', EscapeSymbol.NL)
-					.replace('\t', EscapeSymbol.HT);
-		}
-
-	}
-
-	public enum Type {
-		put, set, del, drop, rename
-	}
-
-	private static Transaction transaction(String line) {
-		String[] split = line.split(" ", 3);
-		return new Transaction(Type.valueOf(split[0]), split[1], split[2]);
-	}
 
 
 }

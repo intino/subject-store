@@ -1,11 +1,15 @@
 package systems.intino.datamarts.subjectstore;
 
+import systems.intino.datamarts.subjectstore.helpers.SubjectQueryParser;
 import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
+import systems.intino.datamarts.subjectstore.model.Journal;
 import systems.intino.datamarts.subjectstore.model.Subject;
+import systems.intino.datamarts.subjectstore.model.journals.FileJournal;
 
 import java.io.*;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 public class SubjectStore {
 	private final File indexFile;
@@ -22,13 +26,6 @@ public class SubjectStore {
 		this.connection = connection;
 		tryDisableAutoCommit();
 		return this;
-	}
-
-	private void tryDisableAutoCommit() {
-		try {
-			if(connection != null) connection.setAutoCommit(false);
-		} catch (SQLException ignored) {
-		}
 	}
 
 	public boolean has(String identifier) {
@@ -67,7 +64,7 @@ public class SubjectStore {
 		}
 	}
 
-	public SubjectIndex restore(SubjectIndex.Journal journal) {
+	public SubjectIndex restore(Journal journal) {
 		return index.restore(journal);
 	}
 
@@ -77,6 +74,10 @@ public class SubjectStore {
 
 	public SubjectQuery subjects() {
 		return index.subjects();
+	}
+
+	public SubjectQuery subjects(String query) {
+		return index.subjects(query);
 	}
 
 	public SubjectHistory historyOf(Subject subject) {
@@ -90,7 +91,7 @@ public class SubjectStore {
 		File recoverFile = new File(journalFile.getAbsolutePath() + ".recovering");
 		journalFile.renameTo(recoverFile);
 		try (InputStream is = inputStream()) {
-			SubjectIndex index = new SubjectIndex(journalFile).restore(new DumpTriples(is)).restore(new SubjectIndex.FileJournal(recoverFile));
+			SubjectIndex index = new SubjectIndex(journalFile).restore(new DumpTriples(is)).restore(new FileJournal(recoverFile));
 			recoverFile.delete();
 			return index;
 		}
@@ -102,6 +103,14 @@ public class SubjectStore {
 
 	private File journalFile() {
 		return new File(indexFile.getAbsolutePath() + ".journal");
+	}
+
+	private void tryDisableAutoCommit() {
+		if (connection == null) return;
+		try {
+			connection.setAutoCommit(false);
+		} catch (SQLException ignored) {
+		}
 	}
 
 }

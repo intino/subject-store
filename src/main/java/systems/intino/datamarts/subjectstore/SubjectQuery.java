@@ -22,8 +22,19 @@ public interface SubjectQuery {
 	}
 	Stream<Subject> stream();
 	List<Subject> collect();
-	SubjectQuery type(String type);
+	SubjectQuery isType(String type);
 	SubjectQuery isRoot();
+
+	default SubjectQuery isChildOf(Subject subject) {
+		return isChildOf(subject.identifier());
+	}
+	SubjectQuery isChildOf(String identifier);
+
+	default SubjectQuery isUnderOf(Subject subject) {
+		return isUnderOf(subject.identifier());
+	}
+	SubjectQuery isUnderOf(String identifier);
+
 	default SubjectQuery orderBy(String tag) {
 		return orderBy(tag, String::compareTo);
 	}
@@ -31,6 +42,7 @@ public interface SubjectQuery {
 		return orderBy(tag, type::compare);
 	}
 	SubjectQuery orderBy(String tag, Comparator<String> comparator);
+
 	AttributeFilter where(String tag);
 
 	interface AttributeFilter {
@@ -78,12 +90,22 @@ public interface SubjectQuery {
 			}
 
 			@Override
-			public SubjectQuery type(String type) {
+			public SubjectQuery isType(String type) {
 				return this;
 			}
 
 			@Override
 			public SubjectQuery isRoot() {
+				return this;
+			}
+
+			@Override
+			public SubjectQuery isChildOf(String identifier) {
+				return this;
+			}
+
+			@Override
+			public SubjectQuery isUnderOf(String identifier) {
 				return this;
 			}
 
@@ -120,19 +142,19 @@ public interface SubjectQuery {
 	}
 
 	enum OrderType {
-		TextAscending, TextDescending,
-		NumericAscending, NumericDescending,
-		InstantAscending, InstantDescending;
+			TextAscending, TextDescending,
+			NumericAscending, NumericDescending,
+			InstantAscending, InstantDescending;
 
 		public int compare(String s1, String s2) {
 			if (s1.isEmpty() && s2.isEmpty()) return 0;
 			if (s1.isEmpty()) return 1;
 			if (s2.isEmpty()) return -1;
-			if (this == NumericAscending) return Double.compare(parseDouble(s1), parseDouble(s2));
+			if (this == TextDescending) return s2.compareTo(s1);
 			if (this == NumericDescending) return Double.compare(parseDouble(s2), parseDouble(s1));
-			if (this == InstantAscending) return Instant.parse(s1).compareTo(Instant.parse(s2));
 			if (this == InstantDescending) return Instant.parse(s2).compareTo(Instant.parse(s1));
-			if (this == TextAscending) return s2.compareTo(s1);
+			if (this == NumericAscending) return Double.compare(parseDouble(s1), parseDouble(s2));
+			if (this == InstantAscending) return Instant.parse(s1).compareTo(Instant.parse(s2));
 			return s1.compareTo(s2);
 		}
 	}

@@ -2,6 +2,7 @@ package tests.index;
 
 
 import org.junit.Test;
+import systems.intino.datamarts.subjectstore.model.Journal;
 import systems.intino.datamarts.subjectstore.model.Term;
 import systems.intino.datamarts.subjectstore.SubjectIndex;
 import systems.intino.datamarts.subjectstore.model.Subject;
@@ -9,6 +10,7 @@ import systems.intino.datamarts.subjectstore.model.Subject;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.List;
 
 import static java.lang.Integer.parseInt;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,14 +38,14 @@ public class SubjectIndex_ {
 		index.create("11", "o").update().put("name", "jose");
 		index.create("11", "o").update().put("name", "jose");
 		assertThat(index.subjects().isRoot().first().toString()).isEqualTo("11.o");
-		assertThat(index.subjects().type("o").collect()).containsOnly(subject("11.o"));
-		assertThat(index.subjects().type("o").isRoot().first()).isEqualTo(subject("11.o"));
+		assertThat(index.subjects().isType("o").collect()).containsOnly(subject("11.o"));
+		assertThat(index.subjects().isType("o").isRoot().first()).isEqualTo(subject("11.o"));
 		assertThat(index.subjects().where("name").equals("jose").isRoot().first()).isEqualTo(subject("11.o"));
-		assertThat(index.subjects().where("name").equals("jose").type("o").first()).isEqualTo(subject("11.o"));
-		assertThat(index.subjects().where("name").equals("jose").type("o").isRoot().first()).isEqualTo(subject("11.o"));
-		assertThat(index.subjects().type("p").isEmpty()).isTrue();
-		assertThat(index.subjects().type("p").isRoot().isEmpty()).isTrue();
-		assertThat(index.subjects().type("p").where("name").equals("jose").isEmpty()).isTrue();
+		assertThat(index.subjects().where("name").equals("jose").isType("o").first()).isEqualTo(subject("11.o"));
+		assertThat(index.subjects().where("name").equals("jose").isType("o").isRoot().first()).isEqualTo(subject("11.o"));
+		assertThat(index.subjects().isType("p").isEmpty()).isTrue();
+		assertThat(index.subjects().isType("p").isRoot().isEmpty()).isTrue();
+		assertThat(index.subjects().isType("p").where("name").equals("jose").isEmpty()).isTrue();
 		assertThat(Files.readString(file.toPath())).isEqualTo("put 11.o name=jose\n");
 	}
 
@@ -113,19 +115,19 @@ public class SubjectIndex_ {
 	public void should_support_restore_and_update_journal() throws IOException {
 		File file = File.createTempFile("index",".journal");
 		SubjectIndex index = new SubjectIndex(file).restore(triples("theaters.triples"));
-		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("1020151.theater"),subject("1020152.theater"),subject("1020393.theater"));
+		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("181.theater"),subject("182.theater"),subject("383.theater"));
 		assertThat(index.subjects().where("class").equals("2D").size()).isEqualTo(15);
 		assertThat(index.subjects().size()).isEqualTo(31);
 		assertThat(index.subjects().where("seats").satisfy(v -> parseInt(v) >= 300).size()).isEqualTo(2);
-		assertThat(index.subjects().type("screen").where("seats").satisfy(v -> parseInt(v) >= 200).size()).isEqualTo(4);
-		index.open("1020151.theater").drop();
-		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("1020152.theater"),subject("1020393.theater"));
+		assertThat(index.subjects().isType("screen").where("seats").satisfy(v -> parseInt(v) >= 200).size()).isEqualTo(4);
+		index.open("181.theater").drop();
+		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("182.theater"),subject("383.theater"));
 		assertThat(index.subjects().where("class").equals("2D").size()).isEqualTo(7);
 		assertThat(index.subjects().size()).isEqualTo(15);
-		assertThat(index.subjects().type("screen").size()).isEqualTo(13);
+		assertThat(index.subjects().isType("screen").size()).isEqualTo(13);
 		assertThat(index.subjects().where("seats").satisfy(v -> parseInt(v) >= 300).size()).isEqualTo(2);
 		assertThat(index.subjects().where("seats").satisfy(v -> parseInt(v) >= 200).size()).isEqualTo(3);
-		assertThat(Files.readString(file.toPath())).isEqualTo("drop 1020151.theater -\n");
+		assertThat(Files.readString(file.toPath())).isEqualTo("drop 181.theater -\n");
 	}
 
 	@Test
@@ -144,9 +146,9 @@ public class SubjectIndex_ {
 
 		assertThat(index.subjects().isRoot().collect().size()).isEqualTo(1);
 		assertThat(index.subjects().collect().size()).isEqualTo(3);
-		assertThat(index.subjects().type("o").collect().size()).isEqualTo(1);
-		assertThat(index.subjects().type("p").collect().size()).isEqualTo(1);
-		assertThat(index.subjects().type("p").first().identifier()).isEqualTo("1.o/12.p");
+		assertThat(index.subjects().isType("o").collect().size()).isEqualTo(1);
+		assertThat(index.subjects().isType("p").collect().size()).isEqualTo(1);
+		assertThat(index.subjects().isType("p").first().identifier()).isEqualTo("1.o/12.p");
 		assertThat(index.subjects().isRoot().first()).isEqualTo(Subject.of("1.o"));
 		assertThat(index.subjects().isRoot().first().children().first()).isEqualTo(Subject.of("1.o/12.p"));
 		assertThat(index.open("1.o").isNull()).isFalse();
@@ -162,10 +164,10 @@ public class SubjectIndex_ {
 		assertThat(index.open("1.o/12.p").children().first().identifier()).isEqualTo("1.o/12.p/123.q");
 		assertThat(index.open("1.o/12.p/123.q").parent().parent()).isEqualTo(Subject.of("1.o"));
 		assertThat(index.subjects().where("class").equals("a").isRoot().collect().size()).isEqualTo(1);
-		assertThat(index.subjects().type("o").where("class").equals("a").isRoot().collect().size()).isEqualTo(1);
-		assertThat(index.subjects().type("p").where("class").equals("a").isRoot().collect().size()).isEqualTo(0);
-		assertThat(index.subjects().type("p").where("class").equals("x").collect().size()).isEqualTo(1);
-		assertThat(index.subjects().type("p").where("class").equals("x").first()).isEqualTo(Subject.of("1.o/12.p"));
+		assertThat(index.subjects().isType("o").where("class").equals("a").isRoot().collect().size()).isEqualTo(1);
+		assertThat(index.subjects().isType("p").where("class").equals("a").isRoot().collect().size()).isEqualTo(0);
+		assertThat(index.subjects().isType("p").where("class").equals("x").collect().size()).isEqualTo(1);
+		assertThat(index.subjects().isType("p").where("class").equals("x").first()).isEqualTo(Subject.of("1.o/12.p"));
 		assertThat(index.subjects().where("class").equals("x").isRoot().collect().isEmpty()).isTrue();
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 			put 1.o class=a
@@ -180,11 +182,23 @@ public class SubjectIndex_ {
 	public void should_support_sorting() throws IOException {
 		File file = File.createTempFile("index",".journal");
 		SubjectIndex index = new SubjectIndex(file).restore(triples("theaters.triples"));
-		assertThat(index.subjects().type("theater").orderBy("email").collect()).containsOnly(subject("1020151.theater"), subject("1020152.theater"),subject("1020393.theater"));
-		assertThat(index.subjects().type("theater").orderBy("name").collect()).containsOnly(subject("1020393.theater"), subject("1020151.theater"),subject("1020152.theater"));
-		assertThat(index.subjects().type("screen").orderBy("seats", NumericAscending).first()).isEqualTo(subject("1020151.theater/11.screen"));
-		assertThat(index.subjects().type("screen").orderBy("seats", NumericDescending).first()).isEqualTo(subject("1020393.theater/3.screen"));
-		assertThat(index.subjects().type("screen").where("class").equals("2D").orderBy("seats", NumericDescending).first()).isEqualTo(subject("1020393.theater/5.screen"));
+		assertThat(index.subjects().isType("theater").orderBy("email").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
+		assertThat(index.subjects("type:theater").orderBy("email").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
+
+		assertThat(index.subjects("type:theater order:email").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
+		assertThat(index.subjects("type:theater order:email?asc").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
+		assertThat(index.subjects("type:theater order:email?desc").collect()).containsExactly(subject("383.theater"), subject("181.theater"),subject("182.theater"));
+		assertThat(index.subjects("type:theater order:email?text&desc").collect()).containsExactly(subject("383.theater"), subject("181.theater"),subject("182.theater"));
+
+		assertThat(index.subjects().isType("theater").orderBy("name").collect()).containsOnly(subject("383.theater"), subject("182.theater"),subject("181.theater"));
+		assertThat(index.subjects("type:theater order:name?asc").collect()).containsOnly(subject("383.theater"), subject("182.theater"),subject("181.theater"));
+		assertThat(index.subjects("type:theater order:name?desc").collect()).containsOnly(subject("181.theater"), subject("182.theater"),subject("383.theater"));
+		assertThat(index.subjects().isType("screen").orderBy("seats", NumericAscending).first()).isEqualTo(subject("181.theater/11.screen"));
+		assertThat(index.subjects("type:screen order:seats?num&asc").first()).isEqualTo(subject("181.theater/11.screen"));
+		assertThat(index.subjects("type:screen order:seats?asc&num").first()).isEqualTo(subject("181.theater/11.screen"));
+		assertThat(index.subjects("type:screen order:seats?desc&num").first()).isEqualTo(subject("383.theater/3.screen"));
+		assertThat(index.subjects().isType("screen").where("class").equals("2D").orderBy("seats", NumericDescending).first()).isEqualTo(subject("383.theater/5.screen"));
+		assertThat(index.subjects("type:screen where:class=2D order:seats?num&desc").first()).isEqualTo(subject("383.theater/5.screen"));
 		assertThat(Files.readString(file.toPath())).isEqualTo("");
 	}
 
@@ -199,7 +213,9 @@ public class SubjectIndex_ {
 				.put("t","simulation")
 				.put("user", "mcaballero@gmail.com")
 				.put("user", "josejuan@gmail.com");
-		index.create("654321","model").update().del("t","simulation");
+		index.create("654321","model").update()
+				.del("t","simulation")
+				.del("t","simulation");
 
 		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
 		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
@@ -306,7 +322,7 @@ public class SubjectIndex_ {
 		assertThat(index.open("P001.model/E002.experiment").terms()).doesNotContain(terms("status=archived"));
 		assertThat(index.open("P001.model").children().collect()).hasSize(1);
 		assertThat(index.open("P001.model").children().first().name()).isEqualTo("E002");
-		assertThat(index.subjects().type("model").where("name").equals("AI Research").collect()).contains(Subject.of("P001.model"));
+		assertThat(index.subjects().isType("model").where("name").equals("AI Research").collect()).contains(Subject.of("P001.model"));
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 				put P001.model name=AI Research
 				put P001.model lead=alice@example.com
@@ -370,6 +386,59 @@ public class SubjectIndex_ {
 		index.dump(os);
 		String string = new String(triples("movies.triples").readAllBytes()).replace("\r", "");
 		assertThat(os.toString()).isEqualTo(string);
+	}
+
+	@Test
+	public void should_detect_deletions() throws IOException {
+		File file = File.createTempFile("index",".journal");
+		SubjectIndex index = new SubjectIndex(file);
+		Subject subject = index.create("P001.model");
+		subject.update()
+				.put("name", "AI Research")
+				.put("lead", "alice@example.com");
+
+		Journal journal = Journal.from(subject).to(List.of());
+		String expected = String.join("\n",
+				"del P001.model name=AI Research",
+				"del P001.model lead=alice@example.com"
+		);
+		assertThat(journal.toString()).isEqualTo(expected);
+	}
+
+	@Test
+	public void should_detect_insertions() throws IOException {
+		File file = File.createTempFile("index",".journal");
+		SubjectIndex index = new SubjectIndex(file);
+		Subject subject = index.create("P001.model");
+		List<Term> terms = List.of(
+				new Term("name", "AI Research"),
+				new Term("lead", "alice@example.com")
+		);
+
+		Journal journal = Journal.from(subject).to(terms);
+		String expected = String.join("\n",
+				"put P001.model name=AI Research",
+				"put P001.model lead=alice@example.com"
+		);
+		assertThat(journal.toString()).isEqualTo(expected);
+	}
+
+	@Test
+	public void should_detect_no_change() throws IOException {
+		File file = File.createTempFile("index",".journal");
+		SubjectIndex index = new SubjectIndex(file);
+		Subject subject = index.create("P001.model");
+		subject.update()
+				.put("name", "AI Research")
+				.put("lead", "alice@example.com");
+
+		List<Term> terms = List.of(
+				new Term("name", "AI Research"),
+				new Term("lead", "alice@example.com")
+		);
+
+		Journal journal = Journal.from(subject).to(terms);
+		assertThat(journal.toString()).isEqualTo("");
 	}
 
 	private Term[] terms(String... strings) {

@@ -81,12 +81,27 @@ public record Subject(String identifier, Context context) {
 		return identifier.lastIndexOf('/') < 0;
 	}
 
+	public boolean isChildOf(Subject subject) {
+		return isChildOf(subject.identifier);
+	}
+
+	public boolean isChildOf(String identifier) {
+		return parentIdentifier().equals(identifier);
+	}
+
+	public boolean isUnderOf(Subject subject) {
+		return isUnderOf(subject.identifier);
+	}
+
+	public boolean isUnderOf(String identifier) {
+		return parentIdentifier().startsWith(identifier);
+	}
+
 	public Subject parent() {
 		return new Subject(parentIdentifier(), context);
 	}
 
 	public SubjectQuery children() {
-		checkIfContextExists();
 		return query();
 	}
 
@@ -175,7 +190,7 @@ public record Subject(String identifier, Context context) {
 			}
 
 			@Override
-			public SubjectQuery type(String type) {
+			public SubjectQuery isType(String type) {
 				conditions.add(s-> s.is(type));
 				return this;
 			}
@@ -183,6 +198,18 @@ public record Subject(String identifier, Context context) {
 			@Override
 			public SubjectQuery isRoot() {
 				conditions.add(Subject::isRoot);
+				return this;
+			}
+
+			@Override
+			public SubjectQuery isChildOf(String identifier) {
+				conditions.add(s -> s.isChildOf(identifier));
+				return this;
+			}
+
+			@Override
+			public SubjectQuery isUnderOf(String identifier) {
+				conditions.add(s -> s.isUnderOf(identifier));
 				return this;
 			}
 
@@ -302,10 +329,11 @@ public record Subject(String identifier, Context context) {
 
 	private static Context nullContext() {
 		return new Context() {
+			private final List<Subject> subjects = new ArrayList<>();
 
 			@Override
 			public List<Subject> children(Subject subject) {
-				return List.of();
+				return subjects.stream().filter(s->s.isChildOf(subject)).toList();
 			}
 
 			@Override
@@ -320,6 +348,7 @@ public record Subject(String identifier, Context context) {
 
 			@Override
 			public Subject create(Subject child) {
+				subjects.add(child);
 				return child;
 			}
 

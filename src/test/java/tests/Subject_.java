@@ -1,13 +1,10 @@
 package tests;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.model.Subject;
-import systems.intino.datamarts.subjectstore.model.Term;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,35 +22,29 @@ public class Subject_ {
 		assertThat(subject.parent().type()).isEqualTo("");
 		assertThat(subject.parent().parent().isNull()).isTrue();
 		assertThat(subject.parent().open("english.b","release")).isEqualTo(subject);
+		assertThat(subject.isChildOf(subject.parent())).isTrue();
+		assertThat(subject.isUnderOf(subject.parent())).isTrue();
 	}
 
 	@Test
 	public void should_create_children_without_context() {
-		Subject subject = Subject.of("a", "model", context());
+		Subject subject = Subject.of("a", "model");
 		Subject child = subject.create("b", "release");
 		Subject grandson = child.create("c", "properties");
 
 		assertThat(child.typedName()).isEqualTo("b.release");
 		assertThat(child.parent()).isEqualTo(subject);
 		assertThat(grandson.parent().parent()).isEqualTo(subject);
-	}
-
-	@Test
-	public void should_create_children_with_context() {
-		Subject subject = Subject.of(" a.model ", context());
-		Subject child = subject.create("b", "release");
-		Subject grandson = child.create("c", "properties");
-
-		assertThat(child.typedName()).isEqualTo("b.release");
-		assertThat(child.parent()).isEqualTo(subject);
-		assertThat(grandson.parent().parent()).isEqualTo(subject);
-
+		assertThat(grandson.isUnderOf(subject)).isTrue();
+		assertThat(grandson.isUnderOf(child)).isTrue();
+		assertThat(child.isUnderOf(subject)).isTrue();
+		assertThat(subject.isUnderOf(child)).isFalse();
 		assertThat(subject.children().collect()).containsExactly(Subject.of("a.model/b.release"));
 		assertThat(subject.children().first().children().first()).isEqualTo(Subject.of("a.model/b.release/c.properties"));
 	}
 
 	@Test
-	public void should_write_in_system_error_when_subject_context_is_not_defined() {
+	public void should_write_isChildOf_system_error_when_subject_context_is_not_defined() {
 		PrintStream originalErr = System.err;
 		ByteArrayOutputStream errContent = new ByteArrayOutputStream();
 		System.setErr(new PrintStream(errContent));
@@ -67,52 +58,7 @@ public class Subject_ {
 		}
 	}
 
-	private Subject.Context context() {
-		return new Subject.Context() {
 
-			@Override
-			public List<Subject> children(Subject subject) {
-				return childrenOf(subject);
-			}
 
-			@Override
-			public List<Term> terms(Subject subject) {
-				return termsOf(subject);
-			}
 
-			@Override
-			public Subject.Updating update(Subject subject) {
-				return null;
-			}
-
-			@Override
-			public Subject create(Subject child) {
-				childrenOf(child.parent()).add(child);
-				return child;
-			}
-
-			@Override
-			public Subject get(String identifier) {
-				return Subject.of(identifier);
-			}
-
-			@Override
-			public void rename(Subject subject, String name) {
-			}
-
-			@Override
-			public void drop(Subject subject) {
-
-			}
-		};
-	}
-
-	private List<Term> termsOf(Subject subject) {
-		return List.of(new Term("email", "data@gmail.com"));
-	}
-
-	private final Map<Subject, List<Subject>> map = new HashMap<>();
-	private List<Subject> childrenOf(Subject subject) {
-		return map.computeIfAbsent(subject, k -> new ArrayList<>());
-	}
 }

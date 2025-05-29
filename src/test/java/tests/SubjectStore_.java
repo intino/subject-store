@@ -54,12 +54,19 @@ public class SubjectStore_ {
 			assertThat(journal.exists()).isTrue();
 			assertThat(store.subjects().collect().size()).isEqualTo(6);
 			assertThat(store.subjects().isRoot().size()).isEqualTo(2);
-			assertThat(store.subjects().type("building").collect().size()).isEqualTo(2);
-			assertThat(store.subjects().type("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").where("continent").equals("Asia").collect().size()).isEqualTo(1);
-			assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(2);
-			assertThat(store.subjects().type("detail").collect().size()).isEqualTo(4);
-			assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
+			assertThat(store.subjects().isType("building").collect().size()).isEqualTo(2);
+			assertThat(store.subjects().isType("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
+			assertThat(store.subjects().isType("building").where("continent").equals("Asia").collect().size()).isEqualTo(1);
+			assertThat(store.subjects().isType("building").isRoot().size()).isEqualTo(2);
+			assertThat(store.subjects().isType("detail").collect().size()).isEqualTo(4);
+			assertThat(store.subjects().isType("detail").isRoot().size()).isEqualTo(0);
+			assertThat(store.subjects("root").size()).isEqualTo(2);
+			assertThat(store.subjects("type:building").collect().size()).isEqualTo(2);
+			assertThat(store.subjects("type:building where:country=Spain").collect().size()).isEqualTo(1);
+			assertThat(store.subjects("type:building where:continent=Asia").collect().size()).isEqualTo(1);
+			assertThat(store.subjects("type:building root").size()).isEqualTo(2);
+			assertThat(store.subjects("type:detail").collect().size()).isEqualTo(4);
+			assertThat(store.subjects("type:detail root").isRoot().size()).isEqualTo(0);
 
 			store.seal();
 			assertThat(index.exists()).isTrue();
@@ -92,20 +99,28 @@ public class SubjectStore_ {
 	private static void test1(SubjectStore store) {
 		Subject building = store.open("burj_khalifa", "building");
 
-		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
-		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
-		assertThat(building.children().type("detail").where("name").equals("At the Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
-		assertThat(building.children().type("detail").where("name").equals("At the Top").isRoot().collect()).isEmpty();
-		assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
+		assertThat(building.children().isType("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().isType("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().isType("detail").where("name").equals("At the Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().isType("detail").where("name").equals("At the Top").isRoot().collect()).isEmpty();
+		assertThat(building.children().isType("departament").collect().size()).isEqualTo(0);
 
 		assertThat(store.subjects().collect().size()).isEqualTo(9);
 		assertThat(store.subjects().isRoot().size()).isEqualTo(3);
-		assertThat(store.subjects().type("building").collect().size()).isEqualTo(3);
-		assertThat(store.subjects().type("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
-		assertThat(store.subjects().type("building").where("continent").equals("Asia").collect().size()).isEqualTo(2);
-		assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(3);
-		assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
-		assertThat(store.subjects().type("detail").collect().size()).isEqualTo(6);
+		assertThat(store.subjects().isType("building").collect().size()).isEqualTo(3);
+		assertThat(store.subjects().isType("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
+		assertThat(store.subjects().isType("building").where("continent").equals("Asia").collect().size()).isEqualTo(2);
+		assertThat(store.subjects().isType("building").isRoot().size()).isEqualTo(3);
+		assertThat(store.subjects().isType("detail").isRoot().size()).isEqualTo(0);
+		assertThat(store.subjects().isType("detail").collect().size()).isEqualTo(6);
+		assertThat(store.subjects("root").size()).isEqualTo(3);
+		assertThat(store.subjects("type:building").collect().size()).isEqualTo(3);
+		assertThat(store.subjects("type:building where:country=Spain").collect().size()).isEqualTo(1);
+		assertThat(store.subjects("type:building where:continent=Asia").collect().size()).isEqualTo(2);
+		assertThat(store.subjects("type:building root").size()).isEqualTo(3);
+		assertThat(store.subjects("type:detail root").isRoot().size()).isEqualTo(0);
+		assertThat(store.subjects("type:detail").collect().size()).isEqualTo(6);
+
 	}
 
 	private static void test2(SubjectStore store) {
@@ -113,32 +128,32 @@ public class SubjectStore_ {
 		assertThat(store.has("torre del oro", "building")).isFalse();
 		assertThat(store.subjects().collect().size()).isEqualTo(9);
 		assertThat(store.subjects().isRoot().size()).isEqualTo(3);
-		assertThat(store.subjects().type("building").collect().size()).isEqualTo(3);
-		assertThat(store.subjects().type("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
-		assertThat(store.subjects().type("building").where("continent").equals("Asia").collect().size()).isEqualTo(2);
-		assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(3);
-		assertThat(store.subjects().type("detail").collect().size()).isEqualTo(6);
-		assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
-		assertThat(store.subjects().type("patient").collect().size()).isEqualTo(0);
+		assertThat(store.subjects().isType("building").collect().size()).isEqualTo(3);
+		assertThat(store.subjects().isType("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
+		assertThat(store.subjects().isType("building").where("continent").equals("Asia").collect().size()).isEqualTo(2);
+		assertThat(store.subjects().isType("building").isRoot().size()).isEqualTo(3);
+		assertThat(store.subjects().isType("detail").collect().size()).isEqualTo(6);
+		assertThat(store.subjects().isType("detail").isRoot().size()).isEqualTo(0);
+		assertThat(store.subjects().isType("patient").collect().size()).isEqualTo(0);
 
-		Subject building = store.subjects().type("building").where("city").equals("Dubai").first();
-		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
-		assertThat(building.children().type("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
-		assertThat(building.children().type("detail").where("name").equals("At the Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
-		assertThat(building.children().type("detail").where("name").equals("At the Top").isRoot().collect()).isEmpty();
-		assertThat(building.children().type("departament").collect().size()).isEqualTo(0);
+		Subject building = store.subjects("type:building where:city=Dubai").first();
+		assertThat(building.children().isType("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().isType("detail").where("name").contains("Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().isType("detail").where("name").equals("At the Top").collect()).containsOnly(store.open("burj_khalifa.building/observation_deck.detail"));
+		assertThat(building.children().isType("detail").where("name").equals("At the Top").isRoot().collect()).isEmpty();
+		assertThat(building.children().isType("departament").collect().size()).isEqualTo(0);
 	}
 
 	private void test3(SubjectStore store) {
 		assertThat(store.subjects().collect().size()).isEqualTo(6);
 		assertThat(store.subjects().isRoot().size()).isEqualTo(2);
-		assertThat(store.subjects().type("building").collect().size()).isEqualTo(2);
-		assertThat(store.subjects().type("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
-		assertThat(store.subjects().type("building").where("continent").contains("Asia").size()).isEqualTo(1);
-		assertThat(store.subjects().type("building").where("year").satisfy(v-> toNumber(v) > 1900).size()).isEqualTo(1);
-		assertThat(store.subjects().type("building").isRoot().size()).isEqualTo(2);
-		assertThat(store.subjects().type("detail").collect().size()).isEqualTo(4);
-		assertThat(store.subjects().type("detail").isRoot().size()).isEqualTo(0);
+		assertThat(store.subjects().isType("building").collect().size()).isEqualTo(2);
+		assertThat(store.subjects().isType("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
+		assertThat(store.subjects().isType("building").where("continent").contains("Asia").size()).isEqualTo(1);
+		assertThat(store.subjects().isType("building").where("year").satisfy(v-> toNumber(v) > 1900).size()).isEqualTo(1);
+		assertThat(store.subjects().isType("building").isRoot().size()).isEqualTo(2);
+		assertThat(store.subjects().isType("detail").collect().size()).isEqualTo(4);
+		assertThat(store.subjects().isType("detail").isRoot().size()).isEqualTo(0);
 	}
 
 	private void createHistory(SubjectStore store) {
