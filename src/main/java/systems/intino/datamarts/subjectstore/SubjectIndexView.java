@@ -52,16 +52,15 @@ public class SubjectIndexView  {
 	}
 
 	public Exporting export() {
-		return new Exporting() {
-			@Override
-			public void to(OutputStream os) {
-				try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os))) {
-					writer.write(tsv());
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-		};
+		return this::exportTo;
+	}
+
+	private void exportTo(OutputStream os) {
+		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os))) {
+			writer.write(tsv());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public interface Exporting {
