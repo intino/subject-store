@@ -129,7 +129,8 @@ List<Subject> modernBuildings = store.subjects()
 		.collect();
 ```
 
-Subjects can be queried using a DSL that combines filters and sorting instructions.
+
+Subjects can also be queried using a DSL that combines filters and sorting instructions.
 
 ```java
 Subject newestBuilding = store.subjects("type:building root order:year?num&desc").first();

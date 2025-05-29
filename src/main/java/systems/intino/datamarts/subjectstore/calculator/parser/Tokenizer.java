@@ -102,7 +102,7 @@ public class Tokenizer {
 	}
 
 	private boolean isIdentifier() {
-		return Character.isAlphabetic(currentChar) || "_-#.".indexOf(currentChar) >= 0;
+		return Character.isAlphabetic(currentChar) || "_-#.:".indexOf(currentChar) >= 0;
 	}
 
 	private boolean isNumber() {

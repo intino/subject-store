@@ -90,7 +90,7 @@ public class SubjectHistoryView_ {
 		for (int i = 0; i < 2000; i++) {
 			SubjectHistory.Batch batch = history.batch();
 			batch.on(from.plus(i, HOURS), "test")
-					.put("temperature", 20 + 4 * sin(i))
+					.put("temperature:sau", 20 + 4 * sin(i))
 					.terminate();
 			batch.terminate();
 		}
@@ -99,7 +99,7 @@ public class SubjectHistoryView_ {
 				.from(from)
 				.to(from.plus(2000, HOURS))
 				.period(Duration.ofHours(200))
-				.add("temperature", "temperature.mean")
+				.add("temperature", "temperature:sau.mean")
 				.add("temperature-1", "temperature", new LagFilter(1))
 				.add("temperature-2", "temperature", new LagFilter(2))
 				.add("temperature-3", "temperature", new LagFilter(3))
