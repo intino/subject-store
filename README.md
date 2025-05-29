@@ -129,8 +129,6 @@ List<Subject> modernBuildings = store.subjects()
 		.collect();
 ```
 
-### Querying Subjects
-
 Subjects can be queried using a DSL that combines filters and sorting instructions.
 
 ```java
@@ -146,22 +144,18 @@ where
 - DIRECTION (optional): `asc` or `desc` (default is `asc`)
 ```
 
-| Clause    | Description                                     | Example                |
-|-----------|-------------------------------------------------|------------------------|
-| `type:`   | Filters subjects by type                        | `type:building`        |
-| `root`    | Selects only top-level (root) subjects          | `root`                 |
-| `parent:` | Selects subjects contained a given parent       | `parent:001.zone`      |
-| `under:`  | Selects subjects nested under a given parent    | `under:a.module`       |
-| `where:`  | Filters by a tag's exact value                  | `where:location=Spain` |
-| `order:`  | Sorts by a tag with optional mode and direction | `order:year?num&desc`  |
-
-
-| Order                     | Description                                 |
-|---------------------------|---------------------------------------------|
-| `order:name`              | Sorts alphabetically by name (ascending)    |
-| `order:height?num`        | Sorts numerically by height (ascending)     |
-| `order:year?num&desc`     | Sorts by year, newest first                 |
-| `order:created?time&desc` | Sorts by creation time, newest first        |
+| Clause    | Description                                  | Example                   |
+|-----------|----------------------------------------------|---------------------------|
+| `type:`   | Filters subjects by type                     | `type:building`           |
+| `root`    | Selects only top-level (root) subjects       | `root`                    |
+| `parent:` | Selects subjects whose direct parent matches | `parent:001.zone`         |
+| `under:`  | Selects subjects nested under a given parent | `under:a.module`          |
+| `where:`  | Filters by a tag's exact value               | `where:location=Spain`    |
+| `order:`  | Sorts alphabetically by name (ascending)     | `order:name`              |
+|           | Sorts alphabetically by name (ascending)     | `order:name?asc`          |
+|           | Sorts numerically by height (ascending)      | `order:height?num`        |
+|           | Sorts by year, newest first                  | `order:year?num&desc`     |
+|           | Sorts by creation time, newest first         | `order:created?time&desc` |
 
 ### Tracking historical data
 
