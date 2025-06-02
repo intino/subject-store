@@ -1,6 +1,5 @@
 package systems.intino.datamarts.subjectstore.model.journals;
 
-import systems.intino.datamarts.subjectstore.SubjectIndex;
 import systems.intino.datamarts.subjectstore.model.Journal;
 
 import java.io.File;

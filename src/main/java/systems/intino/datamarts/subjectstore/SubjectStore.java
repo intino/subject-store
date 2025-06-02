@@ -20,6 +20,10 @@ public class SubjectStore {
 		this.connection = null;
 	}
 
+	public Connection connection() {
+		return connection;
+	}
+
 	public SubjectStore connection(Connection connection) {
 		this.connection = connection;
 		tryDisableAutoCommit();
@@ -111,4 +115,8 @@ public class SubjectStore {
 		}
 	}
 
+	public void close() throws Exception {
+		if(connection != null && !connection.isClosed())
+			connection.close();
+	}
 }
