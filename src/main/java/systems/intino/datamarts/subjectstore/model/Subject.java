@@ -101,6 +101,15 @@ public record Subject(String identifier, Context context) {
 		return new Subject(parentIdentifier(), context);
 	}
 
+	public String next(String sequence) {
+		Subject subject = open(sequence);
+		if (subject == null) subject = create(sequence,"");
+		String value = subject.get("next");
+		if (value.isEmpty()) value = "1";
+		subject.update().set("next", Integer.parseInt(value) + 1);
+		return value;
+	}
+
 	public SubjectQuery children() {
 		return query();
 	}
@@ -313,6 +322,10 @@ public record Subject(String identifier, Context context) {
 			return set(new Term(tag, value));
 		}
 
+		default Updating set(String tag, Subject subject) {
+			return set(new Term(tag, subject.identifier));
+		}
+
 		default Updating put(String tag, Number value) {
 			return put(new Term(tag, String.valueOf(value)));
 		}
@@ -321,8 +334,16 @@ public record Subject(String identifier, Context context) {
 			return put(new Term(tag, value));
 		}
 
+		default Updating put(String tag, Subject subject) {
+			return set(new Term(tag, subject.identifier));
+		}
+
 		default Updating del(String tag, String value) {
 			return del(new Term(tag, value));
+		}
+
+		default Updating del(String tag, Subject subject) {
+			return del(new Term(tag, subject.identifier));
 		}
 
 	}

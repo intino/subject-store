@@ -115,7 +115,7 @@ public class SubjectStore_ {
 		assertThat(store.subjects().isType("detail").collect().size()).isEqualTo(6);
 		assertThat(store.subjects("root").size()).isEqualTo(3);
 		assertThat(store.subjects("type:building").collect().size()).isEqualTo(3);
-		assertThat(store.subjects("type:building where:country=Spain").collect().size()).isEqualTo(1);
+		assertThat(store.subjects("type:building	 where:country=Spain").collect().size()).isEqualTo(1);
 		assertThat(store.subjects("type:building where:continent=Asia").collect().size()).isEqualTo(2);
 		assertThat(store.subjects("type:building root").size()).isEqualTo(3);
 		assertThat(store.subjects("type:detail root").isRoot().size()).isEqualTo(0);

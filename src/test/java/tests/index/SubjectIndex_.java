@@ -340,6 +340,15 @@ public class SubjectIndex_ {
 	}
 
 	@Test
+	public void should_operate_subject_sequences() throws IOException {
+		File file = File.createTempFile("index", ".journal");
+		SubjectIndex index = new SubjectIndex(file).restore(triples("subjects.triples"));
+		assertThat(index.open("P001.model").next("#component")).isEqualTo("1");
+		assertThat(index.open("P001.model").next("#component")).isEqualTo("2");
+
+	}
+
+	@Test
 	public void should_restore_from_triples() throws IOException {
 		File file = File.createTempFile("index", ".journal");
 		SubjectIndex index = new SubjectIndex(file).restore(triples("subjects.triples"));

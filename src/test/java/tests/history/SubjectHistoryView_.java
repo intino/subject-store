@@ -40,7 +40,7 @@ public class SubjectHistoryView_ {
 		""";
 
 	private final static String expected2 = """
-	temperature	temperature-1	temperature-2	temperature-3	temperature+1
+	temperature_00	temperature_00-1	temperature_00-2	temperature_00-3	temperature_00+1
 	19.981418044991337	19.999720499055897	20.018309616178414	20.01811993961657	19.982173702028604
 	19.982173702028604	19.981418044991337	19.999720499055897	20.018309616178414	20.00121244968331
 	20.00121244968331	19.982173702028604	19.981418044991337	19.999720499055897	20.019007679055946
@@ -69,11 +69,11 @@ public class SubjectHistoryView_ {
 			.add("year","ts.year")
 			.add("month","ts.month-of-year")
 			.add("day-formula","sin(ts.day-of-month)+cos(ts.month-of-year)")
-			.add("temp-total","temperature.sum")
-			.add("temp-average","temperature.average")
+			.add("temp-total","temperature_00.sum")
+			.add("temp-average","temperature_00.average")
 			.add("temp-norm","temp-total", new MinMaxNormalizationFilter())
 			.add("temp-trend","temp-average", new RollingAverageFilter(3))
-			.add("temp-last","temperature.last")
+			.add("temp-last","temperature_00.last")
 			.add("sky-mode","sky.mode")
 			.add("sky-count","sky.count")
 			.add("temp-norm%","temp-norm * 100");
@@ -90,7 +90,7 @@ public class SubjectHistoryView_ {
 		for (int i = 0; i < 2000; i++) {
 			SubjectHistory.Batch batch = history.batch();
 			batch.on(from.plus(i, HOURS), "test")
-					.put("temperature:sau", 20 + 4 * sin(i))
+					.put("temperature_00:sau", 20 + 4 * sin(i))
 					.terminate();
 			batch.terminate();
 		}
@@ -99,11 +99,11 @@ public class SubjectHistoryView_ {
 				.from(from)
 				.to(from.plus(2000, HOURS))
 				.period(Duration.ofHours(200))
-				.add("temperature", "temperature:sau.mean")
-				.add("temperature-1", "temperature", new LagFilter(1))
-				.add("temperature-2", "temperature", new LagFilter(2))
-				.add("temperature-3", "temperature", new LagFilter(3))
-				.add("temperature+1", "temperature", new LeadFilter(1))
+				.add("temperature_00", "temperature_00:sau.mean")
+				.add("temperature_00-1", "temperature_00", new LagFilter(1))
+				.add("temperature_00-2", "temperature_00", new LagFilter(2))
+				.add("temperature_00-3", "temperature_00", new LagFilter(3))
+				.add("temperature_00+1", "temperature_00", new LeadFilter(1))
 				.export().start(3).stop(1)
 				.to(os);
 		assertThat(os.toString()).isEqualTo(expected2);
@@ -131,10 +131,10 @@ public class SubjectHistoryView_ {
 			    calc: "sin(ts.day-of-month)+cos(ts.month-of-year)"
 			
 			  - name: "temp-total"
-			    calc: "temperature.sum"
+			    calc: "temperature_00.sum"
 			
 			  - name: "temp-average"
-			    calc: "temperature.average"
+			    calc: "temperature_00.average"
 			
 			  - name: "temp-norm"
 			    calc: "temp-total"
@@ -145,7 +145,7 @@ public class SubjectHistoryView_ {
 			    filters: ["RollingAverage:3"]
 			
 			  - name: "temp-last"
-			    calc: "temperature.last"
+			    calc: "temperature_00.last"
 			
 			  - name: "sky-mode"
 			    calc: "sky.mode"
@@ -165,14 +165,14 @@ public class SubjectHistoryView_ {
 
 	private void feed(SubjectHistory history) {
 		history.on(from.plus(10, DAYS), "test")
-				.put("temperature", 20)
+				.put("temperature_00", 20)
 				.terminate();
 		history.on(from.plus(12, DAYS), "test")
-				.put("temperature", 28)
+				.put("temperature_00", 28)
 				.put("sky", "cloudy")
 				.terminate();
 		history.on(from.plus(28, DAYS), "test")
-				.put("temperature", 18)
+				.put("temperature_00", 18)
 				.put("sky", "rain")
 				.terminate();
 	}
