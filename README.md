@@ -24,7 +24,7 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 <dependency>
     <groupId>systems.intino.datamarts</groupId>
     <artifactId>subject-store</artifactId>
-    <version>2.0.18</version>
+    <version>2.0.19</version>
 </dependency>
 ```
 
@@ -138,15 +138,17 @@ Subject newestBuilding = store.subjects("type:building root order:year?num&desc"
 
 A query string consists of space-separated clauses:
 ```
-type:TYPE [root] [parent:SUBJECT] [under:SUBJECT] [where:TAG=VALUE] [order:TAG?MODE&DIRECTION]
+name:FUNCTION:VALUE type:TYPE [root] [(parent|under):SUBJECT] [where:TAG=VALUE] [order:ORDER]
 
 where
+- FUNCTION: `startsWith`, `contains`, `endsWith` 
 - MODE (optional): `text`, `num`, or `time` (default is `text`)
 - DIRECTION (optional): `asc` or `desc` (default is `asc`)
 ```
 
 | Clause    | Description                                  | Example                   |
 |-----------|----------------------------------------------|---------------------------|
+| `name:`   | Filters subjects by name                     | `name:startsWith:#`       |
 | `type:`   | Filters subjects by type                     | `type:building`           |
 | `root`    | Selects only top-level (root) subjects       | `root`                    |
 | `parent:` | Selects subjects whose direct parent matches | `parent:001.zone`         |

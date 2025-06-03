@@ -22,6 +22,11 @@ public interface SubjectQuery {
 	}
 	Stream<Subject> stream();
 	List<Subject> collect();
+
+	SubjectQuery nameStartsWith(String value);
+	SubjectQuery nameContains(String value);
+	SubjectQuery nameEndsWith(String value);
+
 	SubjectQuery isType(String type);
 	SubjectQuery isRoot();
 
@@ -44,6 +49,7 @@ public interface SubjectQuery {
 	SubjectQuery orderBy(String tag, Comparator<String> comparator);
 
 	AttributeFilter where(String tag);
+
 
 	interface AttributeFilter {
 		default SubjectQuery equals(String value) {
@@ -117,6 +123,21 @@ public interface SubjectQuery {
 			@Override
 			public AttributeFilter where(String tag) {
 				return predicate -> This;
+			}
+
+			@Override
+			public SubjectQuery nameStartsWith(String value) {
+				return this;
+			}
+
+			@Override
+			public SubjectQuery nameContains(String value) {
+				return this;
+			}
+
+			@Override
+			public SubjectQuery nameEndsWith(String value) {
+				return this;
 			}
 
 		};

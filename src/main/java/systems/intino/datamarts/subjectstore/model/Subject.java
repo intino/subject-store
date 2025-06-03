@@ -34,7 +34,7 @@ public record Subject(String identifier, Context context) {
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < identifier.length(); i++) {
 			char c = identifier.charAt(i);
-			if (Character.isWhitespace(c)) continue;
+			if (" ".indexOf(c) >= 0) continue;
 			sb.append(c);
 		}
 		return sb.toString();
@@ -196,6 +196,24 @@ public record Subject(String identifier, Context context) {
 			@Override
 			public List<Subject> collect() {
 				return subjects().toList();
+			}
+
+			@Override
+			public SubjectQuery nameStartsWith(String value) {
+				conditions.add(s->s.name().startsWith(value));
+				return this;
+			}
+
+			@Override
+			public SubjectQuery nameContains(String value) {
+				conditions.add(s->s.name().contains(value));
+				return this;
+			}
+
+			@Override
+			public SubjectQuery nameEndsWith(String value) {
+				conditions.add(s->s.name().endsWith(value));
+				return this;
 			}
 
 			@Override
@@ -417,7 +435,11 @@ public record Subject(String identifier, Context context) {
 	}
 
 	private static String identifier(String name, String type) {
-		return name + "." + type;
+		return escape(name + "." + type);
+	}
+
+	private static String escape(String name) {
+		return name.replace('/', '-').replace(' ', '-');
 	}
 
 }

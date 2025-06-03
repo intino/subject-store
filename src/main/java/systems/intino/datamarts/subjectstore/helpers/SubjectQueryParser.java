@@ -29,6 +29,22 @@ public class SubjectQueryParser {
 				.accept(i >= 0 ? value.substring(i+1) : "");
 	}
 
+	private void name(String value) {
+		process(value);
+	}
+
+	private void startsWith(String value) {
+		query.nameStartsWith(value);
+	}
+
+	private void contains(String value) {
+		query.nameContains(value);
+	}
+
+	private void endsWith(String value) {
+		query.nameEndsWith(value);
+	}
+
 	private void type(String value) {
 		query.isType(value);
 	}
@@ -83,6 +99,10 @@ public class SubjectQueryParser {
 
 	private Map<String, Consumer<String>> createMappings() {
 		Map<String, Consumer<String>> map = new HashMap<>();
+		map.put("name", this::name);
+		map.put("starts", this::startsWith);
+		map.put("contains", this::contains);
+		map.put("ends", this::endsWith);
 		map.put("type", this::type);
 		map.put("root", this::root);
 		map.put("in", this::in);
