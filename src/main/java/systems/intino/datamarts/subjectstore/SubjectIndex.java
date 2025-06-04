@@ -91,7 +91,7 @@ public class SubjectIndex {
 			@Override
 			public Stream<Subject> stream() {
 				return candidates()
-						.mapToObj(i-> open(i))
+						.mapToObj(this::subject)
 						.sorted(sorting::sort);
 			}
 
@@ -101,47 +101,49 @@ public class SubjectIndex {
 			}
 
 			@Override
+			public SubjectQuery nameStartsWith(String value) {
+				conditions.add(id-> subject(id).name().startsWith(value));
+				return this;
+			}
+
+			@Override
+			public SubjectQuery nameContains(String value) {
+				conditions.add(id-> subject(id).name().contains(value));
+				return this;
+			}
+
+			@Override
+			public SubjectQuery nameEndsWith(String value) {
+				conditions.add(id-> subject(id).name().endsWith(value));
+				return this;
+			}
+
+			@Override
 			public SubjectQuery isType(String type) {
-				conditions.add(id-> is(type, id));
+				conditions.add(id-> subject(id).is(type));
 				return this;
 			}
 
 			@Override
 			public SubjectQuery isRoot() {
-				conditions.add(this::isRoot);
+				conditions.add(id -> subject(id).isRoot());
 				return this;
 			}
 
 			@Override
 			public SubjectQuery isChildOf(String identifier) {
-				conditions.add(id -> isChildOf(id, identifier));
+				conditions.add(id -> subject(id).isChildOf(identifier));
 				return this;
 			}
 
 			@Override
 			public SubjectQuery isUnderOf(String identifier) {
-				conditions.add(id -> isUnderOf(id, identifier));
+				conditions.add(id -> subject(id).isUnderOf(identifier));
 				return this;
 			}
 
-			private boolean isRoot(int id) {
-				Subject subject = open(id);
-				return subject != null && subject.isRoot();
-			}
-
-			private boolean isChildOf(Integer id, String identifier) {
-				Subject subject = open(id);
-				return subject != null && subject.isChildOf(identifier);
-			}
-
-			private boolean isUnderOf(Integer id, String identifier) {
-				Subject subject = open(id);
-				return subject != null && subject.isUnderOf(identifier);
-			}
-
-			private boolean is(String type, int id) {
-				Subject subject = open(id);
-				return subject != null && subject.is(type);
+			private Subject subject(int id) {
+				return open(id);
 			}
 
 			@Override
