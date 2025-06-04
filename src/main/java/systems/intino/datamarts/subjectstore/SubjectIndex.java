@@ -392,7 +392,7 @@ public class SubjectIndex {
 			}
 
 			@Override
-			public Subject get(String identifier) {
+			public Subject open(String identifier) {
 				return SubjectIndex.this.open(identifier);
 			}
 

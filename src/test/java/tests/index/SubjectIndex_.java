@@ -251,6 +251,9 @@ public class SubjectIndex_ {
 				.del("team", "ulpgc");
 		assertThat(index.open("11","o").terms()).containsOnly(new Term("name","jose"));
 		assertThat(index.open("123456", "model").terms()).containsOnly(terms("t=simulation","user=mcaballero@gmail.com","user=josejuan@gmail.com","project=ulpgc"));
+		assertThat(index.open("123456", "model").has("t")).isTrue();
+		assertThat(index.open("123456", "model").has("simulation")).isFalse();
+		assertThat(index.open("123456", "model").has("user")).isTrue();
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 				put 11.o name=jose
 				put 123456.model t=simulation
@@ -345,7 +348,23 @@ public class SubjectIndex_ {
 		SubjectIndex index = new SubjectIndex(file).restore(triples("subjects.triples"));
 		assertThat(index.open("P001.model").next("#component")).isEqualTo("1");
 		assertThat(index.open("P001.model").next("#component")).isEqualTo("2");
+	}
 
+	@Test
+	public void should_get_and_set_term_subjects() throws IOException {
+		File file = File.createTempFile("index", ".journal");
+		SubjectIndex index = new SubjectIndex(file).restore(triples("subjects.triples"));
+		index.open("P001.model").update()
+				.set("main", index.open("P002.model"));
+		assertThat(index.open("P001.model").has("main")).isTrue();
+		assertThat(index.open("P001.model").get("main")).isEqualTo(index.open("P002.model").identifier());
+		index.open("P001.model").update()
+				.del("main", index.open("P002.model"))
+				.put("related", index.open("P003.model"))
+				.put("related", index.open("P004.model"));
+		assertThat(index.open("P001.model").has("main")).isFalse();
+		assertThat(index.open("P001.model").has("related")).isTrue();
+		assertThat(index.open("P001.model").get("related")).isEqualTo("P003.model, P004.model");
 	}
 
 	@Test

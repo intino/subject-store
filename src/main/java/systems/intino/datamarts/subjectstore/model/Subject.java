@@ -118,9 +118,13 @@ public record Subject(String identifier, Context context) {
 		return get(tag, ", ");
 	}
 
+	public boolean has(String tag) {
+		return terms(tag).findFirst().isPresent();
+	}
+
 	public String get(String tag, String separator) {
 		checkIfContextExists();
-		return terms(tag).stream().map(Term::value).collect(Collectors.joining(separator));
+		return terms(tag).map(Term::value).collect(Collectors.joining(separator));
 	}
 
 	public List<Term> terms() {
@@ -128,11 +132,10 @@ public record Subject(String identifier, Context context) {
 		return context.terms(this);
 	}
 
-	public List<Term> terms(String tag) {
+	public Stream<Term> terms(String tag) {
 		checkIfContextExists();
 		return terms().stream()
-				.filter(t -> t.is(tag))
-				.toList();
+				.filter(t -> t.is(tag));
 	}
 
 	public Subject create(String name, String type) {
@@ -142,12 +145,12 @@ public record Subject(String identifier, Context context) {
 
 	public Subject open(String name, String type) {
 		Subject subject = new Subject(this, name, type);
-		return context.get(subject.identifier);
+		return context.open(subject.identifier);
 	}
 
 	public Subject open(String identifier) {
 		Subject subject = new Subject(this, identifier);
-		return context.get(subject.identifier);
+		return context.open(subject.identifier);
 	}
 
 	public Subject rename(String name) {
@@ -293,7 +296,7 @@ public record Subject(String identifier, Context context) {
 
 		Subject create(Subject child);
 
-		Subject get(String identifier);
+		Subject open(String identifier);
 
 		void rename(Subject subject, String identifier);
 
@@ -335,7 +338,7 @@ public record Subject(String identifier, Context context) {
 		}
 
 		default Updating put(String tag, Subject subject) {
-			return set(new Term(tag, subject.identifier));
+			return put(new Term(tag, subject.identifier));
 		}
 
 		default Updating del(String tag, String value) {
@@ -374,7 +377,7 @@ public record Subject(String identifier, Context context) {
 			}
 
 			@Override
-			public Subject get(String identifier) {
+			public Subject open(String identifier) {
 				return new Subject(identifier, Context.Null);
 			}
 
