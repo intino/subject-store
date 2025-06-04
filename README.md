@@ -24,13 +24,19 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 <dependency>
     <groupId>systems.intino.datamarts</groupId>
     <artifactId>subject-store</artifactId>
-    <version>2.0.19</version>
+    <version>2.0.20</version>
 </dependency>
 ```
 
 ### Creating and accessing subjects
 
-This snippet shows how to use a `SubjectStore`, create a new subject, check for existence, and open it:
+This snippet shows how to use a `SubjectStore`, create a new subject, check for existence, and query it.
+
+The index.triples file acts as an inverted index that enables fast retrieval of Subject entries stored in the SubjectStore. It stores static key-value pairs that have been assigned via the update() method. These attributes are internally optimized for efficient lookup and filtering.
+
+Once a subject has been updated, the associated attributes can be retrieved programmatically. The get() method retrieves a string representation of the values assigned to a specific indexed attribute. If multiple values are present, they are joined using a configurable separator (default is ", ").
+
+To access all indexed values of a subject, you can use the terms() method:
 
 ```java
 SubjectStore store = new SubjectStore(new File("index.triples"));
@@ -46,22 +52,19 @@ boolean exists = store.has("taj mahal", "building");
 
 Subject building = store.open("eiffel tower", "building");
 
-store.seal()
+if (building.has("country")) System.out.println(building + "has country")
+String country = building.get("country")
+
+List<Term> terms = eiffel.terms(); // List of all index terms
+
 ```
-The index.triples file acts as an inverted index that enables fast retrieval of Subject entries stored in the SubjectStore. It stores static key-value pairs that have been assigned via the update() method. These attributes are internally optimized for efficient lookup and filtering.
 
-The update() method allows you to assign static, queryable attributes to a Subject. These attributes are stored in the inverted index (index.triples).  To keep the index efficient and up to date, it is necessary to periodically consolidate the indexed data using the seal() method.
-
-Once a subject has been added, the associated attributes can be retrieved programmatically. The get() method retrieves a string representation of the values assigned to a specific indexed attribute. If multiple values are present, they are joined using a configurable separator (default is ", ").
+To keep the index efficient and up to date, it is necessary to periodically consolidate the indexed data using the seal() method.
 
 ```java
 String city = eiffel.get("city"); // "Paris"
 ```
 
-To access all indexed values of a subject, you can use the terms() method:
-```java
-List<Term> terms = eiffel.terms(); // List of all index terms
-```
 
 ### Managing hierarchical structures
 
