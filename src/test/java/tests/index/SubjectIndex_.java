@@ -21,7 +21,7 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_create_and_rename_subject_and_preserve_terms_across_sessions() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		index.create("11", "o").update().put("name", "jose");
 		assertThat(index.open("11", "o").terms()).containsOnly(terms("name=jose"));
@@ -33,25 +33,25 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_allow_idempotent_subject_creation_and_support_queries_after_reload() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		index.create("11", "o").update().put("name", "jose");
 		index.create("11", "o").update().put("name", "jose");
-		assertThat(index.subjects().isRoot().first().toString()).isEqualTo("11.o");
-		assertThat(index.subjects().isType("o").collect()).containsOnly(subject("11.o"));
-		assertThat(index.subjects().isType("o").isRoot().first()).isEqualTo(subject("11.o"));
-		assertThat(index.subjects().where("name").equals("jose").isRoot().first()).isEqualTo(subject("11.o"));
-		assertThat(index.subjects().where("name").equals("jose").isType("o").first()).isEqualTo(subject("11.o"));
-		assertThat(index.subjects().where("name").equals("jose").isType("o").isRoot().first()).isEqualTo(subject("11.o"));
-		assertThat(index.subjects().isType("p").isEmpty()).isTrue();
-		assertThat(index.subjects().isType("p").isRoot().isEmpty()).isTrue();
-		assertThat(index.subjects().isType("p").where("name").equals("jose").isEmpty()).isTrue();
+		assertThat(index.query().isRoot().first().toString()).isEqualTo("11.o");
+		assertThat(index.query().isType("o").collect()).containsOnly(subject("11.o"));
+		assertThat(index.query().isType("o").isRoot().first()).isEqualTo(subject("11.o"));
+		assertThat(index.query().where("name").equals("jose").isRoot().first()).isEqualTo(subject("11.o"));
+		assertThat(index.query().where("name").equals("jose").isType("o").first()).isEqualTo(subject("11.o"));
+		assertThat(index.query().where("name").equals("jose").isType("o").isRoot().first()).isEqualTo(subject("11.o"));
+		assertThat(index.query().isType("p").isEmpty()).isTrue();
+		assertThat(index.query().isType("p").isRoot().isEmpty()).isTrue();
+		assertThat(index.query().isType("p").where("name").equals("jose").isEmpty()).isTrue();
 		assertThat(Files.readString(file.toPath())).isEqualTo("put 11.o name=jose\n");
 	}
 
 	@Test
 	public void should_support_full_term_lifecycle_with_persistence() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		index.create("11", "o").update().set("name", "jose");
 		assertThat(index.open("11","o").terms()).containsOnly(terms("name=jose"));
@@ -113,26 +113,26 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_support_restore_and_update_journal() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file).restore(triples("theaters.triples"));
-		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("181.theater"),subject("182.theater"),subject("383.theater"));
-		assertThat(index.subjects().where("class").equals("2D").size()).isEqualTo(15);
-		assertThat(index.subjects().size()).isEqualTo(31);
-		assertThat(index.subjects().where("seats").satisfy(v -> parseInt(v) >= 300).size()).isEqualTo(2);
-		assertThat(index.subjects().isType("screen").where("seats").satisfy(v -> parseInt(v) >= 200).size()).isEqualTo(4);
+		assertThat(index.query().isRoot().collect()).containsOnly(subject("181.theater"),subject("182.theater"),subject("383.theater"));
+		assertThat(index.query().where("class").equals("2D").size()).isEqualTo(15);
+		assertThat(index.query().size()).isEqualTo(31);
+		assertThat(index.query().where("seats").satisfy(v -> parseInt(v) >= 300).size()).isEqualTo(2);
+		assertThat(index.query().isType("screen").where("seats").satisfy(v -> parseInt(v) >= 200).size()).isEqualTo(4);
 		index.open("181.theater").drop();
-		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("182.theater"),subject("383.theater"));
-		assertThat(index.subjects().where("class").equals("2D").size()).isEqualTo(7);
-		assertThat(index.subjects().size()).isEqualTo(15);
-		assertThat(index.subjects().isType("screen").size()).isEqualTo(13);
-		assertThat(index.subjects().where("seats").satisfy(v -> parseInt(v) >= 300).size()).isEqualTo(2);
-		assertThat(index.subjects().where("seats").satisfy(v -> parseInt(v) >= 200).size()).isEqualTo(3);
+		assertThat(index.query().isRoot().collect()).containsOnly(subject("182.theater"),subject("383.theater"));
+		assertThat(index.query().where("class").equals("2D").size()).isEqualTo(7);
+		assertThat(index.query().size()).isEqualTo(15);
+		assertThat(index.query().isType("screen").size()).isEqualTo(13);
+		assertThat(index.query().where("seats").satisfy(v -> parseInt(v) >= 300).size()).isEqualTo(2);
+		assertThat(index.query().where("seats").satisfy(v -> parseInt(v) >= 200).size()).isEqualTo(3);
 		assertThat(Files.readString(file.toPath())).isEqualTo("drop 181.theater -\n");
 	}
 
 	@Test
 	public void should_navigate_and_query_subject_hierarchy_correctly() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		Subject s1 = index.create("1","o");
 		s1.update().put("class", "a");
@@ -144,13 +144,13 @@ public class SubjectIndex_ {
 		s124.update().put("class", "m");
 		s124.drop();
 
-		assertThat(index.subjects().isRoot().collect().size()).isEqualTo(1);
-		assertThat(index.subjects().collect().size()).isEqualTo(3);
-		assertThat(index.subjects().isType("o").collect().size()).isEqualTo(1);
-		assertThat(index.subjects().isType("p").collect().size()).isEqualTo(1);
-		assertThat(index.subjects().isType("p").first().identifier()).isEqualTo("1.o/12.p");
-		assertThat(index.subjects().isRoot().first()).isEqualTo(Subject.of("1.o"));
-		assertThat(index.subjects().isRoot().first().children().first()).isEqualTo(Subject.of("1.o/12.p"));
+		assertThat(index.query().isRoot().collect().size()).isEqualTo(1);
+		assertThat(index.query().collect().size()).isEqualTo(3);
+		assertThat(index.query().isType("o").collect().size()).isEqualTo(1);
+		assertThat(index.query().isType("p").collect().size()).isEqualTo(1);
+		assertThat(index.query().isType("p").first().identifier()).isEqualTo("1.o/12.p");
+		assertThat(index.query().isRoot().first()).isEqualTo(Subject.of("1.o"));
+		assertThat(index.query().isRoot().first().children().first()).isEqualTo(Subject.of("1.o/12.p"));
 		assertThat(index.open("1.o").isNull()).isFalse();
 		assertThat(index.open("1","o").parent().isNull()).isTrue();
 		assertThat(index.open("2" ,"o")).isNull();
@@ -163,12 +163,12 @@ public class SubjectIndex_ {
 		assertThat(index.open("1.o/12.p").children().collect()).containsOnly(Subject.of("1.o/12.p/123.q"));
 		assertThat(index.open("1.o/12.p").children().first().identifier()).isEqualTo("1.o/12.p/123.q");
 		assertThat(index.open("1.o/12.p/123.q").parent().parent()).isEqualTo(Subject.of("1.o"));
-		assertThat(index.subjects().where("class").equals("a").isRoot().collect().size()).isEqualTo(1);
-		assertThat(index.subjects().isType("o").where("class").equals("a").isRoot().collect().size()).isEqualTo(1);
-		assertThat(index.subjects().isType("p").where("class").equals("a").isRoot().collect().size()).isEqualTo(0);
-		assertThat(index.subjects().isType("p").where("class").equals("x").collect().size()).isEqualTo(1);
-		assertThat(index.subjects().isType("p").where("class").equals("x").first()).isEqualTo(Subject.of("1.o/12.p"));
-		assertThat(index.subjects().where("class").equals("x").isRoot().collect().isEmpty()).isTrue();
+		assertThat(index.query().where("class").equals("a").isRoot().collect().size()).isEqualTo(1);
+		assertThat(index.query().isType("o").where("class").equals("a").isRoot().collect().size()).isEqualTo(1);
+		assertThat(index.query().isType("p").where("class").equals("a").isRoot().collect().size()).isEqualTo(0);
+		assertThat(index.query().isType("p").where("class").equals("x").collect().size()).isEqualTo(1);
+		assertThat(index.query().isType("p").where("class").equals("x").first()).isEqualTo(Subject.of("1.o/12.p"));
+		assertThat(index.query().where("class").equals("x").isRoot().collect().isEmpty()).isTrue();
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 			put 1.o class=a
 			put 1.o/12.p class=x
@@ -180,31 +180,31 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_support_sorting() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file).restore(triples("theaters.triples"));
-		assertThat(index.subjects().isType("theater").orderBy("email").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
-		assertThat(index.subjects("type:theater").orderBy("email").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
+		assertThat(index.query().isType("theater").orderBy("email").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
+		assertThat(index.query("type:theater").orderBy("email").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
 
-		assertThat(index.subjects("type:theater order:email").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
-		assertThat(index.subjects("type:theater order:email?asc").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
-		assertThat(index.subjects("type:theater order:email?desc").collect()).containsExactly(subject("383.theater"), subject("181.theater"),subject("182.theater"));
-		assertThat(index.subjects("type:theater order:email?text&desc").collect()).containsExactly(subject("383.theater"), subject("181.theater"),subject("182.theater"));
+		assertThat(index.query("type:theater order:email").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
+		assertThat(index.query("type:theater order:email?asc").collect()).containsExactly(subject("182.theater"), subject("181.theater"),subject("383.theater"));
+		assertThat(index.query("type:theater order:email?desc").collect()).containsExactly(subject("383.theater"), subject("181.theater"),subject("182.theater"));
+		assertThat(index.query("type:theater order:email?text&desc").collect()).containsExactly(subject("383.theater"), subject("181.theater"),subject("182.theater"));
 
-		assertThat(index.subjects().isType("theater").orderBy("name").collect()).containsOnly(subject("383.theater"), subject("182.theater"),subject("181.theater"));
-		assertThat(index.subjects("type:theater order:name?asc").collect()).containsOnly(subject("383.theater"), subject("182.theater"),subject("181.theater"));
-		assertThat(index.subjects("type:theater order:name?desc").collect()).containsOnly(subject("181.theater"), subject("182.theater"),subject("383.theater"));
-		assertThat(index.subjects().isType("screen").orderBy("seats", NumericAscending).first()).isEqualTo(subject("181.theater/11.screen"));
-		assertThat(index.subjects("type:screen order:seats?num&asc").first()).isEqualTo(subject("181.theater/11.screen"));
-		assertThat(index.subjects("type:screen order:seats?asc&num").first()).isEqualTo(subject("181.theater/11.screen"));
-		assertThat(index.subjects("type:screen order:seats?desc&num").first()).isEqualTo(subject("383.theater/3.screen"));
-		assertThat(index.subjects().isType("screen").where("class").equals("2D").orderBy("seats", NumericDescending).first()).isEqualTo(subject("383.theater/5.screen"));
-		assertThat(index.subjects("type:screen where:class=2D order:seats?num&desc").first()).isEqualTo(subject("383.theater/5.screen"));
+		assertThat(index.query().isType("theater").orderBy("name").collect()).containsOnly(subject("383.theater"), subject("182.theater"),subject("181.theater"));
+		assertThat(index.query("type:theater order:name?asc").collect()).containsOnly(subject("383.theater"), subject("182.theater"),subject("181.theater"));
+		assertThat(index.query("type:theater order:name?desc").collect()).containsOnly(subject("181.theater"), subject("182.theater"),subject("383.theater"));
+		assertThat(index.query().isType("screen").orderBy("seats", NumericAscending).first()).isEqualTo(subject("181.theater/11.screen"));
+		assertThat(index.query("type:screen order:seats?num&asc").first()).isEqualTo(subject("181.theater/11.screen"));
+		assertThat(index.query("type:screen order:seats?asc&num").first()).isEqualTo(subject("181.theater/11.screen"));
+		assertThat(index.query("type:screen order:seats?desc&num").first()).isEqualTo(subject("383.theater/3.screen"));
+		assertThat(index.query().isType("screen").where("class").equals("2D").orderBy("seats", NumericDescending).first()).isEqualTo(subject("383.theater/5.screen"));
+		assertThat(index.query("type:screen where:class=2D order:seats?num&desc").first()).isEqualTo(subject("383.theater/5.screen"));
 		assertThat(Files.readString(file.toPath())).isEqualTo("");
 	}
 
 	@Test
 	public void should_support_del_terms_and_conditional_query() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		index.create("123456", "model").update()
 				.put("description","simulation")
@@ -217,14 +217,12 @@ public class SubjectIndex_ {
 				.del("t","simulation")
 				.del("t","simulation");
 
-		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
-		assertThat(index.subjects().isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
-		assertThat(index.subjects().where("user").equals("mcaballero@gmail.com").isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
-		assertThat(index.subjects().where("description").equals("simulation").isRoot().collect()).containsOnly(subject("123456.model"));
-		Subject result;
-		String s = "654321.model";
-		result = Subject.of("654321.model");
-		assertThat(index.subjects().where("user").equals("josejuan@gmail.com").isRoot().collect()).containsOnly(result);
+		assertThat(index.query().isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
+		assertThat(index.query().isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
+		assertThat(index.query().where("user").equals("mcaballero@gmail.com").isRoot().collect()).containsOnly(subject("123456.model"), subject("654321.model"));
+		assertThat(index.query().where("description").equals("simulation").isRoot().collect()).containsOnly(subject("123456.model"));
+		Subject result = Subject.of("654321.model");
+		assertThat(index.query().where("user").equals("josejuan@gmail.com").isRoot().collect()).containsOnly(result);
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 				put 123456.model description=simulation
 				put 123456.model user=mcaballero@gmail.com
@@ -237,7 +235,7 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_open_terms_of_subject() throws Exception {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		index.create("11", "o").update().put("name", "jose");
 		index.create("123456", "model").update()
@@ -267,7 +265,7 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_search_using_contain_and_fit_filters() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		index.create("123456", "model").update()
 				.put("description", "simulation")
@@ -281,14 +279,14 @@ public class SubjectIndex_ {
 				.put("user", "mcaballero@gmail.com")
 				.put("project", "ulpgc");
 		index.create("123456", "model").update().del("team", "ulpgc");
-		assertThat(index.subjects().where("project").equals("ulpgc").collect()).containsOnly(Subject.of("654321.model"), Subject.of("123456.model"));
-		assertThat(index.subjects().where("team").equals("ulpgc.es").collect()).containsOnly(Subject.of("123456.model"));
-		assertThat(index.subjects().where("team").contains("ulpgc").collect()).containsOnly(Subject.of("123456.model"));
-		assertThat(index.subjects().where("team").contains("ulpgc", "es").collect()).containsOnly(Subject.of("123456.model"));
-		assertThat(index.subjects().where("description").contains("sim").collect()).containsOnly(Subject.of("123456.model"), Subject.of("654321.model"));
-		assertThat(index.subjects().where("description").contains("xxx").collect()).isEmpty();
-		assertThat(index.subjects().where("access").accepts("jose@gmail.com").collect()).isEmpty();
-		assertThat(index.subjects().where("access").accepts("jose@ulpgc.es").collect()).containsOnly(Subject.of("123456.model"));
+		assertThat(index.query().where("project").equals("ulpgc").collect()).containsOnly(Subject.of("654321.model"), Subject.of("123456.model"));
+		assertThat(index.query().where("team").equals("ulpgc.es").collect()).containsOnly(Subject.of("123456.model"));
+		assertThat(index.query().where("team").contains("ulpgc").collect()).containsOnly(Subject.of("123456.model"));
+		assertThat(index.query().where("team").contains("ulpgc", "es").collect()).containsOnly(Subject.of("123456.model"));
+		assertThat(index.query().where("description").contains("sim").collect()).containsOnly(Subject.of("123456.model"), Subject.of("654321.model"));
+		assertThat(index.query().where("description").contains("xxx").collect()).isEmpty();
+		assertThat(index.query().where("access").accepts("jose@gmail.com").collect()).isEmpty();
+		assertThat(index.query().where("access").accepts("jose@ulpgc.es").collect()).containsOnly(Subject.of("123456.model"));
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 				put 123456.model description=simulation
 				put 123456.model user=josejuan@gmail.com
@@ -303,7 +301,7 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_index_query_with_terms_and_support_deletion() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		index.create("P001.model").update()
 				.put("name", "AI Research")
@@ -325,7 +323,7 @@ public class SubjectIndex_ {
 		assertThat(index.open("P001.model/E002.experiment").terms()).doesNotContain(terms("status=archived"));
 		assertThat(index.open("P001.model").children().collect()).hasSize(1);
 		assertThat(index.open("P001.model").children().first().name()).isEqualTo("E002");
-		assertThat(index.subjects().isType("model").where("name").equals("AI Research").collect()).contains(Subject.of("P001.model"));
+		assertThat(index.query().isType("model").where("name").equals("AI Research").collect()).contains(Subject.of("P001.model"));
 		assertThat(Files.readString(file.toPath())).isEqualTo("""
 				put P001.model name=AI Research
 				put P001.model lead=alice@example.com
@@ -344,7 +342,7 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_operate_subject_sequences() throws IOException {
-		File file = File.createTempFile("index", ".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file).restore(triples("subjects.triples"));
 		assertThat(index.open("P001.model").next("#component")).isEqualTo("1");
 		assertThat(index.open("P001.model").next("#component")).isEqualTo("2");
@@ -352,7 +350,7 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_get_and_set_term_subjects() throws IOException {
-		File file = File.createTempFile("index", ".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file).restore(triples("subjects.triples"));
 		index.open("P001.model").update()
 				.set("main", index.open("P002.model"));
@@ -369,7 +367,7 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_restore_from_triples() throws IOException {
-		File file = File.createTempFile("index", ".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file).restore(triples("subjects.triples"));
 		index.open("P001.model").update().set("status", "running").set("lead", "alice@example.com");
 		index.open("P002.model").update().del("lead");
@@ -378,14 +376,14 @@ public class SubjectIndex_ {
 		index.open("P004.model").update().del("lead").del("status");
 		index.open("P004.model").update().del("lead").del("status");
 
-		assertThat(index.subjects().collect().size()).isEqualTo(125);
+		assertThat(index.query().collect().size()).isEqualTo(125);
 		assertThat(index.open("P001.model").terms()).contains(new Term("status","running"));
 		assertThat(index.open("P001.model").terms()).doesNotContain(new Term("lead","user1@example.com"));
 		assertThat(index.open("P001.model").terms()).contains(new Term("lead","alice@example.com"));
 		assertThat(index.open("P002.model").terms()).containsOnly(new Term("status","active"),new Term("name","Project 2"));
 		assertThat(index.open("P003.model").terms()).containsOnly(new Term("status","running"), new Term("lead","mary@example.com"), new Term("name","Project 3"));
 		assertThat(index.open("P004.model").terms()).containsOnly(new Term("name","Project 4"));
-		assertThat(index.subjects().collect().size()).isEqualTo(125);
+		assertThat(index.query().collect().size()).isEqualTo(125);
 		assertThat(index.open("P001.model").terms()).contains(new Term("status","running"));
 		assertThat(index.open("P001.model").terms()).doesNotContain(new Term("lead","user1@example.com"));
 		assertThat(index.open("P001.model").terms()).contains(new Term("lead","alice@example.com"));
@@ -408,7 +406,7 @@ public class SubjectIndex_ {
 	@SuppressWarnings("resource")
 	@Test
 	public void should_dump_index() throws Exception {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file).restore(triples("movies.triples"));
 		ByteArrayOutputStream os = new ByteArrayOutputStream();
 		index.dump(os);
@@ -435,7 +433,7 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_detect_insertions() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		Subject subject = index.create("P001.model");
 		List<Term> terms = List.of(
@@ -453,7 +451,7 @@ public class SubjectIndex_ {
 
 	@Test
 	public void should_detect_no_change() throws IOException {
-		File file = File.createTempFile("index",".journal");
+		File file = tempFile();
 		SubjectIndex index = new SubjectIndex(file);
 		Subject subject = index.create("P001.model");
 		subject.update()
@@ -483,6 +481,12 @@ public class SubjectIndex_ {
 
 	private static InputStream triples(String name) {
 		return SubjectIndex_.class.getClassLoader().getResourceAsStream(name);
+	}
+
+	private static File tempFile() throws IOException {
+		File file = File.createTempFile("index",".journal");
+		file.deleteOnExit();
+		return file;
 	}
 
 

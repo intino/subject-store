@@ -63,11 +63,11 @@ public class SubjectIndex {
 		return value != null ? Term.of(value) : Term.Null;
 	}
 
-	public SubjectQuery subjects(String query) {
+	public SubjectQuery query(String query) {
 		return new SubjectQueryParser(this).parse(query);
 	}
 
-	public SubjectQuery subjects() {
+	public SubjectQuery query() {
 		return new SubjectQuery() {
 			private final SubjectQuery This = this;
 			private final Sorting sorting = new Sorting();

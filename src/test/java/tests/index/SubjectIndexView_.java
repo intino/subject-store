@@ -26,11 +26,11 @@ public class SubjectIndexView_ {
 	@Test
 	public void should_create_views_including_summary() throws Exception {
 		SubjectIndex index = new SubjectIndex(new File("index.triples")).restore(inputStream("subjects.triples"));
-		SubjectIndexView models = SubjectIndexView.of(index.subjects().isType("model").collect())
+		SubjectIndexView models = SubjectIndexView.of(index.query().isType("model").collect())
 				.add("status", Type.Text)
 				.add("name", Type.Text)
 				.build();
-		SubjectIndexView experiments = SubjectIndexView.of(index.subjects().isType("experiment").collect())
+		SubjectIndexView experiments = SubjectIndexView.of(index.query().isType("experiment").collect())
 				.add("status", Type.Text)
 				.build();
 		assertThat(models.size()).isEqualTo(25);
@@ -44,8 +44,8 @@ public class SubjectIndexView_ {
 	@Test
 	public void should_calculate_summary_frequencies_consistently() throws Exception {
 		SubjectIndex index = new SubjectIndex(new File("index.triples")).restore(triples());
-		assertThat(index.subjects().isRoot().size()).isEqualTo(435);
-		List<Subject> subjects = index.subjects()
+		assertThat(index.query().isRoot().size()).isEqualTo(435);
+		List<Subject> subjects = index.query()
 				.isType("port")
 				.orderBy("draft", NumericAscending)
 				.orderBy("cost-per-full", NumericDescending)

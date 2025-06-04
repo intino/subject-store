@@ -12,7 +12,7 @@ public class SubjectQueryParser {
 	private final Map<String, Consumer<String>> mappings;
 
 	public SubjectQueryParser(SubjectIndex index) {
-		this.query = index.subjects();
+		this.query = index.query();
 		this.mappings = createMappings();
 	}
 

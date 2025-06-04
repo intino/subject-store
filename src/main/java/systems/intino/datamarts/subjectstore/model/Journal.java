@@ -25,6 +25,8 @@ public interface Journal {
 		return new StringJournalBuilder(subject);
 	}
 
+	void add(Transaction transaction);
+
 	interface Builder {
 		Journal to(List<Term> terms);
 	}
@@ -52,7 +54,12 @@ public interface Journal {
 
 
 		public enum Type {
-			put, set, del, drop, rename
+			put, set, del, drop, rename;
+
+			@Override
+			public String toString() {
+				return this.name();
+			}
 		}
 	}
 }

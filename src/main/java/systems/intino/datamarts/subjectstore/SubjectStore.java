@@ -3,6 +3,7 @@ package systems.intino.datamarts.subjectstore;
 import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
 import systems.intino.datamarts.subjectstore.model.Journal;
 import systems.intino.datamarts.subjectstore.model.Subject;
+import systems.intino.datamarts.subjectstore.model.Triples;
 import systems.intino.datamarts.subjectstore.model.journals.FileJournal;
 
 import java.io.*;
@@ -74,17 +75,21 @@ public class SubjectStore {
 		return index.batch();
 	}
 
-	public SubjectQuery subjects() {
-		return index.subjects();
+	public SubjectQuery query() {
+		return index.query();
 	}
 
-	public SubjectQuery subjects(String query) {
-		return index.subjects(query);
+	public SubjectQuery query(String query) {
+		return index.query(query);
 	}
 
 	public SubjectHistory historyOf(Subject subject) {
 		if (connection == null) throw new IllegalStateException("Historical database is not configured. Define store.connection(...) before using historyOf().");
 		return new SubjectHistory(subject.identifier(), connection);
+	}
+
+	public Triples triples() {
+		return index.triples();
 	}
 
 	@SuppressWarnings("ResultOfMethodCallIgnored")

@@ -122,6 +122,10 @@ public record Subject(String identifier, Context context) {
 		return terms(tag).findFirst().isPresent();
 	}
 
+	public boolean has(String tag, String value) {
+		return terms(tag).anyMatch(t -> t.value().equals(value));
+	}
+
 	public String get(String tag, String separator) {
 		checkIfContextExists();
 		return terms(tag).map(Term::value).collect(Collectors.joining(separator));
