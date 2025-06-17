@@ -235,11 +235,13 @@ public class SubjectHistoryView implements Iterable<Column> {
 	}
 
 	private String tagIn(String name) {
-		return name.split("\\.")[0];
+		int i = name.lastIndexOf('.');
+		return i > 0 ? name.substring(0, i) : name;
 	}
 
 	private String fieldIn(String name) {
-		return name.split("\\.")[1];
+		int i = name.lastIndexOf('.');
+		return i > 0 ? name.substring(i+1) : "";
 	}
 
 	private String tsv(int startOffset, int stopOffset, boolean onlyCompleteRows) {
