@@ -4,6 +4,7 @@ import org.yaml.snakeyaml.Yaml;
 import systems.intino.datamarts.subjectstore.calculator.model.filters.*;
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
 import systems.intino.datamarts.subjectstore.view.history.format.ColumnDefinition;
+import systems.intino.datamarts.subjectstore.view.history.format.ColumnDefinition.Type;
 import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat;
 import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormat.RowDefinition;
 import systems.intino.datamarts.subjectstore.view.history.format.HistoryFormatReader;
@@ -35,7 +36,6 @@ public class YamlHistoryFormatReader implements HistoryFormatReader {
 		}
 	}
 
-
 	@Override
 	public HistoryFormat read() {
 		PojoFormat pojoFormat = new Yaml().loadAs(format, PojoFormat.class);
@@ -58,8 +58,15 @@ public class YamlHistoryFormatReader implements HistoryFormatReader {
 	}
 
 	private ColumnDefinition map(PojoColumn column) {
-		return new ColumnDefinition(column.name, column.calc).
-				add(filtersIn(column.filters));
+		return column.type != null ?
+				new ColumnDefinition(column.name, column.calc, typeOf(column.type)) :
+				new ColumnDefinition(column.name, column.calc).add(filtersIn(column.filters));
+	}
+
+	private Type typeOf(String input) {
+		for (Type type : Type.values())
+			if (type.name().equalsIgnoreCase(input)) return type;
+		throw new IllegalArgumentException("No enum constant in Type for value: " + input);
 	}
 
 	private List<Filter> filtersIn(List<String> definitions) {
@@ -110,6 +117,7 @@ public class YamlHistoryFormatReader implements HistoryFormatReader {
 	private static class PojoColumn {
 		public String name;
 		public String calc;
+		public String type;
 		public List<String> filters;
 	}
 

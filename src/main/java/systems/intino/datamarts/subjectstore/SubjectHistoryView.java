@@ -22,8 +22,6 @@ import java.io.*;
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 public class SubjectHistoryView implements Iterable<Column> {
 	private final SubjectHistory history;
@@ -119,7 +117,6 @@ public class SubjectHistoryView implements Iterable<Column> {
 				this.stopOffset = offset;
 				return this;
 			}
-
 		};
 	}
 
@@ -141,17 +138,18 @@ public class SubjectHistoryView implements Iterable<Column> {
 	}
 
 	private Vector<?> vectorIn(ColumnDefinition columnDefinition) {
-		return isAlphanumeric(columnDefinition.expression) ?
-				textVectorIn(columnDefinition) :
-				numericVectorIn(columnDefinition);
+		return isCategorical(columnDefinition) ?
+				categoricalVectorIn(columnDefinition) :
+				numericalVectorIn(columnDefinition);
 	}
 
-	private static final List<Pattern> alphanumericExpressions = Stream.of("ts.year-quarter", "ts.year-month.*", ".*\\.mode").map(Pattern::compile).toList();
-	private boolean isAlphanumeric(String expression) {
-		return alphanumericExpressions.stream().anyMatch(p->p.matcher(expression).matches());
+	private static final Set<String> set = Set.of("ts.year-quarter", "ts.year-month");
+	private boolean isCategorical(ColumnDefinition columnDefinition) {
+		return columnDefinition.type == ColumnDefinition.Type.Categorical ||
+				set.contains(columnDefinition.expression);
 	}
 
-	private Vector<?> textVectorIn(ColumnDefinition columnDefinition) {
+	private Vector<?> categoricalVectorIn(ColumnDefinition columnDefinition) {
 		String tag = tagIn(columnDefinition.expression);
 		String field = fieldIn(columnDefinition.expression);
 		return tag.equals("ts") ? vectorOf(TimeReducer.of(field)) : vectorOf(tag, TextReducer.of(field));
@@ -164,7 +162,7 @@ public class SubjectHistoryView implements Iterable<Column> {
 		return new StringVector(values);
 	}
 
-	private Vector<?> numericVectorIn(ColumnDefinition columnDefinition) {
+	private Vector<?> numericalVectorIn(ColumnDefinition columnDefinition) {
 		DoubleVector vector = vectorOf(columnDefinition.expression);
 		return filter(vector, columnDefinition.filters);
 	}
@@ -201,7 +199,7 @@ public class SubjectHistoryView implements Iterable<Column> {
 		try {
 			String tag = tagIn(name);
 			String field = fieldIn(name);
-			if (TimeReducer.contains(field) && isTemporal(tag))
+			if (isTemporal(tag) && TimeReducer.contains(field))
 				return calculate(TimeReducer.of(field));
 			if (NumberReducer.contains(field))
 				return calculate(NumberReducer.of(field), history.query().number(tag).get(from(), to()));

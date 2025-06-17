@@ -1,11 +1,11 @@
 package systems.intino.datamarts.subjectstore.view.history.format;
 
 import systems.intino.datamarts.subjectstore.calculator.model.Filter;
+import systems.intino.datamarts.subjectstore.view.history.format.ColumnDefinition.Type;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class HistoryFormat {
@@ -37,11 +37,12 @@ public class HistoryFormat {
 		return columnDefinitions;
 	}
 
+	public HistoryFormat add(String name, String expression, Type type) {
+		return add(new ColumnDefinition(name, expression, type));
+	}
+
 	public HistoryFormat add(String name, String expression, Filter... filters) {
-		ColumnDefinition columnDefinition = new ColumnDefinition(name, expression);
-		Arrays.stream(filters).forEach(columnDefinition::add);
-		this.columnDefinitions.add(columnDefinition);
-		return this;
+		return add(new ColumnDefinition(name, expression, filters));
 	}
 
 	public HistoryFormat add(ColumnDefinition columnDefinition) {
