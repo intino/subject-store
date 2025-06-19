@@ -3,6 +3,7 @@ package systems.intino.datamarts.subjectstore;
 import systems.intino.datamarts.subjectstore.io.triples.DumpTriples;
 import systems.intino.datamarts.subjectstore.model.Journal;
 import systems.intino.datamarts.subjectstore.model.Subject;
+import systems.intino.datamarts.subjectstore.model.Triple;
 import systems.intino.datamarts.subjectstore.model.Triples;
 import systems.intino.datamarts.subjectstore.model.journals.FileJournal;
 

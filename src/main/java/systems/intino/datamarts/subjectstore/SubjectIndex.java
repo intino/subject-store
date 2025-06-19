@@ -224,8 +224,10 @@ public class SubjectIndex {
 	}
 
 	private void rename(Subject subject, String identifier) {
-		int id = subjectPool.id(subject.identifier());
-		subjectPool.fix(id, identifier);
+		subjectPool.stream()
+				.filter(s->s.startsWith(subject.identifier()))
+				.map(subjectPool::id)
+				.forEach(id->subjectPool.fix(id,subjectPool.get(id).replace(subject.identifier(), identifier)));
 	}
 
 	private void drop(Subject subject) {

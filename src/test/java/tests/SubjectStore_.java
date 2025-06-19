@@ -44,6 +44,9 @@ public class SubjectStore_ {
 			assertThat(index.exists()).isFalse();
 			assertThat(journal.exists()).isTrue();
 			test1(store);
+			assertThat(store.has("taj_mahal.building/mina.detail")).isFalse();
+			assertThat(store.has("taj_mahal.building/minaret.detail")).isTrue();
+			assertThat(store.open("taj_mahal.building/minaret.detail").children().collect()).containsExactly(Subject.of("taj_mahal.building/minaret.detail/balcony.feature"));
 
 			store.seal();
 			assertThat(index.exists()).isTrue();
@@ -67,6 +70,9 @@ public class SubjectStore_ {
 			assertThat(store.query("type:building root").size()).isEqualTo(2);
 			assertThat(store.query("type:detail").collect().size()).isEqualTo(4);
 			assertThat(store.query("type:detail root").isRoot().size()).isEqualTo(0);
+			assertThat(store.has("taj_mahal.building")).isFalse();
+			assertThat(store.has("taj_mahal.building/minaret.detail")).isFalse();
+			assertThat(store.has("taj_mahal.building/minaret.detail/balcony.feature")).isFalse();
 
 			store.seal();
 			assertThat(index.exists()).isTrue();
@@ -105,7 +111,7 @@ public class SubjectStore_ {
 		assertThat(building.children().isType("detail").where("name").equals("At the Top").isRoot().collect()).isEmpty();
 		assertThat(building.children().isType("departament").collect().size()).isEqualTo(0);
 
-		assertThat(store.query().collect().size()).isEqualTo(9);
+		assertThat(store.query().collect().size()).isEqualTo(10);
 		assertThat(store.query().isRoot().size()).isEqualTo(3);
 		assertThat(store.query().isType("building").collect().size()).isEqualTo(3);
 		assertThat(store.query().isType("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
@@ -126,7 +132,7 @@ public class SubjectStore_ {
 	private static void test2(SubjectStore store) {
 		assertThat(store.has("alhambra", "building")).isTrue();
 		assertThat(store.has("torre del oro", "building")).isFalse();
-		assertThat(store.query().collect().size()).isEqualTo(9);
+		assertThat(store.query().collect().size()).isEqualTo(10);
 		assertThat(store.query().isRoot().size()).isEqualTo(3);
 		assertThat(store.query().isType("building").collect().size()).isEqualTo(3);
 		assertThat(store.query().isType("building").where("country").equals("Spain").collect().size()).isEqualTo(1);
@@ -175,8 +181,7 @@ public class SubjectStore_ {
 
 
 	private static void createSubjects(SubjectStore store) {
-		Subject subject = store.create("taj-mahal", "building");
-		Subject taj = subject.rename("taj_mahal");
+		Subject taj = store.create("taj-mahal", "building");
 		taj.update()
 				.set("name", "taj_mahal")
 				.set("year", 1648)
@@ -187,9 +192,16 @@ public class SubjectStore_ {
 				.set("shape", "onion")
 				.set("height", 35)
 				.set("material", "white marble");
-		taj.create("minaret", "detail").update()
+		Subject minaret = taj.create("mina", "detail");
+		minaret.update()
 				.set("count", 4)
 				.set("height", 40);
+		minaret.create("balcony", "feature").update()
+				.set("diameter", 3.5)
+				.set("position", "upper");
+		minaret.rename("minaret");
+
+		taj.rename("taj_mahal");
 
 
 		Subject alhambra = store.create("alhambra", "building");
