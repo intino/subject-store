@@ -30,8 +30,8 @@ public interface NumberReducer extends Function<Signal<?>, Double> {
 	}
 
 
-	static boolean contains(String function) {
-		return map.containsKey(function);
+	static boolean contains(String field) {
+		return map.containsKey(field);
 	}
 
 	static NumberReducer of(String name) {

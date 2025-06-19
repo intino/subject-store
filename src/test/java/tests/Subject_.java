@@ -58,7 +58,11 @@ public class Subject_ {
 		}
 	}
 
-
-
-
+	@Test
+	public void name() {
+		Subject subject = Subject.of("ulpgc.flogo", "collection");
+		assertThat(subject.name()).isEqualTo("ulpgc.flogo");
+		assertThat(subject.type()).isEqualTo("");
+		assertThat(subject.identifier()).isEqualTo("ulpgc.flogo.collection");
+	}
 }

@@ -102,10 +102,11 @@ public class Tokenizer {
 	}
 
 	private boolean isIdentifier() {
-		return Character.isAlphabetic(currentChar) ||
+		return Character.isLetter(currentChar) ||
 			   Character.isDigit(currentChar) ||
-			   "_-#.:".indexOf(currentChar) >= 0;
+			   "_-#.+:".indexOf(currentChar) >= 0;
 	}
+
 
 	private boolean isNumber() {
 		return isDigit(currentChar) || currentChar == '.' && isDigit(peekChar());

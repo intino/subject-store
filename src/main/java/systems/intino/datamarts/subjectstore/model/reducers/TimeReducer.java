@@ -34,8 +34,8 @@ public interface TimeReducer extends Function<Instant, Object> {
 		return map.getOrDefault(field, ts-> "Unknown field: " + field);
 	}
 
-	static boolean contains(String function) {
-		return map.containsKey(function);
+	static boolean contains(String field) {
+		return map.containsKey(field);
 	}
 
 	static ZonedDateTime zdt(Instant ts) {

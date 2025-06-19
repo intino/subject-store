@@ -14,16 +14,18 @@ public interface TextReducer extends Function<Signal<?>, String> {
 
 	private static Map<String, TextReducer> create() {
 		Map<String, TextReducer> map = new HashMap<>();
+		map.put("first", s -> hasCategoricalContent(s) ? categorical(s).points().getFirst().value() : "");
+		map.put("last", s -> hasCategoricalContent(s) ? categorical(s).points().getLast().value() : "");
 		map.put("mode", s -> hasCategoricalContent(s) ? categorical(s).summary().mode() : "");
 		return map;
 	}
 
-	static boolean contains(String function) {
-		return map.containsKey(function);
+	static boolean contains(String field) {
+		return map.containsKey(field);
 	}
 
-	static TextReducer of(String name) {
-		return map.containsKey(name) ? map.get(name) : s-> "Unknown function: " + name;
+	static TextReducer of(String field) {
+		return map.containsKey(field) ? map.get(field) : s-> "Unknown function: " + field;
 	}
 
 }
