@@ -3,6 +3,9 @@ package tests.history;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import systems.intino.datamarts.subjectstore.TimeSpan;
+import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
+import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 import tests.Jdbc;
 import systems.intino.datamarts.subjectstore.SubjectHistory;
 import systems.intino.datamarts.subjectstore.model.Signal;
@@ -11,6 +14,7 @@ import java.io.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.time.Instant;
+import java.util.Map;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -127,6 +131,19 @@ public class SubjectHistory_ {
 		{
 			SubjectHistory history = new SubjectHistory("00000", connection);
 			test_stored_time_series(history);
+		}
+	}
+
+	@Test
+	public void should_provide_summaries() {
+		SubjectHistory history = new SubjectHistory("00000", connection);
+		feed_time_series(history);
+		Map<String, Signal.Summary> summaries = history.summaries(TimeSpan.ThisYear);
+		for (String tag : summaries.keySet()) {
+			Signal.Summary summary = summaries.get(tag);
+			assertThat(summary.count()).isEqualTo(10);
+			if (summary instanceof NumericalSignal.Summary s) assertThat(s.mean()).isEqualTo(1945.);
+			if (summary instanceof CategoricalSignal.Summary s) assertThat(s.mode()).isEqualTo("E");
 		}
 	}
 

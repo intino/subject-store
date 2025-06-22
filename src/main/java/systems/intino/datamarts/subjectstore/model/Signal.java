@@ -143,4 +143,8 @@ public interface Signal<T>  {
 			return instant.toString().replaceAll("[-T:Z]","");
 		}
 	}
+
+	interface Summary {
+		int count();
+	}
 }

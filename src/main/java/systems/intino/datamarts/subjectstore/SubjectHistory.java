@@ -7,6 +7,7 @@ import systems.intino.datamarts.subjectstore.io.HistoryRegistry;
 import systems.intino.datamarts.subjectstore.io.database.SqlHistoryRegistry;
 import systems.intino.datamarts.subjectstore.model.*;
 import systems.intino.datamarts.subjectstore.model.Signal.Point;
+import systems.intino.datamarts.subjectstore.model.Signal.Summary;
 import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 
@@ -15,6 +16,7 @@ import java.sql.Connection;
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
 import java.util.*;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -26,12 +28,14 @@ public class SubjectHistory {
 	private final HistoryRegistry registry;
 	private final TagSet tagSet;
 	private final Timeline timeline;
+	private final Map<String, Summary> summaries;
 
 	public SubjectHistory(String subject, Connection connection) {
 		this.subject = subject;
 		this.registry = new SqlHistoryRegistry(subject, connection);
 		this.tagSet = new TagSet(registry.tags());
 		this.timeline = new Timeline(registry.instants());
+		this.summaries = new HashMap<>();
 	}
 
 	public String subject() {
@@ -221,6 +225,22 @@ public class SubjectHistory {
 		registry.drop();
 	}
 
+	public Map<String, Summary> summaries(TimeSpan span) {
+		if (summaries.isEmpty()) summaries.putAll(calculateSummaries(span));
+		return summaries;
+	}
+
+	private Map<String, Summary> calculateSummaries(TimeSpan span) {
+		return tagSet.tags().stream().collect(with(span, current()));
+	}
+
+	private Collector<String, ?, Map<String, Summary>> with(TimeSpan span, Current current) {
+		return Collectors.toMap(t -> t, t -> current.number(t) != null ?
+				query().number(t).get(span).summary() :
+				query().text(t).get(span).summary()
+		);
+	}
+
 	public class NumericalQuery {
 		private final String tag;
 
@@ -302,6 +322,7 @@ public class SubjectHistory {
 				if (feed.isEmpty()) return;
 				SubjectHistory.this.put(feed);
 				registry.commit();
+				summaries.clear();
 			}
 		};
 	}
@@ -337,6 +358,7 @@ public class SubjectHistory {
 			public void terminate() {
 				feeds.forEach(feed -> put(feed));
 				registry.commit();
+				summaries.clear();
 			}
 		};
 	}

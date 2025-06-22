@@ -38,7 +38,7 @@ public interface CategoricalSignal extends Signal<String> {
 
 	}
 
-	class Summary {
+	class Summary implements Signal.Summary {
 		private final int count;
 		private final SequencedMap<String, Integer> frequencies;
 

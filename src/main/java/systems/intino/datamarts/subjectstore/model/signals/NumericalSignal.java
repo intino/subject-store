@@ -96,7 +96,7 @@ public interface NumericalSignal extends Signal<Double> {
 
 	}
 
-	class Summary {
+	class Summary implements Signal.Summary {
 		private final int count;
 		private final double sum;
 		private final double mean;
@@ -169,7 +169,6 @@ public interface NumericalSignal extends Signal<Double> {
 		public int hashCode() {
 			return Objects.hash(sum, count, mean, sd, min, max);
 		}
-
 
 		private static class Calculator {
 			Point<Double> maxPoint;

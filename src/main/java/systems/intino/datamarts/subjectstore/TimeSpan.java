@@ -6,7 +6,7 @@ import static java.time.temporal.ChronoUnit.*;
 
 public enum TimeSpan {
 	ThisYear, ThisMonth, ThisWeek, Today, ThisHour, ThisMinute, ThisSecond,
-	LastYearWindow, LastMonthWindow, LastWeekWindow, LastDayWindow, LastHourWindow, LasMinuteWindow, LasSecondWindow;
+	LastYearWindow, LastMonthWindow, LastWeekWindow, LastDayWindow, LastHourWindow, LastMinuteWindow, LastSecondWindow;
 
 	public Instant from() {
 		return switch (this) {
@@ -22,8 +22,8 @@ public enum TimeSpan {
 			case LastWeekWindow -> TimeReferences.today().minus(7, DAYS);
 			case LastDayWindow -> TimeReferences.today().minus(1, DAYS);
 			case LastHourWindow -> TimeReferences.thisHour().minus(1, HOURS);
-			case LasMinuteWindow -> TimeReferences.thisMinute().minus(1, MINUTES);
-			case LasSecondWindow -> TimeReferences.thisSecond().minus(1, SECONDS);
+			case LastMinuteWindow -> TimeReferences.thisMinute().minus(1, MINUTES);
+			case LastSecondWindow -> TimeReferences.thisSecond().minus(1, SECONDS);
 		};
 	}
 
@@ -42,8 +42,8 @@ public enum TimeSpan {
 				 LastWeekWindow,
 				 LastDayWindow -> TimeReferences.today();
 			case LastHourWindow -> TimeReferences.thisHour();
-			case LasMinuteWindow -> TimeReferences.thisMinute();
-			case LasSecondWindow -> TimeReferences.thisSecond();
+			case LastMinuteWindow -> TimeReferences.thisMinute();
+			case LastSecondWindow -> TimeReferences.thisSecond();
 		};
 	}
 

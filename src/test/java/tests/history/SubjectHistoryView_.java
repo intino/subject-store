@@ -65,7 +65,7 @@ public class SubjectHistoryView_ {
 	}
 	@Test
 	public void should_export_to_tabular_report_with_format_as_object() throws IOException {
-		SubjectHistory history = new SubjectHistory("map", connection);
+		SubjectHistory history = new SubjectHistory("0001.place", connection);
 		feed(history);
 		HistoryFormat historyFormat = new HistoryFormat(new RowDefinition(from, to, Duration.ofDays(7)))
 			.add("year","ts.year")
@@ -88,7 +88,7 @@ public class SubjectHistoryView_ {
 
 	@Test
 	public void test_subject_history_view_with_lag_and_lead_filters() throws IOException {
-		SubjectHistory history = new SubjectHistory("map", connection);
+		SubjectHistory history = new SubjectHistory("0001.place", connection);
 		for (int i = 0; i < 2000; i++) {
 			SubjectHistory.Batch batch = history.batch();
 			batch.on(from.plus(i, HOURS), "test")
@@ -114,7 +114,7 @@ public class SubjectHistoryView_ {
 
 	@Test
 	public void should_export_to_tabular_report_with_format_as_string() throws IOException {
-		SubjectHistory history = new SubjectHistory("map", connection);
+		SubjectHistory history = new SubjectHistory("0001.place", connection);
 			feed(history);
 			String format = """
 			rows:

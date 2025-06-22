@@ -223,11 +223,10 @@ public class SubjectIndex {
 		}
 	}
 
-	private void rename(Subject subject, String identifier) {
+	private void rename(String oldId, String newId) {
 		subjectPool.stream()
-				.filter(s->s.startsWith(subject.identifier()))
-				.map(subjectPool::id)
-				.forEach(id->subjectPool.fix(id,subjectPool.get(id).replace(subject.identifier(), identifier)));
+				.filter(s->s.startsWith(oldId))
+				.forEach(s ->subjectPool.fix(subjectPool.id(s), newId + s.substring(oldId.length())));
 	}
 
 	private void drop(Subject subject) {
@@ -409,7 +408,7 @@ public class SubjectIndex {
 			public void rename(Subject subject, String identifier) {
 				synchronized (journal) {
 					journal.add(new Journal.Transaction(rename, subject.identifier(), nameIn(identifier)));
-					SubjectIndex.this.rename(subject, identifier);
+					SubjectIndex.this.rename(subject.identifier(), identifier);
 				}
 			}
 
