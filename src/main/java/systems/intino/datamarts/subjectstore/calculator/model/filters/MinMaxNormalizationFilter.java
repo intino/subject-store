@@ -20,7 +20,7 @@ public record MinMaxNormalizationFilter() implements Filter {
 
 		double range = max - min;
 		for (int i = 0; i < input.length; i++)
-			output[i] = range != 0 ? (input[i] - min) / range : NaN;
+			output[i] = range != 0 ? (input[i] - min) / range : 0;
 
 		return output;
 	}

@@ -176,14 +176,11 @@ public interface NumericalSignal extends Signal<Double> {
 			Point<Double> firstPoint;
 			Point<Double> lastPoint;
 			double sum = 0;
-			double min = Double.MAX_VALUE;
-			double max = Double.MIN_VALUE;
+			double min = Double.POSITIVE_INFINITY;
+			double max = Double.NEGATIVE_INFINITY;
 			int count = 0;
 			double mean = 0;
 			double m2 = 0;
-
-			public Calculator() {
-			}
 
 			private Calculator calculate(Iterable<Point<Double>> points) {
 				for (Point<Double> point : points)

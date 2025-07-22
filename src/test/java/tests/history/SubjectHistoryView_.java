@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.Period;
 
 import static java.lang.Math.sin;
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -63,6 +64,20 @@ public class SubjectHistoryView_ {
 	public void tearDown() throws Exception {
 		this.connection.close();
 	}
+
+	public void name() throws IOException {
+		SubjectHistory history = new SubjectHistory("Province39", connection);
+		System.out.println(history.first());
+		HistoryFormat historyFormat = new HistoryFormat(new RowDefinition(history.first(), history.last(), Period.ofMonths(1)))
+				.add("Imports:TL:41","Imports:TL:41.first");
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		SubjectHistoryView.of(history)
+				.with(historyFormat)
+				.export().to(os);
+		String output = os.toString();
+		System.out.println(output);
+	}
+
 	@Test
 	public void should_export_to_tabular_report_with_format_as_object() throws IOException {
 		SubjectHistory history = new SubjectHistory("0001.place", connection);

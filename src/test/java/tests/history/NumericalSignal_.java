@@ -1,7 +1,7 @@
 package tests.history;
 
 import org.junit.Test;
-import systems.intino.datamarts.subjectstore.model.Signal;
+import systems.intino.datamarts.subjectstore.model.Signal.Point;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 
 import java.time.Duration;
@@ -20,6 +20,7 @@ import static systems.intino.datamarts.subjectstore.TimeReferences.today;
 @SuppressWarnings("NewClassNamingConvention")
 public class NumericalSignal_ {
 
+
 	@Test
 	public void should_create_empty_signal_with_correct_bounds_and_summary() {
 		NumericalSignal.Raw signal = new NumericalSignal.Raw(today(-15), today(15), List.of());
@@ -36,6 +37,20 @@ public class NumericalSignal_ {
 		assertThat(signal.summary().max()).isNull();
 		assertThat(signal.summary().range()).isNaN();
 	}
+
+	@Test
+	public void should_calculate_signals_with_points_equal_zero() {
+		NumericalSignal.Raw signal = new NumericalSignal.Raw(today(-15), today(15), zero(-5, 5));
+		assertThat(signal.from()).isEqualTo(today(-15));
+		assertThat(signal.to()).isEqualTo(today(15));
+		assertThat(signal.duration()).isEqualTo(Duration.of(30, DAYS));
+		assertThat(signal.isEmpty()).isFalse();
+		assertThat(signal.count()).isEqualTo(240);
+		assertThat(signal.summary().count()).isEqualTo(240);
+		assertThat(signal.summary().max().value()).isEqualTo(0);
+		assertThat(signal.summary().min().value()).isEqualTo(0);
+	}
+
 
 	@Test
 	public void should_return_identical_summary_for_signals_with_same_points() {
@@ -128,14 +143,24 @@ public class NumericalSignal_ {
 		assertThat(segments[3].duration()).isEqualTo(Duration.ofDays(30));
 	}
 
-	private List<Signal.Point<Double>> points(int from, int to) {
+	private List<Point<Double>> points(int from, int to) {
 		return IntStream.range(from * 24, to * 24)
 				.mapToObj(NumericalSignal_::point)
 				.collect(toList());
 	}
 
-	private static Signal.Point<Double> point(int i) {
-		return new Signal.Point<>(feed(i), hour(i), value(i));
+	private List<Point<Double>> zero(int from, int to) {
+		return IntStream.range(from * 24, to * 24)
+				.mapToObj(NumericalSignal_::zeroPoint)
+				.collect(toList());
+	}
+
+	private static Point<Double> zeroPoint(int i) {
+		return new Point<>(feed(i), hour(i), 0.);
+	}
+
+	private static Point<Double> point(int i) {
+		return new Point<>(feed(i), hour(i), value(i));
 	}
 
 	private static Instant hour(int i) {

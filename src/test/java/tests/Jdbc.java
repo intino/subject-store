@@ -28,6 +28,7 @@ public class Jdbc {
 
 	public static String sqlite() throws IOException {
 		File file = Files.createTempFile("history", "iss").toFile();
+		//file = new File("subjects.ddb");
 		return "jdbc:sqlite:" + file.getAbsolutePath();
 	}
 

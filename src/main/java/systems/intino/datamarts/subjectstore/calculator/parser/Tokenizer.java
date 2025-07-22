@@ -104,7 +104,7 @@ public class Tokenizer {
 	private boolean isIdentifier() {
 		return Character.isLetter(currentChar) ||
 			   Character.isDigit(currentChar) ||
-			   "_-#.+:".indexOf(currentChar) >= 0;
+			   "_#.:+-".indexOf(currentChar) >= 0;
 	}
 
 

@@ -71,23 +71,33 @@ Tags support field operators to aggregate values within a time segment. Syntax: 
 
 ## Time stamps Fields
 
-The `ts` object allows access to temporal markers:
+The `ts` object allows access to temporal fields:
 
-| Field                               | Description                   |
-|-------------------------------------|-------------------------------|
-| `minute-of-hour`                    | Minute of hour (00–59)        |
-| `hour-of-day`                       | Hour of day (00–23)           |
-| `day-of-week`                       | Day of the week (1–7)         |
-| `day-of-month`                      | Day of the month (1–31)       |
-| `month-of-year`                     | Month of the year (1–12)      |
-| `quarter-of-year`                   | Quarter (1–4)                 |
-| `year`                              | Year                          |
-| `year-quarter`                      | Formatted as `YYYYQX`         |
-| `year-month`                        | Formatted as `YYYYMM`         |
-| `year-month-day`                    | Formatted as `YYYYMMDD`       |
-| `year-month-day-hour`               | Formatted as `YYYYMMDDHH`     |
-| `year-month-day-hour-minute`        | Formatted as `YYYYMMDDHHmm`   |
-| `year-month-day-hour-minute-second` | Formatted as `YYYYMMDDHHmmss` |
+| Field                               | Description                         |
+|-------------------------------------|-------------------------------------|
+| `minute-of-hour`                    | Minute of hour (00–59)              |
+| `second-of-minute`                  | Second of minute (00–59)            |
+| `hour-of-day`                       | Hour of day (00–23)                 |
+| `day-of-week`                       | Day of the week (1–7)               |
+| `day-of-month`                      | Day of the month (1–31)             |
+| `month-of-year`                     | Month of the year (1–12)            |
+| `quarter-of-year`                   | Quarter (1–4)                       |
+| `week-of-year`                      | Week number within the year (1–53)  |
+| `year`                              | Year                                |
+| `epoch-years`                       | Years since epoch                   |
+| `epoch-months`                      | Months since epoch                  |
+| `epoch-days`                        | Days since epoch                    |
+| `epoch-hours`                       | Hours since epoch                   |
+| `epoch-minutes`                     | Minutes since epoch                 |
+| `epoch-seconds`                     | Seconds since epoch                 |
+| `year-quarter`                      | Formatted as `YYYYQX`               |
+| `year-month`                        | Formatted as `YYYYMM`               |
+| `year-month-day`                    | Formatted as `YYYYMMDD`             |
+| `year-month-day-hour`               | Formatted as `YYYYMMDDHH`           |
+| `year-month-day-hour-minute`        | Formatted as `YYYYMMDDHHmm`         |
+| `year-month-day-hour-minute-second` | Formatted as `YYYYMMDDHHmmss`       |
+| `iso`                               | ISO 8601 formatted timestamp        |
+
 
 ## Functions
 
