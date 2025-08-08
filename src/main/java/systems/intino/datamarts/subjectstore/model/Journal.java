@@ -48,7 +48,9 @@ public interface Journal {
 		}
 
 		public static Transaction of(String line) {
+			if(line.isBlank()) throw new BadTransactionException("Transaction line cannot be empty or blank");
 			String[] split = line.split(" ", 3);
+			if(split.length != 3) throw new BadTransactionException("Transaction must have 3 parts: type, subject and parameter, separated by 1 whitespace");
 			return new Transaction(Type.valueOf(split[0]), split[1], split[2]);
 		}
 
@@ -59,6 +61,12 @@ public interface Journal {
 			@Override
 			public String toString() {
 				return this.name();
+			}
+		}
+
+		public static class BadTransactionException extends RuntimeException {
+			public BadTransactionException(String message) {
+				super(message);
 			}
 		}
 	}
