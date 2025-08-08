@@ -32,6 +32,7 @@ public class StringJournal implements Journal {
 	private List<Transaction> transactionsIn(String content) {
 		if (content.isEmpty()) return List.of();
 		return Arrays.stream(content.split("\n"))
+				.filter(line -> !line.isBlank())
 				.map(Transaction::of)
 				.toList();
 	}

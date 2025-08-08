@@ -20,6 +20,7 @@ public class FileJournal implements Journal {
 
 	public List<Transaction> transactions() {
 		return linesIn().stream()
+				.filter(line -> !line.isBlank())
 				.map(Transaction::of)
 				.toList();
 	}
