@@ -297,11 +297,7 @@ public class SqlHistoryRegistry implements HistoryRegistry, AutoCloseable {
 
 	private void closeIfExhausted(Row row, ResultSet rs) {
 		if(row == null) {
-			try {
-				rs.close();
-			} catch (SQLException e) {
-				throw new RuntimeException(e);
-			}
+			close(rs);
 		}
 	}
 
@@ -312,7 +308,6 @@ public class SqlHistoryRegistry implements HistoryRegistry, AutoCloseable {
 	private static void close(ResultSet rs) {
 		try {
 			rs.close();
-			rs.getStatement().close();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
