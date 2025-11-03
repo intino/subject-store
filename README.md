@@ -24,7 +24,7 @@ To use `SubjectStore` in your Java project, add the following dependency to your
 <dependency>
     <groupId>systems.intino.datamarts</groupId>
     <artifactId>subject-store</artifactId>
-    <version>2.1.6</version>
+    <version>2.2.0</version>
 </dependency>
 ```
 
@@ -173,6 +173,8 @@ To insert historical data into a Subject, you use the historyOf(subject) method 
 
 Once all data for that timestamp is added, you must call .terminate() to commit the entry.
 
+**Note**: on versions >= 2.2.0, **the SubjectHistory object should always be closed after using it. The recommended approach is to use a try-with-resources block.**
+
 Here is a complete example:
 
 ```java
@@ -184,13 +186,18 @@ SubjectStore store = new SubjectStore(new File("index.triples"))
 
 Subject subject = store.open("eiffel tower", "building");
 
-SubjectHistory history = store.historyOf(subject);
+try(SubjectHistory history = store.historyOf(subject)) {
+	
+    history.on("2025-04-17", "website")
+        .put("state", "open")
+        .put("visitants", 3500)
+        .put("income", 42000)
+        .terminate();
+}
 
-history.on("2025-04-17", "website")
-    .put("state", "open")
-    .put("visitants", 3500)
-    .put("income", 42000)
-    .terminate();
+// ...
+
+connection.close();
 ```
 
 In this case, historical entries are saved in a SQLite database file named buildings.iss. The system supports any JDBC-compatible database, such as SQLite, PostgreSQL, MySQL or MariaDB, allowing you to scale or integrate according to your needs.
@@ -203,21 +210,22 @@ Inserting lots of historical data with transactions can be very slow, because ea
 For those cases, use batch mode to commit multiple transactions at once. For example:
 
 ```java
-SubjectHistory history = store.historyOf(subject);
-
-SubjectHistory.Batch batch = history.batch();
-
-Instant from = Instant.parse("2025-05-01T00:00:00Z");
-
-for(int i = 0;i < 1000;i++) {
+try(SubjectHistory history = store.historyOf(subject)) {
+	
+    SubjectHistory.Batch batch = history.batch();
+    
+    Instant from = Instant.parse("2025-05-01T00:00:00Z");
+    
+    for(int i = 0;i < 1000;i++) {
     Instant ts = from.plusSeconds(i);
-    history.on(ts, "sensor")
-        .put("state", stateAt(ts))
-        .put("temperature", temperatureAt(ts))
-        .terminate();
+        history.on(ts, "sensor")
+            .put("state", stateAt(ts))
+            .put("temperature", temperatureAt(ts))
+            .terminate();
+    }
+    
+	batch.terminate();	
 }
-
-batch.terminate();
 ```
 
 

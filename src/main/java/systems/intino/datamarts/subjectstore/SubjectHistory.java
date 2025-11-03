@@ -12,6 +12,9 @@ import systems.intino.datamarts.subjectstore.model.signals.CategoricalSignal;
 import systems.intino.datamarts.subjectstore.model.signals.NumericalSignal;
 
 import java.io.*;
+import java.net.http.HttpClient;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
@@ -23,7 +26,8 @@ import java.util.stream.Stream;
 import static java.util.Comparator.comparingInt;
 import static systems.intino.datamarts.subjectstore.TimeParser.parseInstant;
 
-public class SubjectHistory {
+public class SubjectHistory implements AutoCloseable {
+
 	private final String subject;
 	private final HistoryRegistry registry;
 	private final TagSet tagSet;
@@ -120,8 +124,10 @@ public class SubjectHistory {
 		};
 	}
 
-	private Map<String, Point<?>> valuesOf(Stream<Row> current) {
-		return current.collect(Collectors.toMap(this::tag, this::point));
+	private Map<String, Point<?>> valuesOf(Stream<Row> rows) {
+		try(rows) {
+			return rows.collect(Collectors.toMap(this::tag, this::point));
+		}
 	}
 
 	private Point<?> point(Row row) {
@@ -154,9 +160,11 @@ public class SubjectHistory {
 	}
 
 	private List<Point<Double>> readNumbers(Stream<Row> records) {
-		return records.map(this::readNumber)
-				.sorted(Comparator.comparing(Point::instant))
-				.toList();
+		try(records) {
+			return records.map(this::readNumber)
+					.sorted(Comparator.comparing(Point::instant))
+					.toList();
+		}
 	}
 
 	private Point<Double> readNumber(Row row) {
@@ -169,10 +177,12 @@ public class SubjectHistory {
 	}
 
 	private List<Point<String>> readTexts(Stream<Row> records) {
-		return records
-				.map(this::readText)
-				.sorted(Comparator.comparing(Point::instant))
-				.toList();
+		try(records) {
+			return records
+					.map(this::readText)
+					.sorted(Comparator.comparing(Point::instant))
+					.toList();
+		}
 	}
 
 	private Point<String> readText(Row row) {
@@ -239,6 +249,15 @@ public class SubjectHistory {
 				query().number(t).get(span).summary() :
 				query().text(t).get(span).summary()
 		);
+	}
+
+	@Override
+	public void close() {
+		try {
+			registry.close();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public class NumericalQuery {
@@ -464,7 +483,9 @@ public class SubjectHistory {
 		}
 		
 		private void init(Stream<Row> rows) {
-			rows.forEach(this::init);
+			try(rows) {
+				rows.forEach(this::init);
+			}
 		}
 
 		private void init(Row row) {
@@ -539,7 +560,9 @@ public class SubjectHistory {
 		}
 
 		private void init(Stream<Row> records) {
-			records.forEach(this::init);
+			try(records) {
+				records.forEach(this::init);
+			}
 		}
 
 		private void init(Row r) {

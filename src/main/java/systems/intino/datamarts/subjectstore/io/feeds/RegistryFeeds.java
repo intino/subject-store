@@ -13,6 +13,7 @@ public class RegistryFeeds implements Iterable<Feed> {
 	private final Iterator<Row> iterator;
 	private final Function<Integer, String> tagNames;
 	private Row row;
+	private boolean closed;
 
 	public RegistryFeeds(Stream<Row> stream, Function<Integer, String> tagNames) {
 		this.iterator = stream.iterator();
@@ -24,6 +25,7 @@ public class RegistryFeeds implements Iterable<Feed> {
 	public Iterator<Feed> iterator() {
 		return new Iterator<>() {
 			Feed feed = nextFeed();
+
 			@Override
 			public boolean hasNext() {
 				return feed != null;
@@ -33,8 +35,7 @@ public class RegistryFeeds implements Iterable<Feed> {
 			public Feed next() {
 				try {
 					return feed;
-				}
-				finally {
+				} finally {
 					feed = nextFeed();
 				}
 			}
@@ -57,7 +58,20 @@ public class RegistryFeeds implements Iterable<Feed> {
 	}
 
 	private Row nextRow() {
-		return iterator.hasNext() ? iterator.next() : null;
+		if(iterator.hasNext()) return iterator.next();
+		if(!closed) {
+			close(iterator);
+			closed = true;
+		}
+		return null;
+	}
+
+	private void close(Iterator<Row> iterator) {
+		try {
+			if(iterator instanceof AutoCloseable closeable) {
+				closeable.close();
+			}
+		} catch (Exception ignored) {}
 	}
 
 	private Instant instantAt(Row row) {

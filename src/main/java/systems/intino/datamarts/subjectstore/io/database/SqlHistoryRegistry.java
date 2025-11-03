@@ -11,7 +11,8 @@ import java.util.stream.Stream;
 
 import static java.sql.Types.*;
 
-public class SqlHistoryRegistry implements HistoryRegistry {
+public class SqlHistoryRegistry implements HistoryRegistry, AutoCloseable {
+
 	private final String identifier;
 	private final Connection connection;
 	private final Map<String, PreparedStatement> statements;
@@ -34,6 +35,7 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 		return feedCount;
 	}
 
+	@Override
 	public Stream<Row> tags() {
 		try {
 			return streamOf(selectTags());
@@ -42,6 +44,7 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 		}
 	}
 
+	@Override
 	public Stream<Row> instants() {
 		try {
 			return streamOf(selectInstants());
@@ -285,10 +288,21 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 		return value.toString().substring(0, 19).replace('T', ' ');
 	}
 
-	private Stream<Row> streamOf(ResultSet rs)  {
+	private Stream<Row> streamOf(ResultSet rs) {
 		return Stream.generate(() -> recordIn(rs))
+				.peek(row -> closeIfExhausted(row, rs))
 				.takeWhile(Objects::nonNull)
 				.onClose(() -> close(rs));
+	}
+
+	private void closeIfExhausted(Row row, ResultSet rs) {
+		if(row == null) {
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 	private Row recordIn(ResultSet rs) {
@@ -297,8 +311,8 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 
 	private static void close(ResultSet rs) {
 		try {
-			rs.getStatement().close();
 			rs.close();
+			rs.getStatement().close();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -362,5 +376,16 @@ public class SqlHistoryRegistry implements HistoryRegistry {
 	@Override
 	public String toString() {
 		return identifier;
+	}
+
+	@Override
+	public void close() {
+		statements.values().forEach(s -> {
+			try {
+				s.close();
+			} catch (SQLException e) {
+				throw new RuntimeException(e);
+			}
+		});
 	}
 }
